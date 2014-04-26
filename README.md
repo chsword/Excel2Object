@@ -39,5 +39,8 @@ Demo Code
 与ASP.NET MVC结合使用
       由于ASP.NET MVC中Model上会使用DisplayAttribute所以Excel2Object除了支持ExcelAttribute外，也支持DisplayAttribute。
             
-
-
+.NET 项目中使用
+  使用NuGet安装即可，命令行安装
+    Install-Package Chsword.Excel2Object
+  或搜索包
+    Chsword.Excel2Object
