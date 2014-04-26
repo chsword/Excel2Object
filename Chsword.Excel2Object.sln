@@ -7,6 +7,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chsword.Excel2Object", "Chs
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chsword.Excel2Object.Tests", "Chsword.Excel2Object.Tests\Chsword.Excel2Object.Tests.csproj", "{09069580-A47F-4FE2-B4B0-8A296504CB39}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D2F0F367-7964-450C-8F67-C5033FEE9B1C}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\Chsword.Excel2Object.nuspec = .nuget\Chsword.Excel2Object.nuspec
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
