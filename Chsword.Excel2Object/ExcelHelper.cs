@@ -1,0 +1,34 @@
+﻿using System.Collections.Generic;
+using System.IO;
+
+namespace Chsword.Excel2Object
+{
+    public class ExcelHelper
+    {
+        /// <summary>
+        /// import file excel file to a IEnumerable of TModel
+        /// </summary>
+        /// <typeparam name="TModel"></typeparam>
+        /// <param name="path">excel full path</param>
+        /// <returns></returns>
+        public static IEnumerable<TModel> ExcelToObject<TModel>(string path) where TModel : class, new()
+        {
+            var importer = new ExcelImporter();
+            return importer.ExcelToObject<TModel>(path);
+
+        }
+
+        /// <summary>
+        /// Export object to excel file
+        /// </summary>
+        /// <typeparam name="TModel"></typeparam>
+        /// <param name="data">a IEnumerable of TModel</param>
+        /// <param name="path">excel full path</param>
+        public static void ObjectToExcel<TModel>(IEnumerable<TModel> data,string path) where TModel : class, new()
+        {
+            var importer = new ExcelExporter();
+            var bytes=importer.ObjectToExcelBytes<TModel>(data);
+            File.WriteAllBytes(path, bytes);
+        }
+    }
+}
