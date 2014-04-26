@@ -41,6 +41,9 @@ Demo Code
             
 .NET 项目中使用
   使用NuGet安装即可，命令行安装
+    
     Install-Package Chsword.Excel2Object
+    
   或搜索包
+    
     Chsword.Excel2Object
