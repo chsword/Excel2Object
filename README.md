@@ -47,3 +47,10 @@ Demo Code
   或搜索包
     
     Chsword.Excel2Object
+
+博客说明
+
+    http://www.cnblogs.com/chsword/p/excel2object.html
+    
+    
+    
