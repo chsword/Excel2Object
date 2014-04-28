@@ -50,7 +50,7 @@ Demo Code
 
 博客说明
 
-    [http://www.cnblogs.com/chsword/p/excel2object.html]
+    http://www.cnblogs.com/chsword/p/excel2object.html
     
     
     
