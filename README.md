@@ -3,6 +3,9 @@ Excel2Object
 
 Excel 与 Object 互相转换
 
+使用的NPOI
+
+https://github.com/tonyqus/npoi
 
 Demo Code
 前提
