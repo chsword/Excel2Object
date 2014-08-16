@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30110.0
+VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chsword.Excel2Object", "Chsword.Excel2Object\Chsword.Excel2Object.csproj", "{E1A1C76A-CAB7-4C75-AE44-BB797CF40D38}"
 EndProject
@@ -9,7 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chsword.Excel2Object.Tests"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{D2F0F367-7964-450C-8F67-C5033FEE9B1C}"
 	ProjectSection(SolutionItems) = preProject
-		.nuget\Chsword.Excel2Object.nuspec = .nuget\Chsword.Excel2Object.nuspec
 		.nuget\NuGet.Config = .nuget\NuGet.Config
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
