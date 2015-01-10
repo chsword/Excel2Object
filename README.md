@@ -23,7 +23,7 @@ PM> Install-Package Chsword.Excel2Object
     }
 ```
 准备一个List
-``` csharp
+``` cs
       var models = new List<ReportModel>
             {
                 new ReportModel{Name="a",Title="b"},
