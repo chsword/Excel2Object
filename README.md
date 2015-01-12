@@ -1,21 +1,18 @@
 Excel2Object
 ============
-[![install from nuget](http://img.shields.io/nuget/v/Chsword.Excel2Object.svg?style=flat-square)](https://www.nuget.org/packages/Chsword.Excel2Object)[![downloads](http://img.shields.io/nuget/dt/Chsword.Excel2Object.svg?style=flat-square)](https://www.nuget.org/packages/Chsword.Excel2Object)
+[![install from nuget](http://img.shields.io/nuget/v/Chsword.Excel2Object.svg?style=flat-square)](https://www.nuget.org/packages/Chsword.Excel2Object)
+[![downloads](http://img.shields.io/nuget/dt/Chsword.Excel2Object.svg?style=flat-square)](https://www.nuget.org/packages/Chsword.Excel2Object)
+[![release](https://img.shields.io/github/release/chsword/Chsword.Excel2Object.svg?style=flat-square)](https://github.com/chsword/Chsword.Excel2Object/releases)
 
+Excel convert to .NET Object
 
-
-Excel 与 Object 互相转换
-
-使用的NPOI
-https://github.com/tonyqus/npoi
 
 ### NuGet Install
 ```powershell
 PM> Install-Package Chsword.Excel2Object
 ```
 ### Demo Code
-前提
-准备一个Model
+Model
 ``` csharp
     public class ReportModel
     {
@@ -25,7 +22,7 @@ PM> Install-Package Chsword.Excel2Object
         public string Name { get; set; }
     }
 ```
-准备一个List
+Model List
 ``` cs
       var models = new List<ReportModel>
             {
@@ -34,19 +31,24 @@ PM> Install-Package Chsword.Excel2Object
                 new ReportModel{Name="f",Title="e"}
             };
 ```
-由Object转为Excel
+Convert Object to Excel file.
 ``` csharp
       var exporter = new ExcelExporter();
       var bytes = exporter.ObjectToExcelBytes(models);
       File.WriteAllBytes("C:\\demo.xls", bytes);
 ```
-由Excel转为Object
+Convert Excel file to Object
 ``` csharp
       var importer = new ExcelImporter();
       IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>("c:\\demo.xls");
 ```
-与ASP.NET MVC结合使用
-      由于ASP.NET MVC中Model上会使用DisplayAttribute所以Excel2Object除了支持ExcelAttribute外，也支持DisplayAttribute。
+With ASP.NET MVC
+      In ASP.NET MVC Model, DisplayAttribute can be supported like ExcelAttribute.
 
-博客说明
+### Document
 http://www.cnblogs.com/chsword/p/excel2object.html
+
+### Reference
+NPOI
+https://github.com/tonyqus/npoi
+
