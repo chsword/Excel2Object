@@ -160,21 +160,21 @@ namespace Chsword.Excel2Object
 						}
 						else if (!str.Contains("年") && !str.Contains("月") && !str.Contains("日"))
 						{
-							try
+
+							DateTime dt;
+							if (DateTime.TryParse(str, out dt))
 							{
-								result = Convert.ToDateTime(str);
+								result = dt;
 							}
-							catch
+							else if (DateTime.TryParse((str + "-01-01").Replace("年", "").Replace("月", ""), out dt))
 							{
-								try
-								{
-									result = Convert.ToDateTime((str + "-01-01").Replace("年", "").Replace("月", ""));
-								}
-								catch
-								{
-									result = null;
-								}
+								result = dt;
 							}
+							else
+							{
+								result = null;
+							}
+							
 						}
 						else
 						{
@@ -187,9 +187,6 @@ namespace Chsword.Excel2Object
 						break;
 					case CellType.Blank:
 						break;
-					#region
-
-					#endregion
 					default:
 						break;
 				}
