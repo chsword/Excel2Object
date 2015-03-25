@@ -16,7 +16,7 @@ namespace Chsword.Excel2Object
         {
             var result = GetDataRows(path);
             var dict = ExcelUtil.GetExportAttrDict<TModel>();
-            var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelAttribute>>();
+            var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
 
             IEnumerator rows = result;
 
