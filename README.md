@@ -1,16 +1,19 @@
 Excel2Object
 ============
+[![install from nuget](http://img.shields.io/nuget/v/Chsword.Excel2Object.svg?style=flat-square)](https://www.nuget.org/packages/Chsword.Excel2Object)
+[![downloads](http://img.shields.io/nuget/dt/Chsword.Excel2Object.svg?style=flat-square)](https://www.nuget.org/packages/Chsword.Excel2Object)
+[![release](https://img.shields.io/github/release/chsword/Excel2Object.svg?style=flat-square)](https://github.com/chsword/Excel2Object/releases)
 
-Excel 与 Object 互相转换
+Excel convert to .NET Object
 
-使用的NPOI
 
-https://github.com/tonyqus/npoi
-
-Demo Code
-前提
-准备一个Model
-
+### NuGet Install
+```powershell
+PM> Install-Package Chsword.Excel2Object
+```
+### Demo Code
+Model
+``` csharp
     public class ReportModel
     {
         [Excel("标题",Order=1)]
@@ -18,42 +21,34 @@ Demo Code
         [Excel("用户",Order=2)]
         public string Name { get; set; }
     }
-
-准备一个List
-
+```
+Model List
+``` cs
       var models = new List<ReportModel>
             {
                 new ReportModel{Name="a",Title="b"},
                 new ReportModel{Name="c",Title="d"},
                 new ReportModel{Name="f",Title="e"}
             };
-
-由Object转为Excel
-
+```
+Convert Object to Excel file.
+``` csharp
       var exporter = new ExcelExporter();
       var bytes = exporter.ObjectToExcelBytes(models);
       File.WriteAllBytes("C:\\demo.xls", bytes);
-
-由Excel转为Object
-
+```
+Convert Excel file to Object
+``` csharp
       var importer = new ExcelImporter();
       IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>("c:\\demo.xls");
-      
-与ASP.NET MVC结合使用
-      由于ASP.NET MVC中Model上会使用DisplayAttribute所以Excel2Object除了支持ExcelAttribute外，也支持DisplayAttribute。
-            
-.NET 项目中使用
-  使用NuGet安装即可，命令行安装
-    
-    Install-Package Chsword.Excel2Object
-    
-  或搜索包
-    
-    Chsword.Excel2Object
+```
+With ASP.NET MVC
+      In ASP.NET MVC Model, DisplayAttribute can be supported like ExcelAttribute.
 
-博客说明
-
+### Document
 http://www.cnblogs.com/chsword/p/excel2object.html
-    
-    
-    
+
+### Reference
+NPOI
+https://github.com/tonyqus/npoi
+
