@@ -1,16 +1,12 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using Chsword.Excel2Object.Internal;
 using NPOI.HSSF.UserModel;
 
 namespace Chsword.Excel2Object
 {
-    public class ExcelExporter
+	public class ExcelExporter
     {
         public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
         {
