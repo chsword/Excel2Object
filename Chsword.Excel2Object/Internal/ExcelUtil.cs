@@ -9,8 +9,9 @@ namespace Chsword.Excel2Object.Internal
     {
         public static Dictionary<PropertyInfo, ExcelTitleAttribute> GetExportAttrDict<T>()
         {
+            
             var dict = new Dictionary<PropertyInfo, ExcelTitleAttribute>();
-            foreach (var propertyInfo in typeof(T).GetProperties())
+            foreach (var propertyInfo in CTRC.CTRCHelper.GetPropertiesCache<T>())
             {
                 var attr = propertyInfo.GetCustomAttributes(true).FirstOrDefault(c => c is ExcelTitleAttribute || c is DisplayAttribute);
                 if (attr != null)

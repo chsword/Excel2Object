@@ -25,14 +25,13 @@ namespace Chsword.Excel2Object.Tests
             return Path.Combine(Environment.CurrentDirectory, file);
         }
         [TestMethod]
-        public void Test()
+        public void ConvertTest()
         {
             
             var models = GetModels();
             var exporter = new ExcelExporter();
             var bytes = exporter.ObjectToExcelBytes(models);
             var path = GetFilePath("text.xls");
-            Console.WriteLine(path);
             File.WriteAllBytes(path, bytes);
             Assert.IsTrue(File.Exists(path));
             var importer = new ExcelImporter();

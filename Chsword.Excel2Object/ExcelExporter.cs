@@ -30,7 +30,7 @@ namespace Chsword.Excel2Object
                 var row = sheet.CreateRow(rowNumber++);
                 for (int i = 0; i < attrArray.Length; i++)
                 {
-                    row.CreateCell(i).SetCellValue((attrArray[i].Key.GetValue(item, (object[])null) ?? "").ToString());
+                    row.CreateCell(i).SetCellValue((attrArray[i].Key.GetValue(item, null) ?? "").ToString());
                 }
             }
             using (var output = new MemoryStream())
