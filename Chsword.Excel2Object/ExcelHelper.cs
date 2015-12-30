@@ -24,11 +24,22 @@ namespace Chsword.Excel2Object
         /// <typeparam name="TModel"></typeparam>
         /// <param name="data">a IEnumerable of TModel</param>
         /// <param name="path">excel full path</param>
-        public static void ObjectToExcel<TModel>(IEnumerable<TModel> data,string path) where TModel : class, new()
+        public static void ObjectToExcel<TModel>(IEnumerable<TModel> data, string path) where TModel : class, new()
         {
             var importer = new ExcelExporter();
-            var bytes=importer.ObjectToExcelBytes<TModel>(data);
+            var bytes = importer.ObjectToExcelBytes<TModel>(data);
             File.WriteAllBytes(path, bytes);
+        }
+
+        /// <summary>
+        /// Export object to excel bytes
+        /// </summary>
+        /// <typeparam name="TModel"></typeparam>
+        /// <param name="data"></param>
+        public static byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data) where TModel : class, new()
+        {
+            var importer = new ExcelExporter();
+            return importer.ObjectToExcelBytes(data);
         }
     }
 }

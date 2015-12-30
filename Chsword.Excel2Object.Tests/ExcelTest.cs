@@ -27,10 +27,8 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void ConvertTest()
         {
-            
             var models = GetModels();
-            var exporter = new ExcelExporter();
-            var bytes = exporter.ObjectToExcelBytes(models);
+            var bytes = ExcelHelper.ObjectToExcelBytes(models);
             var path = GetFilePath("text.xls");
             File.WriteAllBytes(path, bytes);
             Assert.IsTrue(File.Exists(path));
