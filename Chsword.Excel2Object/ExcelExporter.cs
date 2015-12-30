@@ -25,7 +25,7 @@ namespace Chsword.Excel2Object
                 headerRow.CreateCell(i).SetCellValue(attrArray[i].Value.Title);
             }
             int rowNumber = 1;
-            foreach (var item in data)
+            foreach (var item in data.Where(c=>c!=null))
             {
                 var row = sheet.CreateRow(rowNumber++);
                 for (int i = 0; i < attrArray.Length; i++)
