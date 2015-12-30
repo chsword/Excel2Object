@@ -27,7 +27,7 @@ namespace Chsword.Excel2Object
         public static void ObjectToExcel<TModel>(IEnumerable<TModel> data, string path) where TModel : class, new()
         {
             var importer = new ExcelExporter();
-            var bytes = importer.ObjectToExcelBytes<TModel>(data);
+            var bytes = importer.ObjectToExcelBytes(data);
             File.WriteAllBytes(path, bytes);
         }
 
