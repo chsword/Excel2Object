@@ -8,7 +8,7 @@
     <owners>chsword</owners>
     <copyright>Copyright ©  2014-2016</copyright>
     <projectUrl>https://github.com/chsword/Excel2Object/</projectUrl>
-    <description>Convert excel & .NET object , Excel 与 .NET 对象互相转换的类库 </description>
+    <description>Convert excel and .NET object , Excel 与 .NET 对象互相转换的类库 </description>
     <tags>excel,.net</tags>
     <dependencies />
   </metadata>
