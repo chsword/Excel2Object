@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>Chsword.Excel2Object</id>
+    <version>$version$</version>
+    <title>Chsword.Excel2Object Library</title>
+    <authors>Zou Jian</authors>
+    <owners>chsword</owners>
+    <copyright>Copyright ©  2014-2016</copyright>
+    <projectUrl>https://github.com/chsword/Excel2Object/</projectUrl>
+    <description>Convert excel & .NET object , Excel 与 .NET 对象互相转换的类库 </description>
+    <tags>excel,.net</tags>
+    <dependencies />
+  </metadata>
+</package>
