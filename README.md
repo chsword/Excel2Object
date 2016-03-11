@@ -14,7 +14,7 @@ PM> Install-Package Chsword.Excel2Object
 ```
 
 ### Release Notes
-* v1.0.0.35
+* v1.0.0.36
 > add ExcelToObject<T>(bytes)
 
 ### Demo Code
