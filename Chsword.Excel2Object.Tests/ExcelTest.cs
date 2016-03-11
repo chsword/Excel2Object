@@ -37,5 +37,18 @@ namespace Chsword.Excel2Object.Tests
             Assert.AreEqual(models.Count, result.Count());
 
         }
+        [TestMethod]
+        public void ConvertTest1()
+        {
+            var models = GetModels();
+            var bytes = ExcelHelper.ObjectToExcelBytes(models);
+
+
+            Assert.IsTrue(bytes.Length > 0);
+            var importer = new ExcelImporter();
+            var result = importer.ExcelToObject<ReportModel>(bytes);
+            Assert.AreEqual(models.Count, result.Count());
+
+        }
     }
 }

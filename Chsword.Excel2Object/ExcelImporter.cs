@@ -12,9 +12,18 @@ namespace Chsword.Excel2Object
 {
 	public class ExcelImporter
 	{
-		public IEnumerable<TModel> ExcelToObject<TModel>(string path, int? type = null) where TModel : class, new()
+        public IEnumerable<TModel> ExcelToObject<TModel>(string path, int? type = null) where TModel : class, new()
+        {
+            var result = GetDataRows(path);
+            return ExcelToObject<TModel>(result, type);
+        }
+        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, int? type = null) where TModel : class, new()
+        {
+            var result = GetDataRows(bytes);
+            return ExcelToObject<TModel>(result, type);
+        }
+        IEnumerable<TModel> ExcelToObject<TModel>(IEnumerator result, int? type = null) where TModel : class, new()
 		{
-			var result = GetDataRows(path);
 			var dict = ExcelUtil.GetExportAttrDict<TModel>();
 			var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
 
@@ -122,8 +131,28 @@ namespace Chsword.Excel2Object
 			rows.MoveNext();
 			return rows;
 		}
-
-		DateTime? GetCellDateTime(IRow row, int index)
+        IEnumerator GetDataRows(byte[] bytes)
+        {
+            if (bytes == null || bytes.Length == 0)
+                return null;
+            HSSFWorkbook hssfworkbook;
+            try
+            {
+                using (MemoryStream file = new MemoryStream(bytes))
+                {
+                    hssfworkbook = new HSSFWorkbook(file);
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            ISheet sheet = hssfworkbook.GetSheetAt(0);
+            IEnumerator rows = sheet.GetRowEnumerator();
+            rows.MoveNext();
+            return rows;
+        }
+        DateTime? GetCellDateTime(IRow row, int index)
 		{
 			DateTime? result = null;
 			try
