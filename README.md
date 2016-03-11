@@ -9,9 +9,14 @@ Excel convert to .NET Object
 
 
 ### NuGet Install
-```powershell
+``` powershell
 PM> Install-Package Chsword.Excel2Object
 ```
+
+### Release Notes
+* v1.0.0.36
+> add ExcelToObject<T>(bytes)
+
 ### Demo Code
 Model
 ``` csharp
@@ -42,6 +47,8 @@ Convert Excel file to Object
 ``` csharp
       var importer = new ExcelImporter();
       IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>("c:\\demo.xls");
+      // also can use bytes
+      //IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>(bytes);
 ```
 With ASP.NET MVC
       In ASP.NET MVC Model, DisplayAttribute can be supported like ExcelAttribute.
