@@ -7,22 +7,23 @@ using System.Reflection;
 using Chsword.Excel2Object.Internal;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
 
 namespace Chsword.Excel2Object
 {
     public class ExcelImporter
     {
-        public IEnumerable<TModel> ExcelToObject<TModel>(string path, int? type = null) where TModel : class, new()
+        public IEnumerable<TModel> ExcelToObject<TModel>(string path) where TModel : class, new()
         {
             var result = GetDataRows(path);
-            return ExcelToObject<TModel>(result, type);
+            return ExcelToObject<TModel>(result);
         }
-        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, int? type = null) where TModel : class, new()
+        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes) where TModel : class, new()
         {
             var result = GetDataRows(bytes);
-            return ExcelToObject<TModel>(result, type);
+            return ExcelToObject<TModel>(result);
         }
-        IEnumerable<TModel> ExcelToObject<TModel>(IEnumerator result, int? type = null) where TModel : class, new()
+        IEnumerable<TModel> ExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
         {
             var dict = ExcelUtil.GetExportAttrDict<TModel>();
             var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
@@ -144,19 +145,20 @@ namespace Chsword.Excel2Object
         {
             if (string.IsNullOrWhiteSpace(path))
                 return null;
-            HSSFWorkbook hssfworkbook;
+            IWorkbook workbook = null;
+           
             try
             {
                 using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read))
                 {
-                    hssfworkbook = new HSSFWorkbook(file);
+                    workbook = WorkbookFactory.Create(file);
                 }
             }
             catch
             {
                 return null;
             }
-            ISheet sheet = hssfworkbook.GetSheetAt(0);
+            ISheet sheet = workbook.GetSheetAt(0);
             IEnumerator rows = sheet.GetRowEnumerator();
             rows.MoveNext();
             return rows;

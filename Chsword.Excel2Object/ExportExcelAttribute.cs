@@ -7,14 +7,4 @@ namespace Chsword.Excel2Object
 	{
         public ExcelAttribute(string name) :base(name)        {         }
     }
-	public class ExcelTitleAttribute : Attribute
-	{
-		public ExcelTitleAttribute(string title)
-		{
-			Title = title;
-		}
-
-		public int Order { get; set; }
-		public string Title { get; set; }
-	}
 }
