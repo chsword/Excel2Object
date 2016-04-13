@@ -10,20 +10,21 @@ namespace Chsword.Excel2Object.Tests
     [TestClass]
     public class ExcelTest
     {
-        List<ReportModel> GetModels()
+        private ReportModelCollection GetModels()
         {
-            return new List<ReportModel>
+            return new ReportModelCollection
             {
-                new ReportModel{Name="a",Title="b"},
-                new ReportModel{Name="c",Title="d"},
-                new ReportModel{Name="f",Title="e"}
+                new ReportModel {Name = "a", Title = "b", Enabled = true},
+                new ReportModel {Name = "c", Title = "d", Enabled = false},
+                new ReportModel {Name = "f", Title = "e"}
             };
         }
 
-        string GetFilePath(string file)
+        private string GetFilePath(string file)
         {
             return Path.Combine(Environment.CurrentDirectory, file);
         }
+
         [TestMethod]
         public void ConvertTest()
         {
@@ -35,8 +36,8 @@ namespace Chsword.Excel2Object.Tests
             var importer = new ExcelImporter();
             var result = importer.ExcelToObject<ReportModel>(path);
             Assert.AreEqual(models.Count, result.Count());
-
         }
+
         [TestMethod]
         public void ConvertTest1()
         {
@@ -46,9 +47,18 @@ namespace Chsword.Excel2Object.Tests
 
             Assert.IsTrue(bytes.Length > 0);
             var importer = new ExcelImporter();
-            var result = importer.ExcelToObject<ReportModel>(bytes);
-            Assert.AreEqual(models.Count, result.Count());
-
+            var result = importer.ExcelToObject<ReportModel>(bytes).ToList();
+            models.AreEqual(result);
+        }
+        [TestMethod]
+        public void XlsxTest()
+        {
+            var models = this.GetModels();
+            byte[] array = ExcelHelper.ObjectToExcelBytes<ReportModel>(models, ExcelType.Xlsx);
+            Assert.IsTrue(array.Length != 0);
+            ExcelImporter excelImporter = new ExcelImporter();
+            var result = excelImporter.ExcelToObject<ReportModel>(array).ToList();
+            models.AreEqual(result);
         }
     }
 }
