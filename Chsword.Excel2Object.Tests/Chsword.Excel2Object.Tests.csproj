@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="Models\Report.cs" />
     <Compile Include="ExcelTest.cs" />
+    <Compile Include="Models\ReportModelCollection.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

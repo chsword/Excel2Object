@@ -41,5 +41,32 @@ namespace Chsword.Excel2Object
             var importer = new ExcelExporter();
             return importer.ObjectToExcelBytes(data);
         }
+
+        /// <summary>
+        /// Export object to excel bytes
+        /// </summary>
+        /// <typeparam name="TModel"></typeparam>
+        /// <param name="data"></param>
+        /// <param name="excelType"></param>
+        public static byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType) where TModel : class, new()
+        {
+            ExcelExporter excelExporter = new ExcelExporter();
+            return excelExporter.ObjectToExcelBytes<TModel>(data, excelType);
+        }
+
+        /// <summary>
+        /// Export object to excel file
+        /// </summary>
+        /// <typeparam name="TModel"></typeparam>
+        /// <param name="data">a IEnumerable of TModel</param>
+        /// <param name="path">excel full path</param>
+        /// <param name="excelType"></param>
+        public static void ObjectToExcel<TModel>(IEnumerable<TModel> data, string path, ExcelType excelType) where TModel : class, new()
+        {
+            ExcelExporter excelExporter = new ExcelExporter();
+            byte[] bytes = excelExporter.ObjectToExcelBytes<TModel>(data, excelType);
+            File.WriteAllBytes(path, bytes);
+        }
+
     }
 }
