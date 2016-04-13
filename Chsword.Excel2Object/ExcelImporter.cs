@@ -5,9 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Chsword.Excel2Object.Internal;
-using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
-using NPOI.XSSF.UserModel;
 
 namespace Chsword.Excel2Object
 {
@@ -23,6 +21,13 @@ namespace Chsword.Excel2Object
             var result = GetDataRows(bytes);
             return ExcelToObject<TModel>(result);
         }
+
+        private static readonly Dictionary<Type, Func<IRow, int, object>> SpecialConvertDict =
+            new Dictionary<Type, Func<IRow, int, object>>
+            {
+                [typeof(DateTime)]= GetCellDateTime,
+                [typeof(bool)]=GetCellBoolean
+            };
         IEnumerable<TModel> ExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
         {
             var dict = ExcelUtil.GetExportAttrDict<TModel>();
@@ -52,40 +57,11 @@ namespace Chsword.Excel2Object
                 foreach (var pair in dictColumns)
                 {
                     var propType = pair.Value.Key.PropertyType;
-                    if (propType == typeof(DateTime?) ||
-                        propType == typeof(DateTime))
+                    var unNullableType = TypeUtil.GetUnNullableType(propType);
+                    if (SpecialConvertDict.ContainsKey(unNullableType))
                     {
-                        pair.Value.Key.SetValue(model, GetCellDateTime(row, pair.Key), null);
-                    }
-                    else if (propType == typeof(Boolean) || propType == typeof(bool?))
-                    {
-                        var cellValue = GetCellValue(row, pair.Key);
-                        if (!String.IsNullOrEmpty(cellValue))
-                        {
-                            var value = false;
-                            if (!bool.TryParse(cellValue, out value))
-                            {
-                                switch (cellValue.ToLower())
-                                {
-                                    case "1":
-                                    case "是":
-                                    case "yes":
-                                    case "true":
-                                        value = true;
-                                        break;
-                                    case "0":
-                                    case "否":
-                                    case "no":
-                                    case "false":
-                                        value = false;
-                                        break;
-                                    default:
-                                        value = Convert.ToBoolean(cellValue);
-                                        break;
-                                }
-                            }
-                            pair.Value.Key.SetValue(model, value, null);
-                        }
+                        var specialValue = SpecialConvertDict[unNullableType](row, pair.Key);
+                        pair.Value.Key.SetValue(model, specialValue, null);
                     }
                     else
                     {
@@ -98,7 +74,36 @@ namespace Chsword.Excel2Object
 
         }
 
-        string GetCellValue(IRow row, int index)
+        static object GetCellBoolean(IRow row, int key)
+        {
+            var cellValue = GetCellValue(row, key);
+            if (!String.IsNullOrEmpty(cellValue))
+            {
+                bool value = false;
+                if (!bool.TryParse(cellValue, out value))
+                {
+                    switch (cellValue.ToLower())
+                    {
+                        case "1":
+                        case "是":
+                        case "yes":
+                        case "true":
+                            return true;
+                        case "0":
+                        case "否":
+                        case "no":
+                        case "false":
+                           return  false;
+                        default:
+                            return Convert.ToBoolean(cellValue);
+                    }
+                }
+                return value;
+            }
+            return null;
+        }
+
+       static string GetCellValue(IRow row, int index)
         {
             var result = string.Empty;
             try
@@ -141,11 +146,12 @@ namespace Chsword.Excel2Object
             }
             return (result ?? "").Trim();
         }
-        IEnumerator GetDataRows(string path)
+
+        private static IEnumerator GetDataRows(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
                 return null;
-            IWorkbook workbook = null;
+            IWorkbook workbook;
            
             try
             {
@@ -163,7 +169,8 @@ namespace Chsword.Excel2Object
             rows.MoveNext();
             return rows;
         }
-        IEnumerator GetDataRows(byte[] bytes)
+
+        private static IEnumerator GetDataRows(byte[] bytes)
         {
             if (bytes == null || bytes.Length == 0)
                 return null;
@@ -184,7 +191,7 @@ namespace Chsword.Excel2Object
             rows.MoveNext();
             return rows;
         }
-        DateTime? GetCellDateTime(IRow row, int index)
+        static object GetCellDateTime(IRow row, int index)
         {
             DateTime? result = null;
             try

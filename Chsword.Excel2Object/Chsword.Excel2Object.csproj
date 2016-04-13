@@ -79,6 +79,7 @@
     <Compile Include="ExcelImporter.cs" />
     <Compile Include="ExcelTitleAttribute.cs" />
     <Compile Include="ExcelType.cs" />
+    <Compile Include="Internal\TypeUtil.cs" />
     <Compile Include="Internal\ExcelUtil.cs" />
     <Compile Include="ExportExcelAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
