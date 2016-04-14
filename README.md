@@ -14,8 +14,12 @@ PM> Install-Package Chsword.Excel2Object
 ```
 
 ### Release Notes
+* v1.0.0.43
+> Support xlsx [thanks Soar360]
+Support complex Boolean type
+
 * v1.0.0.36
-> add ExcelToObject<T>(bytes)
+> Add ExcelToObject<T>(bytes)
 
 ### Demo Code
 Model
