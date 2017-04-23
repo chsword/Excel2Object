@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -16,6 +17,7 @@ namespace Chsword.Excel2Object
             var result = GetDataRows(path);
             return ExcelToObject<TModel>(result);
         }
+
         public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes) where TModel : class, new()
         {
             var result = GetDataRows(bytes);
@@ -25,29 +27,28 @@ namespace Chsword.Excel2Object
         private static readonly Dictionary<Type, Func<IRow, int, object>> SpecialConvertDict =
             new Dictionary<Type, Func<IRow, int, object>>
             {
-                [typeof(DateTime)]= GetCellDateTime,
-                [typeof(bool)]=GetCellBoolean
+                [typeof(DateTime)] = GetCellDateTime,
+                [typeof(bool)] = GetCellBoolean
             };
-        IEnumerable<TModel> ExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
+
+        private static IEnumerable<TModel> ExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
         {
             var dict = ExcelUtil.GetExportAttrDict<TModel>();
             var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
 
-            IEnumerator rows = result;
+            var rows = result;
 
-            var titleRow = (IRow)rows.Current;
+            var titleRow = (IRow) rows.Current;
             foreach (var cell in titleRow.Cells)
             {
                 var prop = dict.FirstOrDefault(c => cell.StringCellValue == c.Value.Title);
                 if (prop.Key != null && !dictColumns.ContainsKey(cell.ColumnIndex))
-                {
                     dictColumns.Add(cell.ColumnIndex, prop);
-                }
             }
             while (rows.MoveNext())
             {
-                var row = (IRow)rows.Current;
-                ICell firstCell = row.GetCell(0);
+                var row = (IRow) rows.Current;
+                var firstCell = row.GetCell(0);
                 if (firstCell == null || firstCell.CellType == CellType.Blank ||
                     string.IsNullOrWhiteSpace(firstCell.ToString()))
                     continue;
@@ -71,39 +72,32 @@ namespace Chsword.Excel2Object
                 }
                 yield return model;
             }
-
         }
 
-        static object GetCellBoolean(IRow row, int key)
+        private static object GetCellBoolean(IRow row, int key)
         {
             var cellValue = GetCellValue(row, key);
-            if (!String.IsNullOrEmpty(cellValue))
+            if (string.IsNullOrEmpty(cellValue)) return null;
+            bool value;
+            if (bool.TryParse(cellValue, out value)) return value;
+            switch (cellValue.ToLower())
             {
-                bool value = false;
-                if (!bool.TryParse(cellValue, out value))
-                {
-                    switch (cellValue.ToLower())
-                    {
-                        case "1":
-                        case "是":
-                        case "yes":
-                        case "true":
-                            return true;
-                        case "0":
-                        case "否":
-                        case "no":
-                        case "false":
-                           return  false;
-                        default:
-                            return Convert.ToBoolean(cellValue);
-                    }
-                }
-                return value;
+                case "1":
+                case "是":
+                case "yes":
+                case "true":
+                    return true;
+                case "0":
+                case "否":
+                case "no":
+                case "false":
+                    return false;
+                default:
+                    return Convert.ToBoolean(cellValue);
             }
-            return null;
         }
 
-       static string GetCellValue(IRow row, int index)
+        private static string GetCellValue(IRow row, int index)
         {
             var result = string.Empty;
             try
@@ -111,7 +105,7 @@ namespace Chsword.Excel2Object
                 switch (row.GetCell(index).CellType)
                 {
                     case CellType.Numeric:
-                        result = row.GetCell(index).NumericCellValue.ToString();
+                        result = row.GetCell(index).NumericCellValue.ToString(CultureInfo.InvariantCulture);
                         break;
                     case CellType.String:
                         result = row.GetCell(index).StringCellValue;
@@ -119,6 +113,7 @@ namespace Chsword.Excel2Object
                     case CellType.Blank:
                         result = string.Empty;
                         break;
+
                     #region
 
                     //case CellType.Formula:
@@ -135,6 +130,7 @@ namespace Chsword.Excel2Object
                     //    break;
 
                     #endregion
+
                     default:
                         result = row.GetCell(index).ToString();
                         break;
@@ -152,10 +148,10 @@ namespace Chsword.Excel2Object
             if (string.IsNullOrWhiteSpace(path))
                 return null;
             IWorkbook workbook;
-           
+
             try
             {
-                using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read))
+                using (var file = new FileStream(path, FileMode.Open, FileAccess.Read))
                 {
                     workbook = WorkbookFactory.Create(file);
                 }
@@ -164,8 +160,8 @@ namespace Chsword.Excel2Object
             {
                 return null;
             }
-            ISheet sheet = workbook.GetSheetAt(0);
-            IEnumerator rows = sheet.GetRowEnumerator();
+            var sheet = workbook.GetSheetAt(0);
+            var rows = sheet.GetRowEnumerator();
             rows.MoveNext();
             return rows;
         }
@@ -177,7 +173,7 @@ namespace Chsword.Excel2Object
             IWorkbook workbook;
             try
             {
-                using (MemoryStream memoryStream = new MemoryStream(bytes))
+                using (var memoryStream = new MemoryStream(bytes))
                 {
                     workbook = WorkbookFactory.Create(memoryStream);
                 }
@@ -186,12 +182,13 @@ namespace Chsword.Excel2Object
             {
                 return null;
             }
-            ISheet sheet = workbook.GetSheetAt(0);
-            IEnumerator rows = sheet.GetRowEnumerator();
+            var sheet = workbook.GetSheetAt(0);
+            var rows = sheet.GetRowEnumerator();
             rows.MoveNext();
             return rows;
         }
-        static object GetCellDateTime(IRow row, int index)
+
+        private static object GetCellDateTime(IRow row, int index)
         {
             DateTime? result = null;
             try
@@ -214,48 +211,30 @@ namespace Chsword.Excel2Object
                         {
                             DateTime dt;
                             if (DateTime.TryParse((str + "-01-01").Replace("年", ""), out dt))
-                            {
                                 result = dt;
-                            }
                         }
                         else if (str.EndsWith("月"))
                         {
                             DateTime dt;
                             if (DateTime.TryParse((str + "-01").Replace("年", "").Replace("月", ""), out dt))
-                            {
                                 result = dt;
-                            }
                         }
                         else if (!str.Contains("年") && !str.Contains("月") && !str.Contains("日"))
                         {
-
                             DateTime dt;
                             if (DateTime.TryParse(str, out dt))
-                            {
                                 result = dt;
-                            }
                             else if (DateTime.TryParse((str + "-01-01").Replace("年", "").Replace("月", ""), out dt))
-                            {
                                 result = dt;
-                            }
-                            else
-                            {
-                                result = null;
-                            }
-
                         }
                         else
                         {
                             DateTime dt;
                             if (DateTime.TryParse(str.Replace("年", "").Replace("月", ""), out dt))
-                            {
                                 result = dt;
-                            }
                         }
                         break;
                     case CellType.Blank:
-                        break;
-                    default:
                         break;
                 }
             }
