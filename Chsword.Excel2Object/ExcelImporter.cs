@@ -58,10 +58,10 @@ namespace Chsword.Excel2Object
                 foreach (var pair in dictColumns)
                 {
                     var propType = pair.Value.Key.PropertyType;
-                    var unNullableType = TypeUtil.GetUnNullableType(propType);
-                    if (SpecialConvertDict.ContainsKey(unNullableType))
+                    var type = TypeUtil.GetUnNullableType(propType);
+                    if (SpecialConvertDict.ContainsKey(type))
                     {
-                        var specialValue = SpecialConvertDict[unNullableType](row, pair.Key);
+                        var specialValue = SpecialConvertDict[type](row, pair.Key);
                         pair.Value.Key.SetValue(model, specialValue, null);
                     }
                     else
@@ -113,7 +113,7 @@ namespace Chsword.Excel2Object
                     case CellType.Blank:
                         result = string.Empty;
                         break;
-                    #region commi
+              
                     //case CellType.Formula:
                     //    result = row.GetCell(index).CellFormula;
                     //    break;
@@ -126,7 +126,7 @@ namespace Chsword.Excel2Object
                     //case CellType.Unknown:
                     //    result = row.GetCell(index).NumericCellValue.ToString();
                     //    break;
-                    #endregion
+            
                     default:
                         result = row.GetCell(index).ToString();
                         break;
