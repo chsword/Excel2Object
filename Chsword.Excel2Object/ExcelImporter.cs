@@ -113,9 +113,7 @@ namespace Chsword.Excel2Object
                     case CellType.Blank:
                         result = string.Empty;
                         break;
-
-                    #region
-
+                    #region commi
                     //case CellType.Formula:
                     //    result = row.GetCell(index).CellFormula;
                     //    break;
@@ -128,9 +126,7 @@ namespace Chsword.Excel2Object
                     //case CellType.Unknown:
                     //    result = row.GetCell(index).NumericCellValue.ToString();
                     //    break;
-
                     #endregion
-
                     default:
                         result = row.GetCell(index).ToString();
                         break;
@@ -207,35 +203,20 @@ namespace Chsword.Excel2Object
                         break;
                     case CellType.String:
                         var str = row.GetCell(index).StringCellValue;
-                        if (str.EndsWith("年"))
-                        {
-                            DateTime dt;
-                            if (DateTime.TryParse((str + "-01-01").Replace("年", ""), out dt))
-                                result = dt;
-                        }
-                        else if (str.EndsWith("月"))
-                        {
-                            DateTime dt;
-                            if (DateTime.TryParse((str + "-01").Replace("年", "").Replace("月", ""), out dt))
-                                result = dt;
-                        }
-                        else if (!str.Contains("年") && !str.Contains("月") && !str.Contains("日"))
-                        {
-                            DateTime dt;
-                            if (DateTime.TryParse(str, out dt))
-                                result = dt;
-                            else if (DateTime.TryParse((str + "-01-01").Replace("年", "").Replace("月", ""), out dt))
-                                result = dt;
-                        }
-                        else
-                        {
-                            DateTime dt;
-                            if (DateTime.TryParse(str.Replace("年", "").Replace("月", ""), out dt))
-                                result = dt;
-                        }
+                        result = GetDateTimeFromString(str);
                         break;
                     case CellType.Blank:
                         break;
+                    case CellType.Unknown:
+                        break;
+                    case CellType.Formula:
+                        break;
+                    case CellType.Boolean:
+                        break;
+                    case CellType.Error:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
             }
             catch (Exception e)
@@ -243,6 +224,34 @@ namespace Chsword.Excel2Object
                 Console.WriteLine(e);
             }
             return result;
+        }
+
+        private static DateTime? GetDateTimeFromString(string str)
+        {
+            DateTime dt;
+            if (str.EndsWith("年"))
+            {
+                if (DateTime.TryParse((str + "-01-01").Replace("年", ""), out dt))
+                    return dt;
+            }
+            else if (str.EndsWith("月"))
+            {
+                if (DateTime.TryParse((str + "-01").Replace("年", "").Replace("月", ""), out dt))
+                    return dt;
+            }
+            else if (!str.Contains("年") && !str.Contains("月") && !str.Contains("日"))
+            {
+                if (DateTime.TryParse(str, out dt))
+                    return dt;
+                if (DateTime.TryParse((str + "-01-01").Replace("年", "").Replace("月", ""), out dt))
+                    return dt;
+            }
+            else
+            {
+                if (DateTime.TryParse(str.Replace("年", "").Replace("月", ""), out dt))
+                    return dt;
+            }
+            return null;
         }
     }
 }
