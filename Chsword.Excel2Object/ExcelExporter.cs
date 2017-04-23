@@ -13,8 +13,38 @@ namespace Chsword.Excel2Object
     {
         public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType)
         {
+            var workbook = Workbook(excelType);
+            var sheet = workbook.CreateSheet();
+            var attrDict = ExcelUtil.GetExportAttrDict<TModel>();
+            var attrArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
+            for (var i = 0; i < attrArray.Length; i++)
+                sheet.SetColumnWidth(i, 50 * 256);
+            var headerRow = sheet.CreateRow(0);
+            for (var i = 0; i < attrArray.Length; i++)
+                headerRow.CreateCell(i).SetCellValue(attrArray[i].Value.Title);
+            var rowNumber = 1;
+            foreach (var item in data.Where(c => c != null))
+            {
+                var row = sheet.CreateRow(rowNumber++);
+                for (var i = 0; i < attrArray.Length; i++)
+                    row.CreateCell(i).SetCellValue((attrArray[i].Key.GetValue(item, null) ?? "").ToString());
+            }
+            return ToBytes(workbook);
+        }
 
-            IWorkbook workbook = null;
+        private static byte[] ToBytes(IWorkbook workbook)
+        {
+            using (var output = new MemoryStream())
+            {
+                workbook.Write(output);
+                var bytes = output.ToArray();
+                return bytes;
+            }
+        }
+
+        private static IWorkbook Workbook(ExcelType excelType)
+        {
+            IWorkbook workbook;
             switch (excelType)
             {
                 case ExcelType.Xls:
@@ -26,38 +56,12 @@ namespace Chsword.Excel2Object
                 default:
                     throw new ArgumentOutOfRangeException("excelType");
             }
-            var sheet = workbook.CreateSheet();
-            var attrDict = ExcelUtil.GetExportAttrDict<TModel>();
-            var attrArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
-            for (int i = 0; i < attrArray.Length; i++)
-            {
-                sheet.SetColumnWidth(i, 50 * 256);
-            }
-            var headerRow = sheet.CreateRow(0);
-
-            for (int i = 0; i < attrArray.Length; i++)
-            {
-                headerRow.CreateCell(i).SetCellValue(attrArray[i].Value.Title);
-            }
-            int rowNumber = 1;
-            foreach (var item in data.Where(c => c != null))
-            {
-                var row = sheet.CreateRow(rowNumber++);
-                for (int i = 0; i < attrArray.Length; i++)
-                {
-                    row.CreateCell(i).SetCellValue((attrArray[i].Key.GetValue(item, null) ?? "").ToString());
-                }
-            }
-            using (var output = new MemoryStream())
-            {
-                workbook.Write(output);
-                var bytes = output.ToArray();
-                return bytes;
-            }
+            return workbook;
         }
+
         public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
         {
-            return this.ObjectToExcelBytes(data, ExcelType.Xls);
+            return ObjectToExcelBytes(data, ExcelType.Xls);
         }
     }
 }
