@@ -113,7 +113,6 @@ namespace Chsword.Excel2Object
                     case CellType.Blank:
                         result = string.Empty;
                         break;
-              
                     //case CellType.Formula:
                     //    result = row.GetCell(index).CellFormula;
                     //    break;
@@ -126,7 +125,6 @@ namespace Chsword.Excel2Object
                     //case CellType.Unknown:
                     //    result = row.GetCell(index).NumericCellValue.ToString();
                     //    break;
-            
                     default:
                         result = row.GetCell(index).ToString();
                         break;
