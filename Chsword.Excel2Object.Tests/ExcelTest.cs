@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Chsword.Excel2Object.Tests.Models;
@@ -38,6 +37,7 @@ namespace Chsword.Excel2Object.Tests
             Assert.AreEqual(models.Count, result.Count());
             models.AreEqual(result);
         }
+
         [TestMethod]
         public void ConvertXlsFileUseObjectToExcelTest()
         {
@@ -50,6 +50,7 @@ namespace Chsword.Excel2Object.Tests
             Assert.AreEqual(models.Count, result.Count);
             models.AreEqual(result);
         }
+
         [TestMethod]
         public void ConvertXlsBytesTest()
         {
@@ -60,16 +61,18 @@ namespace Chsword.Excel2Object.Tests
             var result = importer.ExcelToObject<ReportModel>(bytes).ToList();
             models.AreEqual(result);
         }
+
         [TestMethod]
         public void ConvertXlsxBytesTest()
         {
-            var models = this.GetModels();
-            byte[] array = ExcelHelper.ObjectToExcelBytes<ReportModel>(models, ExcelType.Xlsx);
+            var models = GetModels();
+            var array = ExcelHelper.ObjectToExcelBytes(models, ExcelType.Xlsx);
             Assert.IsTrue(array.Length != 0);
-            ExcelImporter excelImporter = new ExcelImporter();
+            var excelImporter = new ExcelImporter();
             var result = excelImporter.ExcelToObject<ReportModel>(array).ToList();
             models.AreEqual(result);
         }
+
         [TestMethod]
         public void ConvertXlsxFileTest()
         {
