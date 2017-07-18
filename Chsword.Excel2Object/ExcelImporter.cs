@@ -28,8 +28,16 @@ namespace Chsword.Excel2Object
             new Dictionary<Type, Func<IRow, int, object>>
             {
                 [typeof(DateTime)] = GetCellDateTime,
-                [typeof(bool)] = GetCellBoolean
+                [typeof(bool)] = GetCellBoolean,
+                [typeof(Uri)] = GetCellUri
             };
+
+        private static object GetCellUri(IRow row, int key)
+        {
+            var cellValue = GetCellValue(row, key);
+            if (string.IsNullOrEmpty(cellValue)) return null;
+            return new Uri(cellValue);
+        }
 
         private static IEnumerable<TModel> ExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
         {

@@ -2,9 +2,11 @@
 
 namespace Chsword.Excel2Object
 {
-	[Obsolete(message:"instand of ExcelTitleAttribute")]
+    [Obsolete("instand of ExcelTitleAttribute",true)]
     public class ExcelAttribute : ExcelTitleAttribute
-	{
-        public ExcelAttribute(string name) :base(name)        {         }
+    {
+        public ExcelAttribute(string name) : base(name)
+        {
+        }
     }
 }
