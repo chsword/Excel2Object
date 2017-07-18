@@ -21,13 +21,37 @@ namespace Chsword.Excel2Object
                 sheet.SetColumnWidth(i, 50 * 256);
             var headerRow = sheet.CreateRow(0);
             for (var i = 0; i < attrArray.Length; i++)
-                headerRow.CreateCell(i).SetCellValue(attrArray[i].Value.Title);
+            {
+                var cell = headerRow.CreateCell(i);
+                cell.SetCellType(CellType.String);
+                cell.SetCellValue(attrArray[i].Value.Title);
+            }
             var rowNumber = 1;
             foreach (var item in data.Where(c => c != null))
             {
                 var row = sheet.CreateRow(rowNumber++);
                 for (var i = 0; i < attrArray.Length; i++)
-                    row.CreateCell(i).SetCellValue((attrArray[i].Key.GetValue(item, null) ?? "").ToString());
+                {
+                    var cell = row.CreateCell(i);
+                    var prop = attrArray[i].Key;
+                    var val = (prop.GetValue(item, null) ?? "").ToString();
+                    if (prop.PropertyType == typeof(Uri))
+                    {
+                        cell.Hyperlink = Switch<IHyperlink>(
+                            excelType,
+                            () => new HSSFHyperlink(HyperlinkType.Url)
+                            {
+                                Address = val
+                            },
+                            () => new XSSFHyperlink(HyperlinkType.Url)
+                            {
+                                Address = val
+                            }
+                        );
+                    }
+                    //cell.Hyperlink=new HSSFHyperlink
+                    cell.SetCellValue(val);
+                }
             }
             return ToBytes(workbook);
         }
@@ -40,6 +64,23 @@ namespace Chsword.Excel2Object
                 var bytes = output.ToArray();
                 return bytes;
             }
+        }
+
+        private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
+        {
+            T obj;
+            switch (excelType)
+            {
+                case ExcelType.Xls:
+                    obj = funcXlsHssf();
+                    break;
+                case ExcelType.Xlsx:
+                    obj = funcXlsxXssf();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(excelType));
+            }
+            return obj;
         }
 
         private static IWorkbook Workbook(ExcelType excelType)
