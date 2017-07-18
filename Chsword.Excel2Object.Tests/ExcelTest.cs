@@ -15,7 +15,7 @@ namespace Chsword.Excel2Object.Tests
             {
                 new ReportModel {Name = "a", Title = "b", Enabled = true},
                 new ReportModel {Name = "c", Title = "d", Enabled = false},
-                new ReportModel {Name = "f", Title = "e",Uri=new Uri("http://baidu.com")}
+                new ReportModel {Name = "f", Title = "e", Uri = new Uri("http://chsword.cnblogs.com")}
             };
         }
 
