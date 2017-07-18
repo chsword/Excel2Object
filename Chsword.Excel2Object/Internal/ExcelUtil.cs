@@ -15,16 +15,17 @@ namespace Chsword.Excel2Object.Internal
             {
                 var attr = propertyInfo.GetCustomAttributes(true)
                     .FirstOrDefault(c => c is ExcelTitleAttribute || c is DisplayAttribute);
-                if (attr != null)
+                if (attr == null) continue;
+                var attr1 = attr;
+                if (attr is DisplayAttribute)
                 {
-                    var attr1 = attr;
-                    if (attr is DisplayAttribute)
+                    var display = attr as DisplayAttribute;
+                    attr1 = new ExcelTitleAttribute(display.Name)
                     {
-                        var display = attr as DisplayAttribute;
-                        attr1 = new ExcelTitleAttribute(display.Name) {Order = display.Order};
-                    }
-                    dict.Add(propertyInfo, attr1 as ExcelTitleAttribute);
+                        Order = display.Order
+                    };
                 }
+                dict.Add(propertyInfo, attr1 as ExcelTitleAttribute);
             }
             return dict;
         }
