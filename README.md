@@ -13,6 +13,11 @@ PM> Install-Package Chsword.Excel2Object
 ```
 
 ### Release Notes
+
+* v1.0.0.80
+> Support Uri to a hyperlink cell
+And also support text cell to Uri Type
+
 * v1.0.0.43
 > Support xlsx [thanks Soar360]
 Support complex Boolean type
