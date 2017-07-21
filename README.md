@@ -19,7 +19,15 @@ Excel convert to .NET Object / .NET Object convert to Excel.
 PM> Install-Package Chsword.Excel2Object
 ```
 
-### Release Notes
+### Release Notes and roadmap
+
+- [ ] 1. support date datetime time in excel
+- [x] 1. support Uri type to a Hyperlink
+- [x] 1. support xls / xlsx
+- [x] 1. support complex Boolean type
+- [x] 1. support convert List<Model> to excel file and Excel file to List<Model>
+- [x] 1. support to specify the order of fields to export
+- [x] 1. support convert List<Model> to excel bytes and Excel bytes to List<Model>
 
 * v1.0.0.80
 ```
