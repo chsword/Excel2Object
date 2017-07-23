@@ -21,6 +21,7 @@ PM> Install-Package Chsword.Excel2Object
 
 ### Release Notes and roadmap
 
+- [ ] 1. support auto width column
 - [ ] 1. support date datetime time in excel
 - [x] 1. support Uri type to a Hyperlink
 - [x] 1. support xls / xlsx
