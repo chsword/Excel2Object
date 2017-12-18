@@ -21,8 +21,8 @@ PM> Install-Package Chsword.Excel2Object
 
 ### Release Notes and roadmap
 
-- [ ] 1. support cli
-- [ ] 1. support excel & JSON convert
+- [ ] 1. cli tool
+- [ ] 1. excel & JSON convert
 - [ ] 1. support auto width column
 - [ ] 1. support date datetime time in excel
 - [x] 1. support Uri type to a Hyperlink
