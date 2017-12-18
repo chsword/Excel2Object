@@ -11,7 +11,7 @@ namespace Chsword.Excel2Object.Internal
         /// <returns></returns>
         public static Type GetUnNullableType(Type conversionType)
         {
-            if (conversionType.IsGenericType && conversionType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
+            if (conversionType.IsGenericType && conversionType.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
                 var nullableConverter = new System.ComponentModel.NullableConverter(conversionType);
                 conversionType = nullableConverter.UnderlyingType;

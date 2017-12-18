@@ -95,7 +95,7 @@ namespace Chsword.Excel2Object
                     workbook = new XSSFWorkbook();
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException("excelType");
+                    throw new ArgumentOutOfRangeException(nameof(excelType));
             }
             return workbook;
         }

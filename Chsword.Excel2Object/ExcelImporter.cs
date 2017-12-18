@@ -43,20 +43,21 @@ namespace Chsword.Excel2Object
         {
             var dict = ExcelUtil.GetExportAttrDict<TModel>();
             var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
-
             var rows = result;
-
             var titleRow = (IRow) rows.Current;
-            foreach (var cell in titleRow.Cells)
+            if (titleRow != null)
             {
-                var prop = dict.FirstOrDefault(c => cell.StringCellValue == c.Value.Title);
-                if (prop.Key != null && !dictColumns.ContainsKey(cell.ColumnIndex))
-                    dictColumns.Add(cell.ColumnIndex, prop);
+                foreach (var cell in titleRow.Cells)
+                {
+                    var prop = dict.FirstOrDefault(c => cell.StringCellValue == c.Value.Title);
+                    if (prop.Key != null && !dictColumns.ContainsKey(cell.ColumnIndex))
+                        dictColumns.Add(cell.ColumnIndex, prop);
+                }
             }
             while (rows.MoveNext())
             {
                 var row = (IRow) rows.Current;
-                var firstCell = row.GetCell(0);
+                var firstCell = row?.GetCell(0);
                 if (firstCell == null || firstCell.CellType == CellType.Blank ||
                     string.IsNullOrWhiteSpace(firstCell.ToString()))
                     continue;
@@ -86,8 +87,7 @@ namespace Chsword.Excel2Object
         {
             var cellValue = GetCellValue(row, key);
             if (string.IsNullOrEmpty(cellValue)) return null;
-            bool value;
-            if (bool.TryParse(cellValue, out value)) return value;
+            if (bool.TryParse(cellValue, out var value)) return value;
             switch (cellValue.ToLower())
             {
                 case "1":
