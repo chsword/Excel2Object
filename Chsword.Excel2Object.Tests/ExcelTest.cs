@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using System.IO;
 using System.Linq;
 using Chsword.Excel2Object.Tests.Models;
@@ -95,5 +96,21 @@ namespace Chsword.Excel2Object.Tests
             Assert.AreEqual(models.Count, result.Count);
             models.AreEqual(result);
         }
+
+	    [TestMethod]
+		public void ConvertXlsFromDataTable()
+	    {
+		    DataTable dt = new DataTable();
+		    dt.Columns.Add(new DataColumn("姓名", typeof(string)));
+		    dt.Columns.Add(new DataColumn("Age", typeof(int)));
+		    DataRow dr = dt.NewRow();
+		    dr["姓名"] = "吴老狗";
+		    dr["Age"] = 19;
+			dt.Rows.Add(dr);
+		    var bytes = ExcelHelper.ObjectToExcelBytes(dt, ExcelType.Xls);
+		    var path = GetFilePath("test.xls");
+		    File.WriteAllBytes(path, bytes);
+		    Assert.IsTrue(File.Exists(path));
+		}
     }
 }
