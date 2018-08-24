@@ -11,14 +11,22 @@ namespace Chsword.Excel2Object
 {
     public class ExcelExporter
     {
+		/// <summary>
+		/// Export a excel file from a List of T generic list
+		/// </summary>
+		/// <typeparam name="TModel"></typeparam>
+		/// <param name="data"></param>
+		/// <param name="excelType"></param>
+		/// <returns></returns>
         public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType)
         {
             var workbook = Workbook(excelType);
-            var sheet = workbook.CreateSheet();
-            var attrDict = ExcelUtil.GetExportAttrDict<TModel>();
+	        var classAttr = ExcelUtil.GetClassExportAttribute<TModel>();
+	        var sheet = classAttr == null ? workbook.CreateSheet() : workbook.CreateSheet(classAttr.Title);
+            var attrDict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
             var attrArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
             for (var i = 0; i < attrArray.Length; i++)
-                sheet.SetColumnWidth(i, 50 * 256);
+                sheet.SetColumnWidth(i, 16 * 256);// todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
             var headerRow = sheet.CreateRow(0);
             for (var i = 0; i < attrArray.Length; i++)
             {

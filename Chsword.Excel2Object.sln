@@ -9,6 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chsword.Excel2Object.Tests"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A7A41EB3-F1FD-40C1-87EB-BEC4B0D33810}"
 	ProjectSection(SolutionItems) = preProject
+		Chsword.Excel2Object\Chsword.Excel2Object.nuspec = Chsword.Excel2Object\Chsword.Excel2Object.nuspec
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -29,5 +30,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {137A06B1-F83D-4060-821C-68E84B4E4E73}
 	EndGlobalSection
 EndGlobal

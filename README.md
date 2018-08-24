@@ -25,6 +25,7 @@ PM> Install-Package Chsword.Excel2Object
 - [ ] 1. excel & JSON convert
 - [ ] 1. support auto width column
 - [ ] 1. support date datetime time in excel
+- [x] 1. export with a sheet name,using ExcelTitleAttribute on class
 - [x] 1. support Uri type to a Hyperlink
 - [x] 1. support xls / xlsx
 - [x] 1. support complex Boolean type

@@ -41,7 +41,7 @@ namespace Chsword.Excel2Object
 
         private static IEnumerable<TModel> ExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
         {
-            var dict = ExcelUtil.GetExportAttrDict<TModel>();
+            var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
             var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
             var rows = result;
             var titleRow = (IRow) rows.Current;

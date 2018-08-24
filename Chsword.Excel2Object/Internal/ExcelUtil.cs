@@ -8,26 +8,55 @@ namespace Chsword.Excel2Object.Internal
 {
     internal class ExcelUtil
     {
-        public static Dictionary<PropertyInfo, ExcelTitleAttribute> GetExportAttrDict<T>()
-        {
-            var dict = new Dictionary<PropertyInfo, ExcelTitleAttribute>();
-            foreach (var propertyInfo in CTRCHelper.GetPropertiesCache<T>())
-            {
-                var attr = propertyInfo.GetCustomAttributes(true)
-                    .FirstOrDefault(c => c is ExcelTitleAttribute || c is DisplayAttribute);
-                if (attr == null) continue;
-                var attr1 = attr;
-                if (attr is DisplayAttribute)
-                {
-                    var display = attr as DisplayAttribute;
-                    attr1 = new ExcelTitleAttribute(display.Name)
-                    {
-                        Order = display.Order
-                    };
-                }
-                dict.Add(propertyInfo, attr1 as ExcelTitleAttribute);
-            }
-            return dict;
-        }
+
+		/// <summary>
+		/// get ExcelTitleAttribute in Attributes
+		/// </summary>
+		/// <param name="attrs"></param>
+		/// <returns></returns>
+		private static ExcelTitleAttribute GetExcelTitleAttributeFromAttributes(object[] attrs)
+	    {
+		    var attr = attrs.FirstOrDefault(c => c is ExcelTitleAttribute || c is DisplayAttribute);
+		    if (attr == null) return null;
+
+		    if (!(attr is DisplayAttribute display)) return attr as ExcelTitleAttribute;
+		    return new ExcelTitleAttribute(display.Name)
+		    {
+			    Order = display.Order
+		    };
+
+	    }
+
+		/// <summary>
+		/// Get the ExcelTitleAttribute on class
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns>if thers's not a ExcelTitleAttribute, will return null.</returns>
+		public static ExcelTitleAttribute GetClassExportAttribute<T>()
+		{
+			var attrs = typeof(T).GetCustomAttributes(true);
+			var attr = GetExcelTitleAttributeFromAttributes(attrs);
+			return attr;
+		}
+
+	    /// <summary>
+	    /// Get the ExcelTitleAttribute on proerties
+	    /// </summary>
+	    /// <typeparam name="T"></typeparam>
+	    /// <returns></returns>
+	    public static Dictionary<PropertyInfo, ExcelTitleAttribute> GetPropertiesAttributesDict<T>()
+	    {
+		    var dict = new Dictionary<PropertyInfo, ExcelTitleAttribute>();
+		    foreach (var propertyInfo in CTRCHelper.GetPropertiesCache<T>())
+		    {
+			    var attrs = propertyInfo.GetCustomAttributes(true);
+			    var attr = GetExcelTitleAttributeFromAttributes(attrs);
+
+			    if (attr == null) continue;
+			    dict.Add(propertyInfo, attr);
+		    }
+
+		    return dict;
+	    }
     }
 }

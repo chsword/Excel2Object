@@ -2,7 +2,8 @@
 
 namespace Chsword.Excel2Object.Tests.Models
 {
-    public class ReportModel
+	[ExcelTitle("Test Sheetname")]
+	public class ReportModel
     {
         [ExcelTitle("Document Title")]
         public string Title { get; set; }
