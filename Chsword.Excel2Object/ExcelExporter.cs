@@ -9,108 +9,119 @@ using NPOI.XSSF.UserModel;
 
 namespace Chsword.Excel2Object
 {
-    public class ExcelExporter
-    {
+	public class ExcelExporter
+	{
 		/// <summary>
 		/// Export a excel file from a List of T generic list
 		/// </summary>
 		/// <typeparam name="TModel"></typeparam>
 		/// <param name="data"></param>
 		/// <param name="excelType"></param>
+		/// <param name="sheetTitle"></param>
 		/// <returns></returns>
-        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType)
-        {
-            var workbook = Workbook(excelType);
-	        var classAttr = ExcelUtil.GetClassExportAttribute<TModel>();
-	        var sheet = classAttr == null ? workbook.CreateSheet() : workbook.CreateSheet(classAttr.Title);
-            var attrDict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
-            var attrArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
-            for (var i = 0; i < attrArray.Length; i++)
-                sheet.SetColumnWidth(i, 16 * 256);// todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
-            var headerRow = sheet.CreateRow(0);
-            for (var i = 0; i < attrArray.Length; i++)
-            {
-                var cell = headerRow.CreateCell(i);
-                cell.SetCellType(CellType.String);
-                cell.SetCellValue(attrArray[i].Value.Title);
-            }
-            var rowNumber = 1;
-            foreach (var item in data.Where(c => c != null))
-            {
-                var row = sheet.CreateRow(rowNumber++);
-                for (var i = 0; i < attrArray.Length; i++)
-                {
-                    var cell = row.CreateCell(i);
-                    var prop = attrArray[i].Key;
-                    var val = (prop.GetValue(item, null) ?? "").ToString();
-                    if (prop.PropertyType == typeof(Uri))
-                    {
-                        cell.Hyperlink = Switch<IHyperlink>(
-                            excelType,
-                            () => new HSSFHyperlink(HyperlinkType.Url)
-                            {
-                                Address = val
-                            },
-                            () => new XSSFHyperlink(HyperlinkType.Url)
-                            {
-                                Address = val
-                            }
-                        );
-                    }
-                    //cell.Hyperlink=new HSSFHyperlink
-                    cell.SetCellValue(val);
-                }
-            }
-            return ToBytes(workbook);
-        }
+		public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType, string sheetTitle = null)
+		{
+			var workbook = Workbook(excelType);
+			ISheet sheet;
 
-        private static byte[] ToBytes(IWorkbook workbook)
-        {
-            using (var output = new MemoryStream())
-            {
-                workbook.Write(output);
-                var bytes = output.ToArray();
-                return bytes;
-            }
-        }
+			if (string.IsNullOrWhiteSpace(sheetTitle))
+			{
+				var classAttr = ExcelUtil.GetClassExportAttribute<TModel>();
+				sheet = classAttr == null ? workbook.CreateSheet() : workbook.CreateSheet(classAttr.Title);
+			}
+			else
+			{
+				sheet = workbook.CreateSheet(sheetTitle);
+			}
 
-        private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
-        {
-            T obj;
-            switch (excelType)
-            {
-                case ExcelType.Xls:
-                    obj = funcXlsHssf();
-                    break;
-                case ExcelType.Xlsx:
-                    obj = funcXlsxXssf();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(excelType));
-            }
-            return obj;
-        }
+			var attrDict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
+			var attrArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
+			for (var i = 0; i < attrArray.Length; i++)
+				sheet.SetColumnWidth(i, 16 * 256);// todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
+			var headerRow = sheet.CreateRow(0);
+			for (var i = 0; i < attrArray.Length; i++)
+			{
+				var cell = headerRow.CreateCell(i);
+				cell.SetCellType(CellType.String);
+				cell.SetCellValue(attrArray[i].Value.Title);
+			}
+			var rowNumber = 1;
+			foreach (var item in data.Where(c => c != null))
+			{
+				var row = sheet.CreateRow(rowNumber++);
+				for (var i = 0; i < attrArray.Length; i++)
+				{
+					var cell = row.CreateCell(i);
+					var prop = attrArray[i].Key;
+					var val = (prop.GetValue(item, null) ?? "").ToString();
+					if (prop.PropertyType == typeof(Uri))
+					{
+						cell.Hyperlink = Switch<IHyperlink>(
+							excelType,
+							() => new HSSFHyperlink(HyperlinkType.Url)
+							{
+								Address = val
+							},
+							() => new XSSFHyperlink(HyperlinkType.Url)
+							{
+								Address = val
+							}
+						);
+					}
+					//cell.Hyperlink=new HSSFHyperlink
+					cell.SetCellValue(val);
+				}
+			}
+			return ToBytes(workbook);
+		}
 
-        private static IWorkbook Workbook(ExcelType excelType)
-        {
-            IWorkbook workbook;
-            switch (excelType)
-            {
-                case ExcelType.Xls:
-                    workbook = new HSSFWorkbook();
-                    break;
-                case ExcelType.Xlsx:
-                    workbook = new XSSFWorkbook();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(excelType));
-            }
-            return workbook;
-        }
+		private static byte[] ToBytes(IWorkbook workbook)
+		{
+			using (var output = new MemoryStream())
+			{
+				workbook.Write(output);
+				var bytes = output.ToArray();
+				return bytes;
+			}
+		}
 
-        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
-        {
-            return ObjectToExcelBytes(data, ExcelType.Xls);
-        }
-    }
+		private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
+		{
+			T obj;
+			switch (excelType)
+			{
+				case ExcelType.Xls:
+					obj = funcXlsHssf();
+					break;
+				case ExcelType.Xlsx:
+					obj = funcXlsxXssf();
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(excelType));
+			}
+			return obj;
+		}
+
+		private static IWorkbook Workbook(ExcelType excelType)
+		{
+			IWorkbook workbook;
+			switch (excelType)
+			{
+				case ExcelType.Xls:
+					workbook = new HSSFWorkbook();
+					break;
+				case ExcelType.Xlsx:
+					workbook = new XSSFWorkbook();
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(excelType));
+			}
+			return workbook;
+		}
+
+		public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
+		{
+			return ObjectToExcelBytes(data, ExcelType.Xls);
+		}
+	}
 }
