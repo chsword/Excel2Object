@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using Chsword.Excel2Object.Internal;
@@ -54,25 +55,64 @@ namespace Chsword.Excel2Object
 					var cell = row.CreateCell(i);
 					var prop = attrArray[i].Key;
 					var val = (prop.GetValue(item, null) ?? "").ToString();
-					if (prop.PropertyType == typeof(Uri))
-					{
-						cell.Hyperlink = Switch<IHyperlink>(
-							excelType,
-							() => new HSSFHyperlink(HyperlinkType.Url)
-							{
-								Address = val
-							},
-							() => new XSSFHyperlink(HyperlinkType.Url)
-							{
-								Address = val
-							}
-						);
-					}
-					//cell.Hyperlink=new HSSFHyperlink
-					cell.SetCellValue(val);
+					
+					SetCellValue(excelType, prop.PropertyType, cell, val);
 				}
 			}
 			return ToBytes(workbook);
+		}
+
+		public byte[] ObjectToExcelBytes(DataTable dt, ExcelType excelType, string sheetTitle = null)
+		{
+			var workbook = Workbook(excelType);
+
+			var sheet = string.IsNullOrWhiteSpace(sheetTitle) ? workbook.CreateSheet() : workbook.CreateSheet(sheetTitle);
+
+			var attrArray = dt.Columns.Cast<DataColumn>().ToArray();
+			for (var i = 0; i < attrArray.Length; i++)
+				sheet.SetColumnWidth(i, 16 * 256);// todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
+			var headerRow = sheet.CreateRow(0);
+			for (var i = 0; i < attrArray.Length; i++)
+			{
+				var cell = headerRow.CreateCell(i);
+				cell.SetCellType(CellType.String);
+				cell.SetCellValue(attrArray[i].ColumnName);
+			}
+			var rowNumber = 1;
+			var data = dt.Rows.Cast<DataRow>().ToArray();
+			foreach (var item in data.Where(c => c != null))
+			{
+				var row = sheet.CreateRow(rowNumber++);
+				for (var i = 0; i < attrArray.Length; i++)
+				{
+					var cell = row.CreateCell(i);
+					var type = attrArray[i].DataType;
+					var val = (item[attrArray[i].ColumnName] ?? "").ToString();
+					SetCellValue(excelType, type, cell, val);
+				}
+			}
+			return ToBytes(workbook);
+		}
+
+		private static void SetCellValue(ExcelType excelType, Type type, ICell cell, string val)
+		{
+			if (type == typeof(Uri))
+			{
+				cell.Hyperlink = Switch<IHyperlink>(
+					excelType,
+					() => new HSSFHyperlink(HyperlinkType.Url)
+					{
+						Address = val
+					},
+					() => new XSSFHyperlink(HyperlinkType.Url)
+					{
+						Address = val
+					}
+				);
+			}
+
+			//cell.Hyperlink=new HSSFHyperlink
+			cell.SetCellValue(val);
 		}
 
 		private static byte[] ToBytes(IWorkbook workbook)
