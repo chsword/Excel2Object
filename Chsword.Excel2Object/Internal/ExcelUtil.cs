@@ -22,7 +22,7 @@ namespace Chsword.Excel2Object.Internal
 		    if (!(attr is DisplayAttribute display)) return attr as ExcelTitleAttribute;
 		    return new ExcelTitleAttribute(display.Name)
 		    {
-			    Order = display.Order
+			    Order = display.GetOrder() ?? 0
 		    };
 
 	    }
