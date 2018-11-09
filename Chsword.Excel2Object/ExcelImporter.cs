@@ -29,8 +29,21 @@ namespace Chsword.Excel2Object
             {
                 [typeof(DateTime)] = GetCellDateTime,
                 [typeof(bool)] = GetCellBoolean,
-                [typeof(Uri)] = GetCellUri
+                [typeof(Uri)] = GetCellUri,
+              
             };
+
+        private static object GetEnum(IRow row, int key,Type enumType)
+        {
+            var cellValue = GetCellValue(row, key);
+            if (string.IsNullOrEmpty(cellValue)) return null;
+            if (Enum.GetNames(enumType).Contains(cellValue))
+            {
+                return Enum.Parse(enumType, cellValue);
+            }
+
+            return Enum.Parse(enumType, "0");
+        }
 
         private static object GetCellUri(IRow row, int key)
         {
@@ -68,15 +81,23 @@ namespace Chsword.Excel2Object
                 {
                     var propType = pair.Value.Key.PropertyType;
                     var type = TypeUtil.GetUnNullableType(propType);
-                    if (SpecialConvertDict.ContainsKey(type))
+                    if (type.IsEnum)
                     {
-                        var specialValue = SpecialConvertDict[type](row, pair.Key);
+                        var specialValue = GetEnum(row, pair.Key, type);
                         pair.Value.Key.SetValue(model, specialValue, null);
                     }
                     else
                     {
-                        var val = Convert.ChangeType(GetCellValue(row, pair.Key), propType);
-                        pair.Value.Key.SetValue(model, val, null);
+                        if (SpecialConvertDict.ContainsKey(type))
+                        {
+                            var specialValue = SpecialConvertDict[type](row, pair.Key);
+                            pair.Value.Key.SetValue(model, specialValue, null);
+                        }
+                        else
+                        {
+                            var val = Convert.ChangeType(GetCellValue(row, pair.Key), propType);
+                            pair.Value.Key.SetValue(model, val, null);
+                        }
                     }
                 }
                 yield return model;

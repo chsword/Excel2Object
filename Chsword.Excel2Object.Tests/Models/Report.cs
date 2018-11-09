@@ -15,5 +15,16 @@ namespace Chsword.Excel2Object.Tests.Models
         public bool? Enabled { get; set; }
         [ExcelTitle("Address")]
         public Uri Uri { get; set; }
+        [ExcelTitle("Type")]
+        public MyEnum Type { get; set; }
+    }
+
+    public enum MyEnum
+    {
+        Unkonw = 0,
+        一 = 1,
+        二 = 2,
+        三 = 3
+
     }
 }
