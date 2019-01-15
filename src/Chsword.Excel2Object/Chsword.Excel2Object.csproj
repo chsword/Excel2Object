@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Product>Chsword.Excel2Object Library</Product>
+    <Authors>Zou Jian</Authors>
+    <Owners>chsword</Owners>
+    <PackageReleaseNotes>Copyright ©  2014-2019</PackageReleaseNotes>
+    <Version>2.0.0.0-beta</Version>
+    <PackageProjectUrl>https://github.com/chsword/Excel2Object/</PackageProjectUrl>
+    <Description>Convert excel and .NET object , Excel 与 .NET 对象互相转换的类库</Description>
+    <PackageTags>excel,.net</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CTRC" Version="1.1.0.70" />
+    <PackageReference Include="DotNetCore.NPOI" Version="1.2.1" />
+  </ItemGroup>
+
+</Project>
