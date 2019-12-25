@@ -1,15 +1,13 @@
-version: 1.0.0.{build}
-image: Visual Studio 2017
+version: 2.0.0.{build}
+image: Visual Studio 2019
 configuration: Release
-platform: Any CPU
-assembly_info:
+dotnet_csproj:
   patch: true
-  file: '**\AssemblyInfo.*'
-  assembly_version: '{version}'
-  assembly_file_version: '{version}'
-  assembly_informational_version: '{version}'
+  file: '**\*.csproj'
+  version: '{version}'
+  package_version: '{version}'
 before_build:
-- ps: nuget restore
 build:
   publish_nuget: true
   verbosity: minimal
+test: true
