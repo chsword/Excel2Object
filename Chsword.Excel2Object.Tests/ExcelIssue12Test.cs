@@ -19,7 +19,7 @@ namespace Chsword.Excel2Object.Tests
                 },
                 new ReportModel
                 {
-                    Name = "y", Title = null, Enabled = false
+                    Name = "y", Title = "", Enabled = false
                 },
                 new ReportModel
                 {

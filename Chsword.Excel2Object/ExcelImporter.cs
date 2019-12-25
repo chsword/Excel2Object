@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -21,7 +21,8 @@ namespace Chsword.Excel2Object
         public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes) where TModel : class, new()
         {
             var result = GetDataRows(bytes);
-            return ExcelToObject<TModel>(result);
+            var list = ExcelToObject<TModel>(result);
+            return list;
         }
 
         private static readonly Dictionary<Type, Func<IRow, int, object>> SpecialConvertDict =
@@ -30,10 +31,10 @@ namespace Chsword.Excel2Object
                 [typeof(DateTime)] = GetCellDateTime,
                 [typeof(bool)] = GetCellBoolean,
                 [typeof(Uri)] = GetCellUri,
-              
+
             };
 
-        private static object GetEnum(IRow row, int key,Type enumType)
+        private static object GetEnum(IRow row, int key, Type enumType)
         {
             var cellValue = GetCellValue(row, key);
             if (string.IsNullOrEmpty(cellValue)) return null;
@@ -67,12 +68,11 @@ namespace Chsword.Excel2Object
                         dictColumns.Add(cell.ColumnIndex, prop);
                 }
             }
+
             while (rows.MoveNext())
             {
                 var row = (IRow) rows.Current;
-                var firstCell = row?.GetCell(0);
-                if (firstCell == null || firstCell.CellType == CellType.Blank ||
-                    string.IsNullOrWhiteSpace(firstCell.ToString()))
+                if (row?.Cells?.Count == 0)
                     continue;
 
                 var model = new TModel();
@@ -100,6 +100,7 @@ namespace Chsword.Excel2Object
                         }
                     }
                 }
+
                 yield return model;
             }
         }
@@ -163,6 +164,7 @@ namespace Chsword.Excel2Object
             {
                 Console.WriteLine(e);
             }
+
             return (result ?? "").Trim();
         }
 
@@ -183,6 +185,7 @@ namespace Chsword.Excel2Object
             {
                 return null;
             }
+
             var sheet = workbook.GetSheetAt(0);
             var rows = sheet.GetRowEnumerator();
             rows.MoveNext();
@@ -205,6 +208,7 @@ namespace Chsword.Excel2Object
             {
                 return null;
             }
+
             var sheet = workbook.GetSheetAt(0);
             var rows = sheet.GetRowEnumerator();
             rows.MoveNext();
@@ -227,6 +231,7 @@ namespace Chsword.Excel2Object
                         {
                             Console.WriteLine(e);
                         }
+
                         break;
                     case CellType.String:
                         var str = row.GetCell(index).StringCellValue;
@@ -250,6 +255,7 @@ namespace Chsword.Excel2Object
             {
                 Console.WriteLine(e);
             }
+
             return result;
         }
 
@@ -278,6 +284,7 @@ namespace Chsword.Excel2Object
                 if (DateTime.TryParse(str.Replace("年", "").Replace("月", ""), out dt))
                     return dt;
             }
+
             return null;
         }
     }
