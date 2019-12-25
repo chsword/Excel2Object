@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26403.7
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29609.76
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chsword.Excel2Object", "Chsword.Excel2Object\Chsword.Excel2Object.csproj", "{E1A1C76A-CAB7-4C75-AE44-BB797CF40D38}"
 EndProject
