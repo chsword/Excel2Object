@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -112,5 +112,10 @@ namespace Chsword.Excel2Object.Tests
 		    File.WriteAllBytes(path, bytes);
 		    Assert.IsTrue(File.Exists(path));
 		}
+        [TestMethod]
+        public void ConvertXlsxWithDictionary()
+        {
+            
+        }
     }
 }

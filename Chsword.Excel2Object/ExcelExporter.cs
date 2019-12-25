@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Chsword.Excel2Object.Internal;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
@@ -12,89 +13,74 @@ namespace Chsword.Excel2Object
 {
 	public class ExcelExporter
 	{
-		/// <summary>
-		/// Export a excel file from a List of T generic list
-		/// </summary>
-		/// <typeparam name="TModel"></typeparam>
-		/// <param name="data"></param>
-		/// <param name="excelType"></param>
-		/// <param name="sheetTitle"></param>
-		/// <returns></returns>
-		public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType, string sheetTitle = null)
-		{
-			var workbook = Workbook(excelType);
-			ISheet sheet;
+        /// <summary>
+        /// Export a excel file from a List of T generic list
+        /// </summary>
+        /// <typeparam name="TModel"></typeparam>
+        /// <param name="data"></param>
+        /// <param name="excelType"></param>
+        /// <param name="sheetTitle"></param>
+        /// <returns></returns>
+        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType,
+            string sheetTitle = null)
+        {
+            var excel = TypeConvert.ConvertObjectToExcelModel(data, sheetTitle);
 
-			if (string.IsNullOrWhiteSpace(sheetTitle))
-			{
-				var classAttr = ExcelUtil.GetClassExportAttribute<TModel>();
-				sheet = classAttr == null ? workbook.CreateSheet() : workbook.CreateSheet(classAttr.Title);
-			}
-			else
-			{
-				sheet = workbook.CreateSheet(sheetTitle);
-			}
+            return ObjectToExcelBytes(excel, excelType);
+        }
 
-			var attrDict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
-			var attrArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
-			for (var i = 0; i < attrArray.Length; i++)
-				sheet.SetColumnWidth(i, 16 * 256);// todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
-			var headerRow = sheet.CreateRow(0);
-			for (var i = 0; i < attrArray.Length; i++)
-			{
-				var cell = headerRow.CreateCell(i);
-				cell.SetCellType(CellType.String);
-				cell.SetCellValue(attrArray[i].Value.Title);
-			}
-			var rowNumber = 1;
-			foreach (var item in data.Where(c => c != null))
-			{
-				var row = sheet.CreateRow(rowNumber++);
-				for (var i = 0; i < attrArray.Length; i++)
-				{
-					var cell = row.CreateCell(i);
-					var prop = attrArray[i].Key;
-					var val = (prop.GetValue(item, null) ?? "").ToString();
-					
-					SetCellValue(excelType, prop.PropertyType, cell, val);
-				}
-			}
-			return ToBytes(workbook);
-		}
+        internal byte[] ObjectToExcelBytes(ExcelModel excel, ExcelType excelType)
+        {
+            var workbook = Workbook(excelType);
+            CheckExcelModel(excel);
+            foreach (var excelSheet in excel.Sheets)
+            {
+                var sheet = string.IsNullOrWhiteSpace(excelSheet.Title)
+                    ? workbook.CreateSheet()
+                    : workbook.CreateSheet(excelSheet.Title);
 
-		public byte[] ObjectToExcelBytes(DataTable dt, ExcelType excelType, string sheetTitle = null)
-		{
-			var workbook = Workbook(excelType);
+                var columns = excelSheet.Columns.OrderBy(c => c.Order).ToArray();
+                for (var i = 0; i < columns.Length; i++)
+                    sheet.SetColumnWidth(i, 16 * 256); // todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
+                var headerRow = sheet.CreateRow(0);
+                for (var i = 0; i < columns.Length; i++)
+                {
+                    var cell = headerRow.CreateCell(i);
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(columns[i].Title);
+                }
 
-			var sheet = string.IsNullOrWhiteSpace(sheetTitle) ? workbook.CreateSheet() : workbook.CreateSheet(sheetTitle);
+                var rowNumber = 1;
+                var data = excelSheet.Rows;
+                foreach (var item in data)
+                {
+                    var row = sheet.CreateRow(rowNumber++);
+                    for (var i = 0; i < columns.Length; i++)
+                    {
+                        var cell = row.CreateCell(i);
+                        var type = columns[i].Type;
+                        var val = (item[columns[i].Title] ?? "").ToString();
+                        SetCellValue(excelType, type, cell, val);
+                    }
+                }
+            }
 
-			var attrArray = dt.Columns.Cast<DataColumn>().ToArray();
-			for (var i = 0; i < attrArray.Length; i++)
-				sheet.SetColumnWidth(i, 16 * 256);// todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
-			var headerRow = sheet.CreateRow(0);
-			for (var i = 0; i < attrArray.Length; i++)
-			{
-				var cell = headerRow.CreateCell(i);
-				cell.SetCellType(CellType.String);
-				cell.SetCellValue(attrArray[i].ColumnName);
-			}
-			var rowNumber = 1;
-			var data = dt.Rows.Cast<DataRow>().ToArray();
-			foreach (var item in data.Where(c => c != null))
-			{
-				var row = sheet.CreateRow(rowNumber++);
-				for (var i = 0; i < attrArray.Length; i++)
-				{
-					var cell = row.CreateCell(i);
-					var type = attrArray[i].DataType;
-					var val = (item[attrArray[i].ColumnName] ?? "").ToString();
-					SetCellValue(excelType, type, cell, val);
-				}
-			}
-			return ToBytes(workbook);
-		}
+            return ToBytes(workbook);
+        }
 
-		private static void SetCellValue(ExcelType excelType, Type type, ICell cell, string val)
+        private void CheckExcelModel(ExcelModel excel)
+        {
+            //todo validate
+
+        }
+
+        public byte[] ObjectToExcelBytes(DataTable dt, ExcelType excelType, string sheetTitle = null)
+        {
+            var excel = TypeConvert.ConvertDataSetToExcelModel(dt, sheetTitle);
+            return ObjectToExcelBytes(excel, excelType);
+        }
+
+        private static void SetCellValue(ExcelType excelType, Type type, ICell cell, string val)
 		{
 			if (type == typeof(Uri))
 			{
