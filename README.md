@@ -34,6 +34,12 @@ PM> Install-Package Chsword.Excel2Object
 - [x] 1. support to specify the order of fields to export
 - [x] 1. support convert List<Model> to excel bytes and Excel bytes to List<Model>
 
+* v2.0.0.105
+```
+convert project to netstandard2.0
+fixbug #12
+```
+
 * v1.0.0.80
 ```
 Support Uri to a hyperlink cell
