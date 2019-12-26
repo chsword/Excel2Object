@@ -22,11 +22,11 @@ PM> Install-Package Chsword.Excel2Object
 ### Release Notes and roadmap
 
 - [ ] cli tool
-- [ ] support standard excel model
-  - [ ] excel & JSON convert
-  - [ ] excel & Dictionary<string,object> convert
 - [ ] support auto width column
 - [ ] 1. support date datetime time in excel
+- [x] support standard excel model
+  - [x] excel & JSON convert
+  - [x] excel & Dictionary<string,object> convert
 - [x] 1. convert project to netstandard2.0 & .net 4.5.2
 - [x] 1. export with a sheet name,using ExcelTitleAttribute on class
 - [x] 1. support Uri type to a Hyperlink

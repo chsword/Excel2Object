@@ -14,14 +14,21 @@ namespace Chsword.Excel2Object
     {
         public IEnumerable<TModel> ExcelToObject<TModel>(string path) where TModel : class, new()
         {
-            var result = GetDataRows(path);
-            return ExcelToObject<TModel>(result);
+            if (string.IsNullOrWhiteSpace(path))
+                return null;
+            var bytes = File.ReadAllBytes(path);
+            return ExcelToObject<TModel>(bytes);
         }
 
         public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes) where TModel : class, new()
         {
             var result = GetDataRows(bytes);
-            var list = ExcelToObject<TModel>(result);
+            if (typeof(TModel) == typeof(Dictionary<string, object>))
+            {
+                return InternalExcelToDictionary(result) as IEnumerable<TModel>;
+            }
+
+            var list = InternalExcelToObject<TModel>(result);
             return list;
         }
 
@@ -52,8 +59,33 @@ namespace Chsword.Excel2Object
             if (string.IsNullOrEmpty(cellValue)) return null;
             return new Uri(cellValue);
         }
+        internal static IEnumerable<Dictionary<string,object>> InternalExcelToDictionary(IEnumerator result)
+        {
+            var list = new List<Dictionary<string, object>>();
+            var rows = result;
+            var titleRow = (IRow)rows.Current;
+            if (titleRow == null) return list;
+            var columns = titleRow.Cells.ToDictionary(c => c.StringCellValue, c => c.ColumnIndex);
 
-        private static IEnumerable<TModel> ExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
+            while (rows.MoveNext())
+            {
+                var row = (IRow) rows.Current;
+                if (row?.Cells?.Count == 0)
+                    continue;
+
+                var model = new Dictionary<string, object>();
+
+                foreach (var column in columns)
+                {
+                    model[column.Key] = GetCellValue(row, column.Value);
+                }
+
+                list.Add(model);
+            }
+
+            return list;
+        }
+        internal static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
         {
             var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
             var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
@@ -226,31 +258,7 @@ namespace Chsword.Excel2Object
 
             return (result ?? "").Trim();
         }
-
-        private static IEnumerator GetDataRows(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-                return null;
-            IWorkbook workbook;
-
-            try
-            {
-                using (var file = new FileStream(path, FileMode.Open, FileAccess.Read))
-                {
-                    workbook = WorkbookFactory.Create(file);
-                }
-            }
-            catch
-            {
-                return null;
-            }
-
-            var sheet = workbook.GetSheetAt(0);
-            var rows = sheet.GetRowEnumerator();
-            rows.MoveNext();
-            return rows;
-        }
-
+ 
         private static IEnumerator GetDataRows(byte[] bytes)
         {
             if (bytes == null || bytes.Length == 0)

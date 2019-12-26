@@ -7,6 +7,17 @@ namespace Chsword.Excel2Object
     public class ExcelHelper
     {
         /// <summary>
+        /// convert a excel file(bytes) to IEnumerable of TModel
+        /// </summary>
+        /// <typeparam name="TModel"></typeparam>
+        /// <param name="bytes">the excel file bytes</param>
+        /// <returns></returns>
+        public static IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes) where TModel : class, new()
+        {
+            var importer = new ExcelImporter();
+            return importer.ExcelToObject<TModel>(bytes);
+        }
+        /// <summary>
         ///     import file excel file to a IEnumerable of TModel
         /// </summary>
         /// <typeparam name="TModel"></typeparam>

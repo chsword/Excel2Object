@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Chsword.Excel2Object.Internal;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
@@ -24,7 +23,15 @@ namespace Chsword.Excel2Object
         public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType,
             string sheetTitle = null)
         {
-            var excel = TypeConvert.ConvertObjectToExcelModel(data, sheetTitle);
+            ExcelModel excel;
+            if (data is IEnumerable<Dictionary<string, object>> models)
+            {
+                excel = TypeConvert.ConvertDictionaryToExcelModel(models, sheetTitle);
+			}
+            else
+            {
+                excel = TypeConvert.ConvertObjectToExcelModel(data, sheetTitle);
+            }
 
             return ObjectToExcelBytes(excel, excelType);
         }

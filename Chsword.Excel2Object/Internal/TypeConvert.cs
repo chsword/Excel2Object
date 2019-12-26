@@ -37,11 +37,29 @@ namespace Chsword.Excel2Object.Internal
             return excel;
         }
 
+        public static ExcelModel ConvertDictionaryToExcelModel(IEnumerable<Dictionary<string, object>> data,
+            string sheetTitle=null)
+        {
+            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
+            var sheet = SheetModel.Create(sheetTitle);
+            excel.Sheets.Add(sheet);
+            var list = data.ToList();
+            var title = list.FirstOrDefault();
+            if (title==null) return excel;
+
+            sheet.Columns = title.Keys.Select((c, i) => new ExcelColumn
+            {
+                Order = i,
+                Title = c,
+                Type = typeof(string)
+            }).ToList();
+            sheet.Rows = list;
+
+            return excel;
+        }
         public static ExcelModel ConvertObjectToExcelModel<TModel>(IEnumerable<TModel> data, string sheetTitle)
         {
             var excel = new ExcelModel {Sheets = new List<SheetModel>()};
-
-
             if (string.IsNullOrWhiteSpace(sheetTitle))
             {
                 var classAttr = ExcelUtil.GetClassExportAttribute<TModel>();

@@ -1,9 +1,12 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
 using Chsword.Excel2Object.Tests.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 
 namespace Chsword.Excel2Object.Tests
 {
@@ -115,7 +118,19 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void ConvertXlsxWithDictionary()
         {
-            
+            var list = new List<Dictionary<string, object>>
+            {
+                new Dictionary<string, object> {["姓名"] = "吴老狗", ["Age"] = "19"},
+                new Dictionary<string, object> {["姓名"] = "老林", ["Age"] = "50"}
+            };
+            var bytes = ExcelHelper.ObjectToExcelBytes(list, ExcelType.Xlsx);
+            var path = GetFilePath("test.xlsx");
+            File.WriteAllBytes(path, bytes);
+            var result = ExcelHelper.ExcelToObject<Dictionary<string, object>>(bytes).ToList();
+            Assert.AreEqual(
+                JsonConvert.SerializeObject(list),
+                JsonConvert.SerializeObject(result)
+                );
         }
     }
 }
