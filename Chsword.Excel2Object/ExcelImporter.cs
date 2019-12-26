@@ -104,7 +104,66 @@ namespace Chsword.Excel2Object
                 yield return model;
             }
         }
+        internal static SheetModel ExcelToExcelModel(IEnumerator result, SheetModel sheet=null)
+        {
+ 
+            var rows = result;
+            if (sheet == null)
+            {
+                sheet = SheetModel.Create("Sheet1");
+                var titleRow = (IRow) rows.Current;
+                if (titleRow != null)
+                {
+                    for (var i = 0; i < titleRow.Cells.Count; i++)
+                    {
+                        var cell = titleRow.Cells[i];
+                        sheet.Columns.Add(new ExcelColumn()
+                        {
+                            Order = cell.ColumnIndex,
+                            Title = cell.StringCellValue,
+                            Type = null, //cell.CellType todo
 
+                        });
+                    }
+                }
+            }
+
+            while (rows.MoveNext())
+            {
+                var row = (IRow)rows.Current;
+                if (row?.Cells?.Count == 0)
+                    continue;
+                var line =new Dictionary<string,object>();
+                foreach (var column in sheet.Columns)
+                {
+                    var propType = column.Type;
+                    var type = TypeUtil.GetUnNullableType(propType);
+                    if (type.IsEnum)
+                    {
+                        var specialValue = GetEnum(row, column.Order, type);
+                        line[column.Title] = specialValue;
+                    }
+                    else
+                    {
+                        if (SpecialConvertDict.ContainsKey(type))
+                        {
+                            var specialValue = SpecialConvertDict[type](row, column.Order);
+                            line[column.Title] = specialValue;
+                        }
+                        else
+                        {
+                            var val = Convert.ChangeType(GetCellValue(row, column.Order), propType);
+                            line[column.Title] = val;
+                        }
+                    }
+                }
+
+                sheet.Rows.Add(line);
+
+            }
+
+            return sheet;
+        }
         private static object GetCellBoolean(IRow row, int key)
         {
             var cellValue = GetCellValue(row, key);
