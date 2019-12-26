@@ -21,11 +21,13 @@ PM> Install-Package Chsword.Excel2Object
 
 ### Release Notes and roadmap
 
-- [ ] 1. cli tool
-- [ ] 1. excel & JSON convert
-- [ ] 1. support auto width column
+- [ ] cli tool
+- [ ] support standard excel model
+  - [ ] excel & JSON convert
+  - [ ] excel & Dictionary<string,object> convert
+- [ ] support auto width column
 - [ ] 1. support date datetime time in excel
-- [x] 1. convert project to netstandard2.0
+- [x] 1. convert project to netstandard2.0 & .net 4.5.2
 - [x] 1. export with a sheet name,using ExcelTitleAttribute on class
 - [x] 1. support Uri type to a Hyperlink
 - [x] 1. support xls / xlsx
@@ -34,10 +36,10 @@ PM> Install-Package Chsword.Excel2Object
 - [x] 1. support to specify the order of fields to export
 - [x] 1. support convert List<Model> to excel bytes and Excel bytes to List<Model>
 
-* v2.0.0.105
+* v2.0.0.113
 ```
-convert project to netstandard2.0
-fixbug #12
+convert project to netstandard2.0 and .net452
+fixbug #12 #13
 ```
 
 * v1.0.0.80
@@ -58,6 +60,7 @@ Add ExcelToObject<T>(bytes)
 ```
 
 ### Demo Code
+
 Model
 ``` csharp
     public class ReportModel
@@ -68,6 +71,7 @@ Model
         public string Name { get; set; }
     }
 ```
+
 Model List
 ``` cs
       var models = new List<ReportModel>
@@ -77,12 +81,14 @@ Model List
                 new ReportModel{Name="f",Title="e"}
             };
 ```
+
 Convert Object to Excel file.
 ``` csharp
       var exporter = new ExcelExporter();
       var bytes = exporter.ObjectToExcelBytes(models);
       File.WriteAllBytes("C:\\demo.xls", bytes);
 ```
+
 Convert Excel file to Object
 ``` csharp
       var importer = new ExcelImporter();
@@ -90,6 +96,7 @@ Convert Excel file to Object
       // also can use bytes
       //IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>(bytes);
 ```
+
 With ASP.NET MVC
       In ASP.NET MVC Model, DisplayAttribute can be supported like ExcelTitleAttribute.
 
