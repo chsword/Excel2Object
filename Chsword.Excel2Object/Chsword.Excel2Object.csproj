@@ -8,8 +8,8 @@
     <Version>2.0.0</Version>
     <Copyright>Copyright © 2014-2019</Copyright>
     <PackageProjectUrl>https://github.com/chsword/Excel2Object/</PackageProjectUrl>
-    <PackageReleaseNotes>1. convert project to netstandard2.0
-2. fix bug #12</PackageReleaseNotes>
+    <PackageReleaseNotes>support target framework net452 and netstandard2.0
+for issue #13</PackageReleaseNotes>
     <PackageTags>excel,.net,netcore</PackageTags>
     <Description>Convert excel and .NET object , Excel 与 .NET 对象互相转换的类库</Description>
   </PropertyGroup>
