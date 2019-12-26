@@ -14,115 +14,95 @@ namespace Chsword.Excel2Object
     {
         public IEnumerable<TModel> ExcelToObject<TModel>(string path) where TModel : class, new()
         {
-            var result = GetDataRows(path);
-            return ExcelToObject<TModel>(result);
+            if (string.IsNullOrWhiteSpace(path))
+                return null;
+            var bytes = File.ReadAllBytes(path);
+            return ExcelToObject<TModel>(bytes);
         }
 
         public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes) where TModel : class, new()
         {
-            var result = GetDataRows(bytes);
-            var list = ExcelToObject<TModel>(result);
-            return list;
+            var sheets = ExcelTypeUtil.GetSheets(bytes).ToList();
+            if(sheets.Count==0)
+                throw new InvalidDataException("Currently there is no Sheet in Excel");
+
+            var list = ExcelToExcelModel(sheets[0], Sheme.GetSheetSheme<TModel>());
+            return TypeConvert.SheetModelToObject<TModel>(list);
         }
 
-        private static readonly Dictionary<Type, Func<IRow, int, object>> SpecialConvertDict =
-            new Dictionary<Type, Func<IRow, int, object>>
-            {
-                [typeof(DateTime)] = GetCellDateTime,
-                [typeof(bool)] = GetCellBoolean,
-                [typeof(Uri)] = GetCellUri,
+        //private static IEnumerable<TModel> ExcelToObject<TModel>(ISheet sheet) where TModel : class, new()
+        //{ 
+        //    var rows = sheet.GetRowEnumerator();
+        //    rows.MoveNext();
 
-            };
+        //    var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
+        //    var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
+    
+        //    var titleRow = (IRow) rows.Current;
+        //    if (titleRow != null)
+        //    {
+        //        foreach (var cell in titleRow.Cells)
+        //        {
+        //            var prop = dict.FirstOrDefault(c => cell.StringCellValue == c.Value.Title);
+        //            if (prop.Key != null && !dictColumns.ContainsKey(cell.ColumnIndex))
+        //                dictColumns.Add(cell.ColumnIndex, prop);
+        //        }
+        //    }
 
-        private static object GetEnum(IRow row, int key, Type enumType)
+        //    while (rows.MoveNext())
+        //    {
+        //        var row = (IRow) rows.Current;
+        //        if (row?.Cells?.Count == 0)
+        //            continue;
+
+        //        var model = new TModel();
+
+        //        foreach (var pair in dictColumns)
+        //        {
+        //            var propType = pair.Value.Key.PropertyType;
+        //            var type = TypeUtil.GetUnNullableType(propType);
+        //            if (type.IsEnum)
+        //            {
+        //                var specialValue = GetEnum(row, pair.Key, type);
+        //                pair.Value.Key.SetValue(model, specialValue, null);
+        //            }
+        //            else
+        //            {
+        //                if (SpecialConvertDict.ContainsKey(type))
+        //                {
+        //                    var specialValue = SpecialConvertDict[type](row, pair.Key);
+        //                    pair.Value.Key.SetValue(model, specialValue, null);
+        //                }
+        //                else
+        //                {
+        //                    var val = Convert.ChangeType(GetCellValue(row, pair.Key), propType);
+        //                    pair.Value.Key.SetValue(model, val, null);
+        //                }
+        //            }
+        //        }
+
+        //        yield return model;
+        //    }
+        //}
+
+        internal static SheetModel ExcelToExcelModel(ISheet sheet, SheetModel sheetModel = null)
         {
-            var cellValue = GetCellValue(row, key);
-            if (string.IsNullOrEmpty(cellValue)) return null;
-            if (Enum.GetNames(enumType).Contains(cellValue))
+            var rows = sheet.GetRowEnumerator();
+            rows.MoveNext();
+            if (sheetModel == null)
             {
-                return Enum.Parse(enumType, cellValue);
-            }
-
-            return Enum.Parse(enumType, "0");
-        }
-
-        private static object GetCellUri(IRow row, int key)
-        {
-            var cellValue = GetCellValue(row, key);
-            if (string.IsNullOrEmpty(cellValue)) return null;
-            return new Uri(cellValue);
-        }
-
-        private static IEnumerable<TModel> ExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
-        {
-            var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
-            var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
-            var rows = result;
-            var titleRow = (IRow) rows.Current;
-            if (titleRow != null)
-            {
-                foreach (var cell in titleRow.Cells)
-                {
-                    var prop = dict.FirstOrDefault(c => cell.StringCellValue == c.Value.Title);
-                    if (prop.Key != null && !dictColumns.ContainsKey(cell.ColumnIndex))
-                        dictColumns.Add(cell.ColumnIndex, prop);
-                }
-            }
-
-            while (rows.MoveNext())
-            {
-                var row = (IRow) rows.Current;
-                if (row?.Cells?.Count == 0)
-                    continue;
-
-                var model = new TModel();
-
-                foreach (var pair in dictColumns)
-                {
-                    var propType = pair.Value.Key.PropertyType;
-                    var type = TypeUtil.GetUnNullableType(propType);
-                    if (type.IsEnum)
-                    {
-                        var specialValue = GetEnum(row, pair.Key, type);
-                        pair.Value.Key.SetValue(model, specialValue, null);
-                    }
-                    else
-                    {
-                        if (SpecialConvertDict.ContainsKey(type))
-                        {
-                            var specialValue = SpecialConvertDict[type](row, pair.Key);
-                            pair.Value.Key.SetValue(model, specialValue, null);
-                        }
-                        else
-                        {
-                            var val = Convert.ChangeType(GetCellValue(row, pair.Key), propType);
-                            pair.Value.Key.SetValue(model, val, null);
-                        }
-                    }
-                }
-
-                yield return model;
-            }
-        }
-        internal static SheetModel ExcelToExcelModel(IEnumerator result, SheetModel sheet=null)
-        {
- 
-            var rows = result;
-            if (sheet == null)
-            {
-                sheet = SheetModel.Create("Sheet1");
+                sheetModel = SheetModel.Create(sheet.SheetName);
                 var titleRow = (IRow) rows.Current;
                 if (titleRow != null)
                 {
                     for (var i = 0; i < titleRow.Cells.Count; i++)
                     {
                         var cell = titleRow.Cells[i];
-                        sheet.Columns.Add(new ExcelColumn()
+                        sheetModel.Columns.Add(new ExcelColumn
                         {
                             Order = cell.ColumnIndex,
                             Title = cell.StringCellValue,
                             Type = null, //cell.CellType todo
-
                         });
                     }
                 }
@@ -130,221 +110,46 @@ namespace Chsword.Excel2Object
 
             while (rows.MoveNext())
             {
-                var row = (IRow)rows.Current;
-                if (row?.Cells?.Count == 0)
+                var row = (IRow) rows.Current;
+                if (row == null || row?.Cells?.Count == 0)
                     continue;
-                var line =new Dictionary<string,object>();
-                foreach (var column in sheet.Columns)
+                var line = new Dictionary<string, ExcelCell>();
+                foreach (var column in sheetModel.Columns)
                 {
+                    var cell = row.GetCell(column.Order);
                     var propType = column.Type;
+                    if (propType == null)
+                    {
+                        var specialValue = ExcelTypeUtil.GetCellValue(row, column.Order);
+                        line[column.Title] = new ExcelCell(specialValue, cell.CellType);
+                        continue;
+                    }
+
                     var type = TypeUtil.GetUnNullableType(propType);
                     if (type.IsEnum)
                     {
-                        var specialValue = GetEnum(row, column.Order, type);
-                        line[column.Title] = specialValue;
+                        var specialValue = ExcelTypeUtil.GetEnum(row, column.Order, type);
+                        line[column.Title] = new ExcelCell(specialValue, cell.CellType);
+                        continue;
                     }
-                    else
+
+                    if (ExcelTypeUtil.SpecialConvertDict.ContainsKey(type))
                     {
-                        if (SpecialConvertDict.ContainsKey(type))
-                        {
-                            var specialValue = SpecialConvertDict[type](row, column.Order);
-                            line[column.Title] = specialValue;
-                        }
-                        else
-                        {
-                            var val = Convert.ChangeType(GetCellValue(row, column.Order), propType);
-                            line[column.Title] = val;
-                        }
+                        var specialValue = ExcelTypeUtil.SpecialConvertDict[type](row, column.Order);
+                        line[column.Title] = new ExcelCell(specialValue, cell.CellType);
+                        continue;
                     }
+
+                    var val = Convert.ChangeType(ExcelTypeUtil.GetCellValue(row, column.Order), propType);
+                    line[column.Title] = new ExcelCell(val,cell.CellType);
+
                 }
 
-                sheet.Rows.Add(line);
+                sheetModel.Rows.Add(line);
 
             }
 
-            return sheet;
-        }
-        private static object GetCellBoolean(IRow row, int key)
-        {
-            var cellValue = GetCellValue(row, key);
-            if (string.IsNullOrEmpty(cellValue)) return null;
-            if (bool.TryParse(cellValue, out var value)) return value;
-            switch (cellValue.ToLower())
-            {
-                case "1":
-                case "是":
-                case "yes":
-                case "true":
-                    return true;
-                case "0":
-                case "否":
-                case "no":
-                case "false":
-                    return false;
-                default:
-                    return Convert.ToBoolean(cellValue);
-            }
-        }
-
-        private static string GetCellValue(IRow row, int index)
-        {
-            var result = string.Empty;
-            try
-            {
-                switch (row.GetCell(index).CellType)
-                {
-                    case CellType.Numeric:
-                        result = row.GetCell(index).NumericCellValue.ToString(CultureInfo.InvariantCulture);
-                        break;
-                    case CellType.String:
-                        result = row.GetCell(index).StringCellValue;
-                        break;
-                    case CellType.Blank:
-                        result = string.Empty;
-                        break;
-                    //case CellType.Formula:
-                    //    result = row.GetCell(index).CellFormula;
-                    //    break;
-                    //case CellType.Boolean:
-                    //    result = row.GetCell(index).NumericCellValue.ToString();
-                    //    break;
-                    //case CellType.Error:
-                    //    result = row.GetCell(index).NumericCellValue.ToString();
-                    //    break;
-                    //case CellType.Unknown:
-                    //    result = row.GetCell(index).NumericCellValue.ToString();
-                    //    break;
-                    default:
-                        result = row.GetCell(index).ToString();
-                        break;
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-
-            return (result ?? "").Trim();
-        }
-
-        private static IEnumerator GetDataRows(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-                return null;
-            IWorkbook workbook;
-
-            try
-            {
-                using (var file = new FileStream(path, FileMode.Open, FileAccess.Read))
-                {
-                    workbook = WorkbookFactory.Create(file);
-                }
-            }
-            catch
-            {
-                return null;
-            }
-
-            var sheet = workbook.GetSheetAt(0);
-            var rows = sheet.GetRowEnumerator();
-            rows.MoveNext();
-            return rows;
-        }
-
-        private static IEnumerator GetDataRows(byte[] bytes)
-        {
-            if (bytes == null || bytes.Length == 0)
-                return null;
-            IWorkbook workbook;
-            try
-            {
-                using (var memoryStream = new MemoryStream(bytes))
-                {
-                    workbook = WorkbookFactory.Create(memoryStream);
-                }
-            }
-            catch
-            {
-                return null;
-            }
-
-            var sheet = workbook.GetSheetAt(0);
-            var rows = sheet.GetRowEnumerator();
-            rows.MoveNext();
-            return rows;
-        }
-
-        private static object GetCellDateTime(IRow row, int index)
-        {
-            DateTime? result = null;
-            try
-            {
-                switch (row.GetCell(index).CellType)
-                {
-                    case CellType.Numeric:
-                        try
-                        {
-                            result = row.GetCell(index).DateCellValue;
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e);
-                        }
-
-                        break;
-                    case CellType.String:
-                        var str = row.GetCell(index).StringCellValue;
-                        result = GetDateTimeFromString(str);
-                        break;
-                    case CellType.Blank:
-                        break;
-                    case CellType.Unknown:
-                        break;
-                    case CellType.Formula:
-                        break;
-                    case CellType.Boolean:
-                        break;
-                    case CellType.Error:
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-
-            return result;
-        }
-
-        private static DateTime? GetDateTimeFromString(string str)
-        {
-            DateTime dt;
-            if (str.EndsWith("年"))
-            {
-                if (DateTime.TryParse((str + "-01-01").Replace("年", ""), out dt))
-                    return dt;
-            }
-            else if (str.EndsWith("月"))
-            {
-                if (DateTime.TryParse((str + "-01").Replace("年", "").Replace("月", ""), out dt))
-                    return dt;
-            }
-            else if (!str.Contains("年") && !str.Contains("月") && !str.Contains("日"))
-            {
-                if (DateTime.TryParse(str, out dt))
-                    return dt;
-                if (DateTime.TryParse((str + "-01-01").Replace("年", "").Replace("月", ""), out dt))
-                    return dt;
-            }
-            else
-            {
-                if (DateTime.TryParse(str.Replace("年", "").Replace("月", ""), out dt))
-                    return dt;
-            }
-
-            return null;
+            return sheetModel;
         }
     }
 }
