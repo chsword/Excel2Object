@@ -23,7 +23,8 @@ PM> Install-Package Chsword.Excel2Object
 
 - [ ] cli tool
 - [ ] support auto width column
-- [ ] 1. support date datetime time in excel
+- [ ] 1. support date datetime time in excel\
+- [x] support simple formula
 - [x] support standard excel model
   - [x] excel & JSON convert
   - [x] excel & Dictionary<string,object> convert

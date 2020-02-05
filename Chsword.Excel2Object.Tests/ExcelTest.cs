@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 namespace Chsword.Excel2Object.Tests
 {
     [TestClass]
-    public class ExcelTest
+    public class ExcelTest : BaseExcelTest
     {
         private ReportModelCollection GetModels()
         {
@@ -32,10 +32,7 @@ namespace Chsword.Excel2Object.Tests
             };
         }
 
-        private string GetFilePath(string file)
-        {
-            return Path.Combine(Environment.CurrentDirectory, file);
-        }
+   
 
         [TestMethod]
         public void ConvertXlsFileTest()

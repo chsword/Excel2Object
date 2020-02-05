@@ -1,13 +1,16 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Linq.Expressions;
+using Chsword.Excel2Object.Options;
 
 namespace Chsword.Excel2Object.Internal
 {
     internal class TypeConvert
     {
-        internal static ExcelModel ConvertDataSetToExcelModel(DataTable dt, string sheetTitle)
+        internal static ExcelModel ConvertDataSetToExcelModel(DataTable dt, ExcelExporterOptions options)
         {
+            var sheetTitle = options.SheetTitle;
             var excel = new ExcelModel {Sheets = new List<SheetModel>()};
             var sheet = SheetModel.Create(sheetTitle);
             excel.Sheets.Add(sheet);
@@ -20,16 +23,13 @@ namespace Chsword.Excel2Object.Internal
                     Title = item.ColumnName,
                     Type = item.DataType
                 }).ToList();
-            sheet.Columns = columns;
+            sheet.Columns = AttachColumns(columns, options);
 
             var data = dt.Rows.Cast<DataRow>().ToArray();
             foreach (var item in data.Where(c => c != null))
             {
                 var row = new Dictionary<string, object>();
-                foreach (var column in dataSetColumnArray)
-                {
-                    row[column.ColumnName] = item[column.ColumnName];
-                }
+                foreach (var column in dataSetColumnArray) row[column.ColumnName] = item[column.ColumnName];
 
                 sheet.Rows.Add(row);
             }
@@ -38,27 +38,68 @@ namespace Chsword.Excel2Object.Internal
         }
 
         public static ExcelModel ConvertDictionaryToExcelModel(IEnumerable<Dictionary<string, object>> data,
-            string sheetTitle=null)
+            ExcelExporterOptions options)
         {
-            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
+            var sheetTitle = options.SheetTitle;
+            var excel = new ExcelModel {Sheets = new List<SheetModel>()};
             var sheet = SheetModel.Create(sheetTitle);
             excel.Sheets.Add(sheet);
             var list = data.ToList();
             var title = list.FirstOrDefault();
-            if (title==null) return excel;
-
-            sheet.Columns = title.Keys.Select((c, i) => new ExcelColumn
+            if (title == null) return excel;
+            var columns = title.Keys.Select((c, i) => new ExcelColumn
             {
                 Order = i,
                 Title = c,
                 Type = typeof(string)
             }).ToList();
+
+            sheet.Columns = AttachColumns(columns, options);
             sheet.Rows = list;
 
             return excel;
         }
-        public static ExcelModel ConvertObjectToExcelModel<TModel>(IEnumerable<TModel> data, string sheetTitle)
+
+        private static List<ExcelColumn> AttachColumns(List<ExcelColumn> columns, ExcelExporterOptions options)
         {
+            columns = columns.OrderBy(c => c.Order).ToList();
+            if (options?.FormulaColumns != null)
+            {
+                foreach (var formulaColumn in options.FormulaColumns)
+                {
+                    var excelColumn = new ExcelColumn
+                    {
+                        Title = formulaColumn.Title,
+                        Order = 0,
+                        Type = typeof(Expression),
+                        Formula = formulaColumn.Formula
+                    };
+                    if (string.IsNullOrWhiteSpace(formulaColumn.AfterColumnTitle))
+                    {
+                        columns.Add(excelColumn);
+                    }
+                    else
+                    {
+                        var i = columns.FindIndex(c => c.Title == formulaColumn.AfterColumnTitle);
+                        if (i < 0)
+                            throw new Excel2ObjectException($"can not find {formulaColumn.AfterColumnTitle} column.");
+
+                        columns.Insert(i + 1, excelColumn);
+                    }
+                }
+            }
+
+            for (var i = 0; i < columns.Count; i++)
+            {
+                columns[i].Order = i * 10;
+            }
+            return columns;
+        }
+
+        public static ExcelModel ConvertObjectToExcelModel<TModel>(IEnumerable<TModel> data,
+            ExcelExporterOptions options)
+        {
+            var sheetTitle = options.SheetTitle;
             var excel = new ExcelModel {Sheets = new List<SheetModel>()};
             if (string.IsNullOrWhiteSpace(sheetTitle))
             {
@@ -72,16 +113,18 @@ namespace Chsword.Excel2Object.Internal
             var attrDict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
             var objKeysArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
 
-
+            var columns = new List<ExcelColumn>();
             for (var i = 0; i < objKeysArray.Length; i++)
             {
                 var column = new ExcelColumn
                 {
                     Title = objKeysArray[i].Value.Title, Type = objKeysArray[i].Key.PropertyType, Order = i
                 };
-                sheet.Columns.Add(column);
+     
+                columns.Add(column);
             }
 
+            sheet.Columns = AttachColumns(columns, options);
             foreach (var item in data.Where(c => c != null))
             {
                 var row = new Dictionary<string, object>();

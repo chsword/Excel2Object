@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Chsword.Excel2Object.Internal;
+using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 
 namespace Chsword.Excel2Object
@@ -59,7 +60,7 @@ namespace Chsword.Excel2Object
             if (string.IsNullOrEmpty(cellValue)) return null;
             return new Uri(cellValue);
         }
-        internal static IEnumerable<Dictionary<string,object>> InternalExcelToDictionary(IEnumerator result)
+        internal static IEnumerable<Dictionary<string, object>> InternalExcelToDictionary(IEnumerator result)
         {
             var list = new List<Dictionary<string, object>>();
             var rows = result;
@@ -69,7 +70,7 @@ namespace Chsword.Excel2Object
 
             while (rows.MoveNext())
             {
-                var row = (IRow) rows.Current;
+                var row = (IRow)rows.Current;
                 if (row?.Cells?.Count == 0)
                     continue;
 
@@ -90,7 +91,7 @@ namespace Chsword.Excel2Object
             var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
             var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
             var rows = result;
-            var titleRow = (IRow) rows.Current;
+            var titleRow = (IRow)rows.Current;
             if (titleRow != null)
             {
                 foreach (var cell in titleRow.Cells)
@@ -103,7 +104,7 @@ namespace Chsword.Excel2Object
 
             while (rows.MoveNext())
             {
-                var row = (IRow) rows.Current;
+                var row = (IRow)rows.Current;
                 if (row?.Cells?.Count == 0)
                     continue;
 
@@ -136,14 +137,14 @@ namespace Chsword.Excel2Object
                 yield return model;
             }
         }
-        internal static SheetModel ExcelToExcelModel(IEnumerator result, SheetModel sheet=null)
+        internal static SheetModel ExcelToExcelModel(IEnumerator result, SheetModel sheet = null)
         {
- 
+
             var rows = result;
             if (sheet == null)
             {
                 sheet = SheetModel.Create("Sheet1");
-                var titleRow = (IRow) rows.Current;
+                var titleRow = (IRow)rows.Current;
                 if (titleRow != null)
                 {
                     for (var i = 0; i < titleRow.Cells.Count; i++)
@@ -165,7 +166,7 @@ namespace Chsword.Excel2Object
                 var row = (IRow)rows.Current;
                 if (row?.Cells?.Count == 0)
                     continue;
-                var line =new Dictionary<string,object>();
+                var line = new Dictionary<string, object>();
                 foreach (var column in sheet.Columns)
                 {
                     var propType = column.Type;
@@ -217,26 +218,28 @@ namespace Chsword.Excel2Object
                     return Convert.ToBoolean(cellValue);
             }
         }
-
-        private static string GetCellValue(IRow row, int index)
+        private static string GetCellValue(ICell cell)
         {
             var result = string.Empty;
             try
             {
-                switch (row.GetCell(index).CellType)
+                switch (cell.CellType)
                 {
                     case CellType.Numeric:
-                        result = row.GetCell(index).NumericCellValue.ToString(CultureInfo.InvariantCulture);
+                        result = cell.NumericCellValue.ToString(CultureInfo.InvariantCulture);
                         break;
                     case CellType.String:
-                        result = row.GetCell(index).StringCellValue;
+                        result = cell.StringCellValue;
                         break;
                     case CellType.Blank:
                         result = string.Empty;
                         break;
-                    //case CellType.Formula:
-                    //    result = row.GetCell(index).CellFormula;
-                    //    break;
+                    case CellType.Formula:
+
+                        var e = WorkbookFactory.CreateFormulaEvaluator(cell.Sheet.Workbook);
+                        result = GetCellValue(e.EvaluateInCell(cell));
+                        //result = e.EvaluateInCell(row.GetCell(index)).StringCellValue;
+                        break;
                     //case CellType.Boolean:
                     //    result = row.GetCell(index).NumericCellValue.ToString();
                     //    break;
@@ -247,7 +250,7 @@ namespace Chsword.Excel2Object
                     //    result = row.GetCell(index).NumericCellValue.ToString();
                     //    break;
                     default:
-                        result = row.GetCell(index).ToString();
+                        result = cell.ToString();
                         break;
                 }
             }
@@ -258,7 +261,11 @@ namespace Chsword.Excel2Object
 
             return (result ?? "").Trim();
         }
- 
+        private static string GetCellValue(IRow row, int index)
+        {
+            return GetCellValue(row.GetCell(index));
+        }
+
         private static IEnumerator GetDataRows(byte[] bytes)
         {
             if (bytes == null || bytes.Length == 0)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace Chsword.Excel2Object
 {
@@ -30,5 +31,6 @@ namespace Chsword.Excel2Object
         public int Order { get; set; }
         public string Title { get; set; }
         public Type Type { get; set; }
+        public Expression<Func<Dictionary<string, object>, object>> Formula { get; set; }
     }
 }

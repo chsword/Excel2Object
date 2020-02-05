@@ -3,15 +3,19 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using Chsword.Excel2Object.Internal;
+using Chsword.Excel2Object.Options;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 
 namespace Chsword.Excel2Object
 {
-	public class ExcelExporter
+    public class ExcelExporter
 	{
+        #region Public
+
         /// <summary>
         /// Export a excel file from a List of T generic list
         /// </summary>
@@ -23,21 +27,47 @@ namespace Chsword.Excel2Object
         public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType,
             string sheetTitle = null)
         {
+            return ObjectToExcelBytes(data, options =>
+            {
+                options.ExcelType = excelType;
+                options.SheetTitle = sheetTitle;
+            });
+        }
+        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, Action<ExcelExporterOptions> optionsAction)
+        {
+            var options = new ExcelExporterOptions();
+            optionsAction(options);
             ExcelModel excel;
             if (data is IEnumerable<Dictionary<string, object>> models)
             {
-                excel = TypeConvert.ConvertDictionaryToExcelModel(models, sheetTitle);
-			}
+                excel = TypeConvert.ConvertDictionaryToExcelModel(models, options);
+            }
             else
             {
-                excel = TypeConvert.ConvertObjectToExcelModel(data, sheetTitle);
+                excel = TypeConvert.ConvertObjectToExcelModel(data, options);
             }
 
-            return ObjectToExcelBytes(excel, excelType);
+            return ObjectToExcelBytes(excel, options);
         }
 
-        internal byte[] ObjectToExcelBytes(ExcelModel excel, ExcelType excelType)
+        public byte[] ObjectToExcelBytes(DataTable dt, ExcelType excelType, string sheetTitle = null)
         {
+            var options = new ExcelExporterOptions
+            {
+                ExcelType = excelType,
+                SheetTitle = sheetTitle
+            };
+            var excel = TypeConvert.ConvertDataSetToExcelModel(dt, options);
+            return ObjectToExcelBytes(excel, options);
+        }
+
+        #endregion
+
+        #region Core
+
+        internal byte[] ObjectToExcelBytes(ExcelModel excel, ExcelExporterOptions options)
+        {
+            ExcelType excelType = options.ExcelType;
             var workbook = Workbook(excelType);
             CheckExcelModel(excel);
             foreach (var excelSheet in excel.Sheets)
@@ -45,10 +75,13 @@ namespace Chsword.Excel2Object
                 var sheet = string.IsNullOrWhiteSpace(excelSheet.Title)
                     ? workbook.CreateSheet()
                     : workbook.CreateSheet(excelSheet.Title);
-
+                sheet.ForceFormulaRecalculation = true;
                 var columns = excelSheet.Columns.OrderBy(c => c.Order).ToArray();
                 for (var i = 0; i < columns.Length; i++)
-                    sheet.SetColumnWidth(i, 16 * 256); // todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
+                { 
+                    sheet.SetColumnWidth(i, 16 * 256); 
+                    // todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
+                }
                 var headerRow = sheet.CreateRow(0);
                 for (var i = 0; i < columns.Length; i++)
                 {
@@ -56,7 +89,7 @@ namespace Chsword.Excel2Object
                     cell.SetCellType(CellType.String);
                     cell.SetCellValue(columns[i].Title);
                 }
-
+                var columnTitles = columns.Select(c=>c.Title).ToArray();
                 var rowNumber = 1;
                 var data = excelSheet.Rows;
                 foreach (var item in data)
@@ -64,10 +97,11 @@ namespace Chsword.Excel2Object
                     var row = sheet.CreateRow(rowNumber++);
                     for (var i = 0; i < columns.Length; i++)
                     {
+                        var column = columns[i];
                         var cell = row.CreateCell(i);
-                        var type = columns[i].Type;
-                        var val = (item[columns[i].Title] ?? "").ToString();
-                        SetCellValue(excelType, type, cell, val);
+                        var val = item.ContainsKey(column.Title)?(item?[column.Title] ?? "").ToString():"";
+                        SetCellValue(excelType, column, cell, val, columnTitles);
+                     
                     }
                 }
             }
@@ -81,15 +115,14 @@ namespace Chsword.Excel2Object
 
         }
 
-        public byte[] ObjectToExcelBytes(DataTable dt, ExcelType excelType, string sheetTitle = null)
-        {
-            var excel = TypeConvert.ConvertDataSetToExcelModel(dt, sheetTitle);
-            return ObjectToExcelBytes(excel, excelType);
-        }
+        #endregion
 
-        private static void SetCellValue(ExcelType excelType, Type type, ICell cell, string val)
+        #region Factory
+
+        private static void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, string val,
+            string[] columnTitles)
 		{
-			if (type == typeof(Uri))
+			if (column.Type == typeof(Uri))
 			{
 				cell.Hyperlink = Switch<IHyperlink>(
 					excelType,
@@ -102,23 +135,19 @@ namespace Chsword.Excel2Object
 						Address = val
 					}
 				);
-			}
-
+			}else if (column.Type == typeof(Expression))
+            {
+                var convert = new ExpressionConvert(columnTitles, cell.RowIndex);
+                cell.SetCellFormula(convert.Convert(column.Formula));
+               // cell.SetCellType(CellType.Numeric);
+                return;
+            }
+            
 			//cell.Hyperlink=new HSSFHyperlink
 			cell.SetCellValue(val);
 		}
 
-		private static byte[] ToBytes(IWorkbook workbook)
-		{
-			using (var output = new MemoryStream())
-			{
-				workbook.Write(output);
-				var bytes = output.ToArray();
-				return bytes;
-			}
-		}
-
-		private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
+        private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
 		{
 			T obj;
 			switch (excelType)
@@ -152,9 +181,25 @@ namespace Chsword.Excel2Object
 			return workbook;
 		}
 
-		public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
+        #endregion
+
+        #region Utils
+
+        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
 		{
 			return ObjectToExcelBytes(data, ExcelType.Xls);
 		}
-	}
+
+        private static byte[] ToBytes(IWorkbook workbook)
+        {
+            using (var output = new MemoryStream())
+            {
+                workbook.Write(output);
+                var bytes = output.ToArray();
+                return bytes;
+            }
+        }
+
+        #endregion
+    }
 }
