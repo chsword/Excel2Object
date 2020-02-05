@@ -37,6 +37,20 @@ PM> Install-Package Chsword.Excel2Object
 - [x] 1. support to specify the order of fields to export
 - [x] 1. support convert List<Model> to excel bytes and Excel bytes to List<Model>
 
+```
+var bytes = new ExcelExporter().ObjectToExcelBytes(list, options =>
+            {
+                options.ExcelType = ExcelType.Xlsx;
+                options.FormulaColumns.Add(new FormulaColumn
+                {
+                    Title = "BirthYear",
+                    Formula = c => (int) c["Age"] + DateTime.Now.Year,
+                    AfterColumnTitle = "姓名"
+                });
+            });
+            // c => (int) c["Age"] + DateTime.Now.Year will convert to like =A3+YEAR(NOW())
+```
+
 * v2.0.0.113
 ```
 convert project to netstandard2.0 and .net452
