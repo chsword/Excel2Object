@@ -44,5 +44,43 @@ namespace Chsword.Excel2Object.Tests
                 result[0]["BirthYear"]
             );
         }
+
+        [TestMethod]
+        public void FormulaColumnExportCover()
+        {
+
+            var list = new List<Dictionary<string, object>>
+            {
+                new Dictionary<string, object> {["姓名"] = "吴老狗"
+                    //, ["BirthYear"] = null
+
+                },
+                new Dictionary<string, object> {["姓名"] = "老林" }
+            };
+            var bytes = new ExcelExporter().ObjectToExcelBytes(list, options =>
+            {
+                options.ExcelType = ExcelType.Xlsx;
+                options.FormulaColumns.Add(new FormulaColumn
+                {
+                    Title = "BirthYear",
+                    Formula = c => (int)c["Age"] + DateTime.Now.Year,
+                    AfterColumnTitle = "姓名"
+                });
+                options.FormulaColumns.Add(new FormulaColumn
+                {
+                    Title = "Age",
+                    Formula = c => DateTime.Now.Year,
+                    AfterColumnTitle = "BirthYear"
+                });
+            });
+            var path = GetFilePath("test.xlsx");
+            File.WriteAllBytes(path, bytes);
+            var result = ExcelHelper.ExcelToObject<Dictionary<string, object>>(bytes).ToList();
+            Console.WriteLine(JsonConvert.SerializeObject(result));
+            Assert.AreEqual(
+                (DateTime.Now.Year*2).ToString(),
+                result[0]["BirthYear"]
+            );
+        }
     }
 }
