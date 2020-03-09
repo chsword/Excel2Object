@@ -28,7 +28,7 @@ PM> Install-Package Chsword.Excel2Object
 - [x] support standard excel model
   - [x] excel & JSON convert
   - [x] excel & Dictionary<string,object> convert
-- [x] 1. convert project to netstandard2.0 & .net 4.5.2
+- [x] 1. convert project to **netstandard2.0** & **.net 4.5.2**
 - [x] 1. export with a sheet name,using ExcelTitleAttribute on class
 - [x] 1. support Uri type to a Hyperlink
 - [x] 1. support xls / xlsx

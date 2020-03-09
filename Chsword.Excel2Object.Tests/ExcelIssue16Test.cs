@@ -52,10 +52,10 @@ namespace Chsword.Excel2Object.Tests
             var list = new List<Dictionary<string, object>>
             {
                 new Dictionary<string, object> {["姓名"] = "吴老狗"
-                    //, ["BirthYear"] = null
+                    , ["BirthYear"] = null
 
                 },
-                new Dictionary<string, object> {["姓名"] = "老林" }
+                new Dictionary<string, object> {["姓名"] = "老林"   , ["BirthYear"] = null }
             };
             var bytes = new ExcelExporter().ObjectToExcelBytes(list, options =>
             {

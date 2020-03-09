@@ -11,7 +11,7 @@ namespace Chsword.Excel2Object.Internal
         internal static ExcelModel ConvertDataSetToExcelModel(DataTable dt, ExcelExporterOptions options)
         {
             var sheetTitle = options.SheetTitle;
-            var excel = new ExcelModel {Sheets = new List<SheetModel>()};
+            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
             var sheet = SheetModel.Create(sheetTitle);
             excel.Sheets.Add(sheet);
             var dataSetColumnArray = dt.Columns.Cast<DataColumn>().ToArray();
@@ -41,7 +41,7 @@ namespace Chsword.Excel2Object.Internal
             ExcelExporterOptions options)
         {
             var sheetTitle = options.SheetTitle;
-            var excel = new ExcelModel {Sheets = new List<SheetModel>()};
+            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
             var sheet = SheetModel.Create(sheetTitle);
             excel.Sheets.Add(sheet);
             var list = data.ToList();
@@ -67,24 +67,33 @@ namespace Chsword.Excel2Object.Internal
             {
                 foreach (var formulaColumn in options.FormulaColumns)
                 {
-                    var excelColumn = new ExcelColumn
+                    var excelColumn = columns.FirstOrDefault(c => c.Title == formulaColumn.Title);
+                    if (excelColumn == null)
                     {
-                        Title = formulaColumn.Title,
-                        Order = 0,
-                        Type = typeof(Expression),
-                        Formula = formulaColumn.Formula
-                    };
-                    if (string.IsNullOrWhiteSpace(formulaColumn.AfterColumnTitle))
-                    {
-                        columns.Add(excelColumn);
+                        excelColumn = new ExcelColumn
+                        {
+                            Title = formulaColumn.Title,
+                            Order = 0,
+                            Type = typeof(Expression),
+                            Formula = formulaColumn.Formula
+                        };
+                        if (string.IsNullOrWhiteSpace(formulaColumn.AfterColumnTitle))
+                        {
+                            columns.Add(excelColumn);
+                        }
+                        else
+                        {
+                            var i = columns.FindIndex(c => c.Title == formulaColumn.AfterColumnTitle);
+                            if (i < 0)
+                                throw new Excel2ObjectException($"can not find {formulaColumn.AfterColumnTitle} column.");
+
+                            columns.Insert(i + 1, excelColumn);
+                        }
                     }
                     else
                     {
-                        var i = columns.FindIndex(c => c.Title == formulaColumn.AfterColumnTitle);
-                        if (i < 0)
-                            throw new Excel2ObjectException($"can not find {formulaColumn.AfterColumnTitle} column.");
-
-                        columns.Insert(i + 1, excelColumn);
+                        excelColumn.Type = typeof(Expression);
+                        excelColumn.Formula = formulaColumn.Formula;
                     }
                 }
             }
@@ -100,7 +109,7 @@ namespace Chsword.Excel2Object.Internal
             ExcelExporterOptions options)
         {
             var sheetTitle = options.SheetTitle;
-            var excel = new ExcelModel {Sheets = new List<SheetModel>()};
+            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
             if (string.IsNullOrWhiteSpace(sheetTitle))
             {
                 var classAttr = ExcelUtil.GetClassExportAttribute<TModel>();
@@ -118,9 +127,11 @@ namespace Chsword.Excel2Object.Internal
             {
                 var column = new ExcelColumn
                 {
-                    Title = objKeysArray[i].Value.Title, Type = objKeysArray[i].Key.PropertyType, Order = i
+                    Title = objKeysArray[i].Value.Title,
+                    Type = objKeysArray[i].Key.PropertyType,
+                    Order = i
                 };
-     
+
                 columns.Add(column);
             }
 
