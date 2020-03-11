@@ -6,9 +6,19 @@
     <Product>Chsword.Excel2Object Library</Product>
     <Authors>Zou Jian</Authors>
     <Version>2.0.0</Version>
-    <Copyright>Copyright © 2014-2019</Copyright>
+    <Copyright>Copyright © 2014-2020</Copyright>
     <PackageProjectUrl>https://github.com/chsword/Excel2Object/</PackageProjectUrl>
     <PackageReleaseNotes>
+      2020-3-11
+      - [x] support result type = datetime when use the formula 
+      - [x] support EDATE excel function
+      2020-1
+      - [x] support simple formula
+      2020-3-11
+      - [x] support result type = datetime when use the formula 
+      - [x] support EDATE excel function
+      2020-1
+      - [x] support simple formula
       - [x] support standard excel model
       - [x] excel &amp; JSON convert
       - [x] excel &amp; Dictionary&lt;string,object&gt; convert</PackageReleaseNotes>
