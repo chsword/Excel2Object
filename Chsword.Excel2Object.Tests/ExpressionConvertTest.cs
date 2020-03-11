@@ -33,6 +33,23 @@ namespace Chsword.Excel2Object.Tests
             var ret = convert.Convert(exp);
             Assert.AreEqual("MONTH(NOW())", ret);
         }
+
+        [TestMethod]
+        public void EDate()
+        {
+            Expression<Func<Dictionary<string, object>, object>> exp = c => DateTime.Now.AddMonths(3);
+            var convert = new ExpressionConvert(new string[] { }, 3);
+            var ret = convert.Convert(exp);
+            Assert.AreEqual("EDATE(NOW(),3)", ret);
+        }
+        [TestMethod]
+        public void EDateWithColumn()
+        {
+            Expression<Func<Dictionary<string, object>, object>> exp = c => ((DateTime)c["Date"]).AddMonths((int)c["Month"]);
+            var convert = new ExpressionConvert(new string[] {"Date", "Month" }, 3);
+            var ret = convert.Convert(exp);
+            Assert.AreEqual("EDATE(A4,B4)", ret);
+        }
         [TestMethod]
         public void Day()
         {
