@@ -34,6 +34,13 @@ namespace Chsword.Excel2Object.Tests
                     Formula = c => (int) c["Age"] + DateTime.Now.Year,
                     AfterColumnTitle = "姓名"
                 });
+                options.FormulaColumns.Add(new FormulaColumn
+                {
+                    Title = "当前时间",
+                    Formula = c => DateTime.Now,
+                    AfterColumnTitle = "Age",
+                    FormulaResultType = typeof(DateTime)
+                });
             });
             var path = GetFilePath("test.xlsx");
             File.WriteAllBytes(path, bytes);

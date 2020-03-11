@@ -139,6 +139,16 @@ namespace Chsword.Excel2Object
             {
                 var convert = new ExpressionConvert(columnTitles, cell.RowIndex);
                 cell.SetCellFormula(convert.Convert(column.Formula));
+                if (column.ResultType != null)
+                {
+                    if(column.ResultType == typeof(DateTime)) {
+
+                        cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
+                        cell.CellStyle.DataFormat = HSSFDataFormat
+                    .GetBuiltinFormat("m/d/yy");
+                    }
+                }
+                
                // cell.SetCellType(CellType.Numeric);
                 return;
             }

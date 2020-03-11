@@ -31,6 +31,10 @@ namespace Chsword.Excel2Object
         public int Order { get; set; }
         public string Title { get; set; }
         public Type Type { get; set; }
+        /// <summary>
+        /// 当且仅当 Type = Expression时有效
+        /// </summary>
+        public Type ResultType { get;set;}
         public Expression<Func<Dictionary<string, object>, object>> Formula { get; set; }
     }
 }

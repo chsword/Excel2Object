@@ -75,7 +75,8 @@ namespace Chsword.Excel2Object.Internal
                             Title = formulaColumn.Title,
                             Order = 0,
                             Type = typeof(Expression),
-                            Formula = formulaColumn.Formula
+                            Formula = formulaColumn.Formula,
+                            ResultType = formulaColumn.FormulaResultType
                         };
                         if (string.IsNullOrWhiteSpace(formulaColumn.AfterColumnTitle))
                         {
@@ -94,6 +95,7 @@ namespace Chsword.Excel2Object.Internal
                     {
                         excelColumn.Type = typeof(Expression);
                         excelColumn.Formula = formulaColumn.Formula;
+                        excelColumn.ResultType = formulaColumn.FormulaResultType;
                     }
                 }
             }
