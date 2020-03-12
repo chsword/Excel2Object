@@ -9,6 +9,21 @@ namespace Chsword.Excel2Object.Tests
     [TestClass]
     public class ExpressionConvertTests
     {
+        #region Basic Functions
+
+        [TestMethod]
+        public void Column()
+        {
+            Expression<Func<Dictionary<string, object>, object>> exp = c => c["One"];
+            var convert = new ExpressionConvert(new string[] { "One" }, 3);
+            var ret = convert.Convert(exp);
+            Assert.AreEqual("A4", ret);
+        }
+
+        #endregion
+
+        #region Date Functions
+
         [TestMethod]
         public void Now()
         {
@@ -58,13 +73,28 @@ namespace Chsword.Excel2Object.Tests
             var ret = convert.Convert(exp);
             Assert.AreEqual("DAY(NOW())", ret);
         }
+
+        #endregion
+
+
+        #region Math Functions
+
         [TestMethod]
-        public void Column()
+        public void Abs()
         {
-            Expression<Func<Dictionary<string, object>, object>> exp = c => c["One"];
+            Expression<Func<Dictionary<string, object>, object>> exp = c => ExcelFunctions.Abs(c["One"]);
             var convert = new ExpressionConvert(new string[] { "One" }, 3);
             var ret = convert.Convert(exp);
-            Assert.AreEqual("A4", ret);
+            Assert.AreEqual("ABS(A4)", ret);
         }
+        [TestMethod]
+        public void PI()
+        {
+            Expression<Func<Dictionary<string, object>, object>> exp = c => ExcelFunctions.PI();
+            var convert = new ExpressionConvert(new string[] { "One" }, 3);
+            var ret = convert.Convert(exp);
+            Assert.AreEqual("PI()", ret);
+        }
+        #endregion
     }
 }

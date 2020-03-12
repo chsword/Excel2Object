@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace Chsword.Excel2Object.Internal
@@ -52,7 +53,11 @@ namespace Chsword.Excel2Object.Internal
                     {
                         return $"EDATE({InternalConvert(exp.Object)},{InternalConvert(exp.Arguments[0])})";
                     }
+                }else if (exp.Method.DeclaringType == typeof(ExcelFunctions))
+                {
+                    return $"{exp.Method.Name.ToUpper()}({string.Join(",",exp.Arguments.Select(c => InternalConvert(c)))})";
                 }
+                
                 return $"unspport call type={exp.Method.DeclaringType} name={exp.Method.Name}";
             }
             if (expression.NodeType == ExpressionType.MemberAccess)
