@@ -2,6 +2,10 @@
 {
     public static class ExcelFunctions
     {
+        #region Date
+
+        #endregion
+
         #region Math
 
         public static int Abs(object val)
@@ -37,15 +41,15 @@
         /// random 0-1
         /// </summary>
         public static double Rand() { throw new System.NotImplementedException(); }
-        public static int Round(object val,int digits)
+        public static int Round(object val, object digits)
         {
             throw new System.NotImplementedException();
         }
-        public static int RoundDown(object val, int digits)
+        public static int RoundDown(object val, object digits)
         {
             throw new System.NotImplementedException();
         }
-        public static int RoundUp(object val, int digits)
+        public static int RoundUp(object val, object digits)
         {
             throw new System.NotImplementedException();
         }

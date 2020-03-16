@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using Chsword.Excel2Object.Internal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-
+using static Chsword.Excel2Object.ExcelFunctions;
 namespace Chsword.Excel2Object.Tests
 {
     [TestClass]
@@ -80,17 +80,17 @@ namespace Chsword.Excel2Object.Tests
         #region Math Functions
 
         [TestMethod]
-        public void Abs()
+        public void AbsTest()
         {
-            Expression<Func<Dictionary<string, object>, object>> exp = c => ExcelFunctions.Abs(c["One"]);
+            Expression<Func<Dictionary<string, object>, object>> exp = c => Abs(c["One"]);
             var convert = new ExpressionConvert(new string[] { "One" }, 3);
             var ret = convert.Convert(exp);
             Assert.AreEqual("ABS(A4)", ret);
         }
         [TestMethod]
-        public void PI()
+        public void PITest()
         {
-            Expression<Func<Dictionary<string, object>, object>> exp = c => ExcelFunctions.PI();
+            Expression<Func<Dictionary<string, object>, object>> exp = c => PI();
             var convert = new ExpressionConvert(new string[] { "One" }, 3);
             var ret = convert.Convert(exp);
             Assert.AreEqual("PI()", ret);

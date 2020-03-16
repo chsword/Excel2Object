@@ -2,4 +2,4 @@
 
 Function|Description|Syntax 
 ---|:--:|---:
-ABS || ```  c => Math.Abs((int)c["One"]) ```
+ABS || ```  c => ExcelFunctions.Abs(c["One"]) ```
