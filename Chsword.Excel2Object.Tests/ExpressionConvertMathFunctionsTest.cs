@@ -8,13 +8,13 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void AbsTest()
         {
-            TestFunction(c => Abs(c["One"]), "ABS(A4)");
+            TestFunction(c => Math.Abs(c["One"]), "ABS(A4)");
         }
 
         [TestMethod]
         public void PITest()
         {
-            TestFunction(c => PI(), "PI()");
+            TestFunction(c => Math.PI(), "PI()");
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using Chsword.Excel2Object.Functions;
 
 namespace Chsword.Excel2Object.Options
 {
@@ -13,7 +14,7 @@ namespace Chsword.Excel2Object.Options
 
         public bool IsReadOnly => false;
 
-        public void Add(string columnTitle, Expression<Func<Dictionary<string, object>, object>> func)
+        public void Add(string columnTitle, Expression<Func<ColumnCellDictionary, object>> func)
         {
             FormulaColumns.Add(new FormulaColumn()
             {

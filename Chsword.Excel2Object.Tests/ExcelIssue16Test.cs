@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Chsword.Excel2Object.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 
@@ -31,7 +32,7 @@ namespace Chsword.Excel2Object.Tests
                 options.FormulaColumns.Add(new FormulaColumn
                 {
                     Title = "BirthYear",
-                    Formula = c => (int) c["Age"] + DateTime.Now.Year,
+                    Formula = c =>  c["Age"] + DateTime.Now.Year,
                     AfterColumnTitle = "姓名"
                 });
                 options.FormulaColumns.Add(new FormulaColumn
@@ -70,7 +71,7 @@ namespace Chsword.Excel2Object.Tests
                 options.FormulaColumns.Add(new FormulaColumn
                 {
                     Title = "BirthYear",
-                    Formula = c => (int)c["Age"] + DateTime.Now.Year,
+                    Formula = c => c["Age"] + DateTime.Now.Year,
                     AfterColumnTitle = "姓名"
                 });
                 options.FormulaColumns.Add(new FormulaColumn

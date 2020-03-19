@@ -1,23 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using Chsword.Excel2Object.Functions;
 using Chsword.Excel2Object.Internal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using static Chsword.Excel2Object.ExcelFunctions;
 namespace Chsword.Excel2Object.Tests
 {
     [TestClass]
-    public class ExpressionConvertTests
+    public class ExpressionConvertTests:BaseFunctionTest
     {
         #region Basic Functions
 
         [TestMethod]
         public void Column()
         {
-            Expression<Func<Dictionary<string, object>, object>> exp = c => c["One"];
-            var convert = new ExpressionConvert(new string[] { "One" }, 3);
-            var ret = convert.Convert(exp);
-            Assert.AreEqual("A4", ret);
+            TestFunction(c => c["One"],"A4");
         }
 
         #endregion
@@ -60,7 +58,7 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void EDateWithColumn()
         {
-            Expression<Func<Dictionary<string, object>, object>> exp = c => ((DateTime)c["Date"]).AddMonths((int)c["Month"]);
+            Expression<Func<Dictionary<string, ColumnValue>, object>> exp = c => ((DateTime)c["Date"]).AddMonths((int)c["Month"]);
             var convert = new ExpressionConvert(new string[] {"Date", "Month" }, 3);
             var ret = convert.Convert(exp);
             Assert.AreEqual("EDATE(A4,B4)", ret);
@@ -82,15 +80,13 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void AbsTest()
         {
-            Expression<Func<Dictionary<string, object>, object>> exp = c => Abs(c["One"]);
-            var convert = new ExpressionConvert(new string[] { "One" }, 3);
-            var ret = convert.Convert(exp);
-            Assert.AreEqual("ABS(A4)", ret);
+            TestFunction(c => ExcelFunctions.Math.Abs(c["One"]), "ABS(A4)");
+   
         }
         [TestMethod]
         public void PITest()
         {
-            Expression<Func<Dictionary<string, object>, object>> exp = c => PI();
+            Expression<Func<Dictionary<string, object>, object>> exp = c => ExcelFunctions.Math.PI();
             var convert = new ExpressionConvert(new string[] { "One" }, 3);
             var ret = convert.Convert(exp);
             Assert.AreEqual("PI()", ret);

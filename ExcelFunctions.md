@@ -1,5 +1,34 @@
 ### Math Functions
 
-Function|Description|Syntax 
----|:--:|---:
-ABS || ```  c => ExcelFunctions.Abs(c["One"]) ```
+Function|Syntax |Description
+---|:---|
+ABS | ```  c => ExcelFunctions.Math.Abs(c["One"]) ```|
+
+### Statistics Functions
+
+Function|Syntax |Description
+---|:---|
+SUM | ``` c => ExcelFunctions.Statistics.Sum(c.Matix("One", 1, "Two", 2), c.Matrix("Six", 11, "Five", 2)) ```|SUM(A1:B2,F11:E2)
+
+### Symbol
+
+Symbol|Mode|Synatx|Supported|Description
+---|---|---
+-|Unary|```c=>-c["One"]```|Yes
++|Binary|```c=>c["One"]+c["Two"]```| Yes
+-|Binary|| Yes
+\*|Binary|| Yes
+/|Binary|| Yes
+%|Binary
+\^|Binary
+=|Binary|```c=>c["One"]==c["Two"]```| Yes
+\<\> | Binary|```c=>c["One"]!=c["Two"]```| Yes
+\>|Binary|| Yes
+\<|Binary|| Yes
+\>=|Binary|| Yes
+\<=|Binary|| Yes
+&|Binary|```c=>c["One"]&c["Two"]```|Yes|Join the string
+:|Binary|```c => c.Matrix("One", 1, "Two", 2)```|Yes|A1:B2
+,|Binary
+Space|Binary
+
