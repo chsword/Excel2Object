@@ -8,5 +8,7 @@ namespace Chsword.Excel2Object
 
         public static IMathFunction Math { get; set; }
         public static IStatisticsFunction Statistics { get; set; }
+        public static IConditionFunction Condition { get; set; }
+        public static IReferenceFunction Reference { get; set; }
     }
 }

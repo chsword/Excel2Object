@@ -2,6 +2,6 @@
 {
     public interface IStatisticsFunction
     {
-        ColumnValue Sum(params ColumnValue[] matrix);
+        ColumnValue Sum(params ColumnMatrix[] matrix);
     }
 }

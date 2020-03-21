@@ -74,6 +74,8 @@ namespace Chsword.Excel2Object.Internal
                     }
                 }else if (exp.Method.DeclaringType == typeof(IMathFunction) ||
                           exp.Method.DeclaringType == typeof(IStatisticsFunction) ||
+                          exp.Method.DeclaringType == typeof(IConditionFunction) ||
+                          exp.Method.DeclaringType == typeof(IReferenceFunction) ||
                           exp.Method.DeclaringType == typeof(IAllFunction))
                 {
                     return $"{exp.Method.Name.ToUpper()}({string.Join(",",exp.Arguments.Select(c => InternalConvert(c)))})";
@@ -113,7 +115,12 @@ namespace Chsword.Excel2Object.Internal
 
             if (expression.NodeType == ExpressionType.Constant)
             {
-                return (expression as ConstantExpression)?.ToString();
+                var exp = expression as ConstantExpression;
+                if (exp?.Type == typeof(bool))
+                {
+                    return exp?.ToString().ToUpper();
+                }
+                return exp?.ToString();
             }
  
             if (expression is BinaryExpression)

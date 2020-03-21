@@ -65,6 +65,14 @@ namespace Chsword.Excel2Object.Functions
         {
             throw new NotImplementedException();
         }
+        public static implicit operator ColumnValue(float operand)
+        {
+            throw new NotImplementedException();
+        }
+        public static implicit operator ColumnValue(double operand)
+        {
+            throw new NotImplementedException();
+        }
         public static implicit operator ColumnValue(string operand)
         {
             throw new NotImplementedException();
@@ -77,6 +85,7 @@ namespace Chsword.Excel2Object.Functions
         {
             throw new NotImplementedException();
         }
+       
         #endregion
         public static ColumnValue operator -(ColumnValue a)
         {
