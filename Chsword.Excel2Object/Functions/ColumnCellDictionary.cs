@@ -9,5 +9,7 @@ namespace Chsword.Excel2Object.Functions
         {
             throw new NotImplementedException();
         }
+
+        public ColumnValue this[string columnName, int rowNumber] => throw new NotImplementedException();
     }
 }

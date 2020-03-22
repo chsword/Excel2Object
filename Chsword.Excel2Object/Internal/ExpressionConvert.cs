@@ -57,6 +57,10 @@ namespace Chsword.Excel2Object.Internal
                     )
                     )
                 {
+                    if (exp.Arguments.Count == 2)
+                    {
+                        return $"{GetColumn(exp.Arguments[0])}{InternalConvert(exp.Arguments[1])}";
+                    }
                     return $"{GetColumn(exp.Arguments[0])}{RowIndex + 1}";
                 }
 
@@ -76,6 +80,8 @@ namespace Chsword.Excel2Object.Internal
                           exp.Method.DeclaringType == typeof(IStatisticsFunction) ||
                           exp.Method.DeclaringType == typeof(IConditionFunction) ||
                           exp.Method.DeclaringType == typeof(IReferenceFunction) ||
+                          exp.Method.DeclaringType == typeof(IDateTimeFunction) ||
+                          exp.Method.DeclaringType == typeof(ITextFunction) ||
                           exp.Method.DeclaringType == typeof(IAllFunction))
                 {
                     return $"{exp.Method.Name.ToUpper()}({string.Join(",",exp.Arguments.Select(c => InternalConvert(c)))})";

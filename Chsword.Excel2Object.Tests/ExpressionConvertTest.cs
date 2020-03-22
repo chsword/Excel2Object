@@ -17,7 +17,11 @@ namespace Chsword.Excel2Object.Tests
         {
             TestFunction(c => c["One"],"A4");
         }
-
+        [TestMethod]
+        public void ColumnWithRow()
+        {
+            TestFunction(c => c["One",1], "A1");
+        }
         #endregion
 
         #region Date Functions
@@ -72,25 +76,24 @@ namespace Chsword.Excel2Object.Tests
             Assert.AreEqual("DAY(NOW())", ret);
         }
 
-        #endregion
-
-
-        #region Math Functions
-
         [TestMethod]
-        public void AbsTest()
+        public void Date()
         {
-            TestFunction(c => ExcelFunctions.Math.Abs(c["One"]), "ABS(A4)");
-   
+            TestFunction(c=>ExcelFunctions.DateAndTime.Date(2020,2,2),"DATE(2020,2,2)");
         }
         [TestMethod]
-        public void PITest()
+        public void DateDif()
         {
-            Expression<Func<Dictionary<string, object>, object>> exp = c => ExcelFunctions.Math.PI();
-            var convert = new ExpressionConvert(new string[] { "One" }, 3);
-            var ret = convert.Convert(exp);
-            Assert.AreEqual("PI()", ret);
+            TestFunction(c => ExcelFunctions.DateAndTime.DateDif(c["One"],c["Two"],"YD"), "DATEDIF(A4,B4,\"YD\")");
         }
+
+        [TestMethod]
+        public void Days()
+        {
+            TestFunction(c => ExcelFunctions.DateAndTime.Days(c["One"], c["Two"]), "DAYS(A4,B4)");
+        }
+        
         #endregion
+
     }
 }

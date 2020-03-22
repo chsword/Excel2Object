@@ -1,8 +1,18 @@
+### Base
+
+Function|Syntax |Description
+---|:---|
+A4 | ```  c => c["One"] ```| Cell in current row
+A2 | ```  c => c["One",2] ```| Specify any Cell
+A2:B4 | ```  c => c.Matrix("One",2,"Two",4) ```|
+
+
 ### Math Functions
 
 Function|Syntax |Description
 ---|:---|
 ABS | ```  c => ExcelFunctions.Math.Abs(c["One"]) ```|
+PI|```  c => ExcelFunctions.Math.PI() ```
 
 ### Statistics Functions
 
@@ -20,6 +30,23 @@ Function|Syntax |Description
 ---|:---|
 LOOKUP | ``` c => ExcelFunctions.Reference.Lookup(4.19,c.Matrix("One", 2, "One", 6),c.Matrix("Two", 2, "Two", 6)) ```|LOOKUP(4.19, A2:A6, B2:B6)
 VLOOKUP | ```c => ExcelFunctions.Reference.VLookup(c["One"], c.Matrix("One", 10, "Three", 20), 2, true)```| VLOOKUP(A4,A10:C20,2,TRUE)
+MATCH|
+CHOOSE|
+INDEX|
+
+### Date and Time Functions
+Function|Syntax |Description
+---|:---|
+DATE | 
+DATEDIF |
+DAYS|
+
+### Text Functions
+Function|Syntax |Description
+---|:---|
+FIND | ```c => ExcelFunctions.Text.Find("M",c["One",2]) ```|FIND("M",A2)
+ASC | 
+
 ### Symbol
 
 Symbol|Mode|Synatx|Supported|Description
@@ -42,3 +69,6 @@ Symbol|Mode|Synatx|Supported|Description
 ,|Binary|||use params Array
 Space|Binary
 
+#### Reference
+
+- All Functions | https://support.office.com/en-us/article/excel-functions-by-category-5f91f4e9-7b42-46d2-9bd1-63f26a86c0eb?ui=en-US&rs=en-US&ad=US
