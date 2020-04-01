@@ -121,41 +121,46 @@ namespace Chsword.Excel2Object
 
         private static void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, string val,
             string[] columnTitles)
-		{
-			if (column.Type == typeof(Uri))
-			{
-				cell.Hyperlink = Switch<IHyperlink>(
-					excelType,
-					() => new HSSFHyperlink(HyperlinkType.Url)
-					{
-						Address = val
-					},
-					() => new XSSFHyperlink(HyperlinkType.Url)
-					{
-						Address = val
-					}
-				);
-			}else if (column.Type == typeof(Expression))
+        {
+            if (column.Type == typeof(Uri))
+            {
+                cell.Hyperlink = Switch<IHyperlink>(
+                    excelType,
+                    () => new HSSFHyperlink(HyperlinkType.Url)
+                    {
+                        Address = val
+                    },
+                    () => new XSSFHyperlink(HyperlinkType.Url)
+                    {
+                        Address = val
+                    }
+                );
+            }
+            else if (column.Type == typeof(Expression))
             {
                 var convert = new ExpressionConvert(columnTitles, cell.RowIndex);
                 cell.SetCellFormula(convert.Convert(column.Formula));
                 if (column.ResultType != null)
                 {
-                    if(column.ResultType == typeof(DateTime)) {
-
+                    if (column.ResultType == typeof(DateTime))
+                    {
                         cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
-                        cell.CellStyle.DataFormat = HSSFDataFormat
-                    .GetBuiltinFormat("m/d/yy");
+                        cell.CellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat("m/d/yy");
                     }
                 }
-                
-               // cell.SetCellType(CellType.Numeric);
                 return;
             }
-            
-			//cell.Hyperlink=new HSSFHyperlink
-			cell.SetCellValue(val);
-		}
+            else if (column.Type == typeof(string))
+            {
+                cell.SetCellType(CellType.String);
+                cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
+                cell.CellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat("text");
+            }
+
+            //cell.Hyperlink=new HSSFHyperlink
+
+            cell.SetCellValue(val);
+        }
 
         private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
 		{

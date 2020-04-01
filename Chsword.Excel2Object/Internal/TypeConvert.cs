@@ -53,7 +53,7 @@ namespace Chsword.Excel2Object.Internal
                 Title = c,
                 Type = typeof(string)
             }).ToList();
-
+            
             sheet.Columns = AttachColumns(columns, options);
             sheet.Rows = list;
 
