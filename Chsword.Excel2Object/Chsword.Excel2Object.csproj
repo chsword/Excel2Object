@@ -9,11 +9,8 @@
     <Copyright>Copyright © 2014-2020</Copyright>
     <PackageProjectUrl>https://github.com/chsword/Excel2Object/</PackageProjectUrl>
     <PackageReleaseNotes>
-      2020-3-11
-      - [x] support result type = datetime when use the formula 
-      - [x] support EDATE excel function
-      2020-1
-      - [x] support simple formula
+      2020-10-26
+      - bugfixed
       2020-3-11
       - [x] support result type = datetime when use the formula 
       - [x] support EDATE excel function
@@ -21,7 +18,8 @@
       - [x] support simple formula
       - [x] support standard excel model
       - [x] excel &amp; JSON convert
-      - [x] excel &amp; Dictionary&lt;string,object&gt; convert</PackageReleaseNotes>
+      - [x] excel &amp; Dictionary&lt;string,object&gt; convert
+    </PackageReleaseNotes>
     <PackageTags>excel,.net,netcore</PackageTags>
     <Description>Convert excel and .NET object , Excel 与 .NET 对象互相转换的类库</Description>
   </PropertyGroup>
