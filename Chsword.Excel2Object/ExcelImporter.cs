@@ -221,6 +221,7 @@ namespace Chsword.Excel2Object
         private static string GetCellValue(ICell cell)
         {
             var result = string.Empty;
+            if (cell == null) return result;
             try
             {
                 switch (cell.CellType)
