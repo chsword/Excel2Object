@@ -141,7 +141,8 @@ namespace Chsword.Excel2Object
             else if (column.Type == typeof(Expression))
             {
                 var convert = new ExpressionConvert(columnTitles, cell.RowIndex);
-                cell.SetCellFormula(convert.Convert(column.Formula));
+                var formula = convert.Convert(column.Formula);
+                cell.SetCellFormula(formula);
                 if (column.ResultType != null)
                 {
                     if (column.ResultType == typeof(DateTime))
