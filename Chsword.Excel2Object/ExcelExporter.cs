@@ -13,7 +13,7 @@ using NPOI.XSSF.UserModel;
 namespace Chsword.Excel2Object
 {
     public class ExcelExporter
-	{
+    {
         #region Public
 
         /// <summary>
@@ -78,8 +78,8 @@ namespace Chsword.Excel2Object
                 sheet.ForceFormulaRecalculation = true;
                 var columns = excelSheet.Columns.OrderBy(c => c.Order).ToArray();
                 for (var i = 0; i < columns.Length; i++)
-                { 
-                    sheet.SetColumnWidth(i, 16 * 256); 
+                {
+                    sheet.SetColumnWidth(i, 16 * 256);
                     // todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
                 }
                 var headerRow = sheet.CreateRow(0);
@@ -89,7 +89,7 @@ namespace Chsword.Excel2Object
                     cell.SetCellType(CellType.String);
                     cell.SetCellValue(columns[i].Title);
                 }
-                var columnTitles = columns.Select(c=>c.Title).ToArray();
+                var columnTitles = columns.Select(c => c.Title).ToArray();
                 var rowNumber = 1;
                 var data = excelSheet.Rows;
                 foreach (var item in data)
@@ -99,9 +99,9 @@ namespace Chsword.Excel2Object
                     {
                         var column = columns[i];
                         var cell = row.CreateCell(i);
-                        var val = item.ContainsKey(column.Title)?(item?[column.Title] ?? "").ToString():"";
+                        var val = item.ContainsKey(column.Title) ? (item?[column.Title] ?? "").ToString() : "";
                         SetCellValue(excelType, column, cell, val, columnTitles);
-                     
+
                     }
                 }
             }
@@ -157,53 +157,66 @@ namespace Chsword.Excel2Object
                 cell.CellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat("text");
             }
 
+            if (column.Font != null)
+            {
+                IFont font = cell.Sheet.Workbook.CreateFont();
+                font.FontName = column.Font.FontName;
+                font.FontHeightInPoints = column.Font.FontHeightInPoints;
+                font.Color = column.Font.Color;
+                if (column.Font.IsBold)
+                {
+                    font.Boldweight = (short)NPOI.SS.UserModel.FontBoldWeight.Bold;
+                }
+                cell.CellStyle.SetFont(font);
+            }
+
             //cell.Hyperlink=new HSSFHyperlink
 
             cell.SetCellValue(val);
         }
 
         private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
-		{
-			T obj;
-			switch (excelType)
-			{
-				case ExcelType.Xls:
-					obj = funcXlsHssf();
-					break;
-				case ExcelType.Xlsx:
-					obj = funcXlsxXssf();
-					break;
-				default:
-					throw new ArgumentOutOfRangeException(nameof(excelType));
-			}
-			return obj;
-		}
+        {
+            T obj;
+            switch (excelType)
+            {
+                case ExcelType.Xls:
+                    obj = funcXlsHssf();
+                    break;
+                case ExcelType.Xlsx:
+                    obj = funcXlsxXssf();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(excelType));
+            }
+            return obj;
+        }
 
-		private static IWorkbook Workbook(ExcelType excelType)
-		{
-			IWorkbook workbook;
-			switch (excelType)
-			{
-				case ExcelType.Xls:
-					workbook = new HSSFWorkbook();
-					break;
-				case ExcelType.Xlsx:
-					workbook = new XSSFWorkbook();
-					break;
-				default:
-					throw new ArgumentOutOfRangeException(nameof(excelType));
-			}
-			return workbook;
-		}
+        private static IWorkbook Workbook(ExcelType excelType)
+        {
+            IWorkbook workbook;
+            switch (excelType)
+            {
+                case ExcelType.Xls:
+                    workbook = new HSSFWorkbook();
+                    break;
+                case ExcelType.Xlsx:
+                    workbook = new XSSFWorkbook();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(excelType));
+            }
+            return workbook;
+        }
 
         #endregion
 
         #region Utils
 
         public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
-		{
-			return ObjectToExcelBytes(data, ExcelType.Xls);
-		}
+        {
+            return ObjectToExcelBytes(data, ExcelType.Xls);
+        }
 
         private static byte[] ToBytes(IWorkbook workbook)
         {

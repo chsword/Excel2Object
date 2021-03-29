@@ -89,14 +89,14 @@ namespace Chsword.Excel2Object
         internal static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
         {
             var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
-            var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
+            var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, (ExcelTitleAttribute, ExcelColumnFontAttribute)>>();
             var rows = result;
             var titleRow = (IRow)rows.Current;
             if (titleRow != null)
             {
                 foreach (var cell in titleRow.Cells)
                 {
-                    var prop = dict.FirstOrDefault(c => cell.StringCellValue == c.Value.Title);
+                    var prop = dict.FirstOrDefault(c => cell.StringCellValue == c.Value.ExcelTitleAttribute.Title);
                     if (prop.Key != null && !dictColumns.ContainsKey(cell.ColumnIndex))
                         dictColumns.Add(cell.ColumnIndex, prop);
                 }
