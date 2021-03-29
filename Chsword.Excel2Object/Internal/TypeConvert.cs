@@ -115,28 +115,30 @@ namespace Chsword.Excel2Object.Internal
             if (string.IsNullOrWhiteSpace(sheetTitle))
             {
                 var classAttr = ExcelUtil.GetClassExportAttribute<TModel>();
-                sheetTitle = classAttr.Item1 == null ? sheetTitle : classAttr.Item1.Title;
+                sheetTitle = classAttr == null ? sheetTitle : classAttr.Title;
             }
 
             var sheet = SheetModel.Create(sheetTitle);
 
             excel.Sheets.Add(sheet);
             var attrDict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
-            var objKeysArray = attrDict.OrderBy(c => c.Value.ExcelTitleAttribute.Order).ToArray();
+            var objKeysArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
 
             var columns = new List<ExcelColumn>();
             for (var i = 0; i < objKeysArray.Length; i++)
             {
-                var titleAttr = objKeysArray[i].Value.ExcelTitleAttribute;
-                var fontAttr = objKeysArray[i].Value.ExcelColumnFontAttribute;
+                var titleAttr = objKeysArray[i].Value;
                 var column = new ExcelColumn
                 {
                     Title = titleAttr.Title,
                     Type = objKeysArray[i].Key.PropertyType,
                     Order = i,
-                    Font = fontAttr == null ? null : new Font(fontAttr.FontName, fontAttr.FontHeightInPoints, fontAttr.Color, fontAttr.IsBold),
                 };
-
+                if (titleAttr is ExcelColumnAttribute excelColumnAttr)
+                {
+                    column.CellStyle = excelColumnAttr;
+                    column.HeaderStyle = excelColumnAttr;
+                }
                 columns.Add(column);
             }
 
@@ -147,7 +149,7 @@ namespace Chsword.Excel2Object.Internal
                 foreach (var column in objKeysArray)
                 {
                     var prop = column.Key;
-                    row[column.Value.ExcelTitleAttribute.Title] = prop.GetValue(item, null);
+                    row[column.Value.Title] = prop.GetValue(item, null);
                 }
 
                 sheet.Rows.Add(row);

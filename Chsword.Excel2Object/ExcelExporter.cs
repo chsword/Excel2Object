@@ -86,8 +86,10 @@ namespace Chsword.Excel2Object
                 for (var i = 0; i < columns.Length; i++)
                 {
                     var cell = headerRow.CreateCell(i);
+                    cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
                     cell.SetCellType(CellType.String);
                     cell.SetCellValue(columns[i].Title);
+                    SetHeaderStyle(cell, columns[i].HeaderStyle);
                 }
                 var columnTitles = columns.Select(c => c.Title).ToArray();
                 var rowNumber = 1;
@@ -101,7 +103,6 @@ namespace Chsword.Excel2Object
                         var cell = row.CreateCell(i);
                         var val = item.ContainsKey(column.Title) ? (item?[column.Title] ?? "").ToString() : "";
                         SetCellValue(excelType, column, cell, val, columnTitles);
-
                     }
                 }
             }
@@ -122,6 +123,7 @@ namespace Chsword.Excel2Object
         private static void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, string val,
             string[] columnTitles)
         {
+            cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
             if (column.Type == typeof(Uri))
             {
                 cell.Hyperlink = Switch<IHyperlink>(
@@ -144,7 +146,6 @@ namespace Chsword.Excel2Object
                 {
                     if (column.ResultType == typeof(DateTime))
                     {
-                        cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
                         cell.CellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat("m/d/yy");
                     }
                 }
@@ -153,26 +154,67 @@ namespace Chsword.Excel2Object
             else if (column.Type == typeof(string))
             {
                 cell.SetCellType(CellType.String);
-                cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
                 cell.CellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat("text");
             }
 
-            if (column.Font != null)
-            {
-                IFont font = cell.Sheet.Workbook.CreateFont();
-                font.FontName = column.Font.FontName;
-                font.FontHeightInPoints = column.Font.FontHeightInPoints;
-                font.Color = column.Font.Color;
-                if (column.Font.IsBold)
-                {
-                    font.Boldweight = (short)NPOI.SS.UserModel.FontBoldWeight.Bold;
-                }
-                cell.CellStyle.SetFont(font);
-            }
+            SetCellStyle(cell, column.CellStyle);
+            
 
             //cell.Hyperlink=new HSSFHyperlink
 
             cell.SetCellValue(val);
+        }
+        private static void SetHeaderStyle(ICell cell, IExcelHeaderStyle style)
+        {
+            if (style == null)
+                return;
+            IFont font = cell.Sheet.Workbook.CreateFont();
+            cell.CellStyle.SetFont(font);
+            if (!string.IsNullOrWhiteSpace(style.HeaderFontFamily))
+                font.FontName = style.HeaderFontFamily;
+            if (style.HeaderFontHeight > 0)
+                font.FontHeightInPoints = style.HeaderFontHeight;
+            else
+                font.FontHeightInPoints = 10;
+            
+            if (style.HeaderFontColor > 0)
+                font.Color = (short)style.HeaderFontColor;
+            //NPOI.SS.UserModel.FontColor.Red
+            if (style.HeaderBold)
+                font.Boldweight = (short)FontBoldWeight.Bold;
+            if (style.HeaderItalic)
+                font.IsItalic = true;
+            if (style.HeaderStrikeout)
+                font.IsStrikeout = true;
+            if (style.HeaderUnderline)
+                font.Underline = FontUnderlineType.Single; //暂不考虑等情况 Double
+            
+        
+        }
+
+        private static void SetCellStyle(ICell cell, IExcelCellStyle style)
+        {
+            if (style == null)
+                return;
+            IFont font = cell.Sheet.Workbook.CreateFont();
+            cell.CellStyle.SetFont(font);
+            if (!string.IsNullOrWhiteSpace(style.CellFontFamily))
+                font.FontName = style.CellFontFamily;
+            if (style.CellFontHeight > 0)
+                font.FontHeightInPoints = style.CellFontHeight;
+            else
+                font.FontHeightInPoints = 10;
+            
+            if (style.CellFontColor > 0)
+                font.Color = (short) style.CellFontColor;
+            if (style.CellBold)
+                font.Boldweight = (short) FontBoldWeight.Bold;
+            if (style.CellItalic)
+                font.IsItalic = true;
+            if (style.CellStrikeout)
+                font.IsStrikeout = true;
+            if (style.CellUnderline)
+                font.Underline = FontUnderlineType.Single;  
         }
 
         private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
