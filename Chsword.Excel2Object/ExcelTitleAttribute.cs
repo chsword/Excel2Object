@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 
 namespace Chsword.Excel2Object
 {
@@ -28,6 +29,7 @@ namespace Chsword.Excel2Object
 
 
         // Header
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public int HeaderAlignment { get; set; }
         public string HeaderFontFamily { get; set; }
         public double HeaderFontHeight { get; set; }
@@ -36,8 +38,9 @@ namespace Chsword.Excel2Object
         public bool HeaderItalic { get; set; }
         public bool HeaderStrikeout { get; set; }
         public bool HeaderUnderline { get; set; }
-       
+
         // Cell
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public int CellAlignment { get; set; }
         public string CellFontFamily { get; set; }
         public double CellFontHeight { get; set; }
