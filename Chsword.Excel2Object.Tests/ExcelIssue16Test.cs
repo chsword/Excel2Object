@@ -48,7 +48,7 @@ namespace Chsword.Excel2Object.Tests
             var result = ExcelHelper.ExcelToObject<Dictionary<string, object>>(bytes).ToList();
             Console.WriteLine(JsonConvert.SerializeObject(result));
             Assert.AreEqual(
-                "2039",
+                (DateTime.Now.Year + 19).ToString(),
                 result[0]["BirthYear"]
             );
         }
