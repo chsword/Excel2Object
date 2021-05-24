@@ -10,11 +10,15 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void UseExcelColumnAttr()
         {
-            var list = new List<Pr20Model>()
+            var list = new List<Pr20Model>
             {
-                new Pr20Model()
+                new Pr20Model
                 {
                     Fullname = "AAA", Mobile = "123456798123"
+                },
+                new Pr20Model
+                {
+                    Fullname = "BBB", Mobile = "234"
                 }
             };
             var bytes = ExcelHelper.ObjectToExcelBytes(list, ExcelType.Xlsx);

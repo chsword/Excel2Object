@@ -1,4 +1,7 @@
 version: 2.0.0.{build}
+branches:
+  only:
+  - main
 image: Visual Studio 2019
 configuration: Release
 dotnet_csproj:
