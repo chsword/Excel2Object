@@ -1,35 +1,94 @@
-Excel2Object
-============
+# Excel2Object
+
 [![install from nuget](http://img.shields.io/nuget/v/Chsword.Excel2Object.svg?style=flat-square)](https://www.nuget.org/packages/Chsword.Excel2Object)
-[![downloads](http://img.shields.io/nuget/dt/Chsword.Excel2Object.svg?style=flat-square)](https://www.nuget.org/packages/Chsword.Excel2Object)
 [![release](https://img.shields.io/github/release/chsword/Excel2Object.svg?style=flat-square)](https://github.com/chsword/Excel2Object/releases)
 [![Build status](https://ci.appveyor.com/api/projects/status/4po2h27j7yg4bph5/branch/master?svg=true)](https://ci.appveyor.com/project/chsword/excel2object/branch/master)
+[![CodeFactor](https://www.codefactor.io/repository/github/chsword/excel2object/badge)](https://www.codefactor.io/repository/github/chsword/excel2object)
 
-Excel convert to .NET Object
+Excel convert to .NET Object / .NET Object convert to Excel.
 
-
+- [Top](#excel2object)
+    - [NuGet install](#nuget-install)
+    - [Release notes](#release-notes)
+    - [Demo code](#demo-code)
+    - [Document](#document)
+    - [Reference](#reference)
+          
 ### NuGet Install
 ``` powershell
 PM> Install-Package Chsword.Excel2Object
 ```
 
-### Release Notes
+### Release Notes and roadmap
+
+- [ ] cli tool
+- [ ] support auto width column
+- [ ] 1. support date datetime time in excel\
+- [x] support simple formula
+- [x] support standard excel model
+  - [x] excel & JSON convert
+  - [x] excel & Dictionary<string,object> convert
+- [x] 1. convert project to **netstandard2.0** & **.net 4.5.2**
+- [x] 1. export with a sheet name,using ExcelTitleAttribute on class
+- [x] 1. support Uri type to a Hyperlink
+- [x] 1. support xls / xlsx
+- [x] 1. support complex Boolean type
+- [x] 1. support convert List<Model> to excel file and Excel file to List<Model>
+- [x] 1. support to specify the order of fields to export
+- [x] 1. support convert List<Model> to excel bytes and Excel bytes to List<Model>
+
+``` csharp
+var bytes = new ExcelExporter().ObjectToExcelBytes(list, options =>
+            {
+                options.ExcelType = ExcelType.Xlsx;
+                options.FormulaColumns.Add(new FormulaColumn
+                {
+                    Title = "BirthYear",
+                    Formula = c => (int) c["Age"] + DateTime.Now.Year,
+                    AfterColumnTitle = "Column1"
+                });
+            });
+            // c => (int) c["Age"] + DateTime.Now.Year will convert to like =A3+YEAR(NOW())
+```
+
+* v2.0.0.113
+```
+convert project to netstandard2.0 and .net452
+fixbug #12 #13
+```
+
+* v1.0.0.80
+```
+Support Uri to a hyperlink cell
+And also support text cell to Uri Type
+```
+
+* v1.0.0.43
+```
+Support xlsx [thanks Soar360]
+Support complex Boolean type
+```
+
 * v1.0.0.36
-> add ExcelToObject<T>(bytes)
+```
+Add ExcelToObject<T>(bytes)
+```
 
 ### Demo Code
+
 Model
 ``` csharp
     public class ReportModel
     {
-        [Excel("标题",Order=1)]
+        [Excel("My Title",Order=1)]
         public string Title { get; set; }
-        [Excel("用户",Order=2)]
+        [Excel("User Name",Order=2)]
         public string Name { get; set; }
     }
 ```
+
 Model List
-``` cs
+``` csharp
       var models = new List<ReportModel>
             {
                 new ReportModel{Name="a",Title="b"},
@@ -37,12 +96,14 @@ Model List
                 new ReportModel{Name="f",Title="e"}
             };
 ```
+
 Convert Object to Excel file.
 ``` csharp
       var exporter = new ExcelExporter();
       var bytes = exporter.ObjectToExcelBytes(models);
       File.WriteAllBytes("C:\\demo.xls", bytes);
 ```
+
 Convert Excel file to Object
 ``` csharp
       var importer = new ExcelImporter();
@@ -50,13 +111,16 @@ Convert Excel file to Object
       // also can use bytes
       //IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>(bytes);
 ```
+
 With ASP.NET MVC
-      In ASP.NET MVC Model, DisplayAttribute can be supported like ExcelAttribute.
+      In ASP.NET MVC Model, DisplayAttribute can be supported like ExcelTitleAttribute.
 
 ### Document
+
 http://www.cnblogs.com/chsword/p/excel2object.html
 
 ### Reference
-NPOI
+
 https://github.com/tonyqus/npoi
 
+https://github.com/chsword/ctrc

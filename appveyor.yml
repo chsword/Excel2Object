@@ -1,0 +1,17 @@
+version: 2.0.0.{build}
+branches:
+  only:
+  - main
+image: Visual Studio 2019
+configuration: Release
+dotnet_csproj:
+  patch: true
+  file: '**\*.csproj'
+  version: '{version}'
+  package_version: '{version}'
+before_build:
+- cmd: dotnet restore ./Chsword.Excel2Object.sln
+build:
+  publish_nuget: true
+  verbosity: minimal
+test: true

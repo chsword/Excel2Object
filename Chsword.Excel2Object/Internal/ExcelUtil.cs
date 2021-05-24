@@ -2,31 +2,72 @@
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
+using CTRC;
 
 namespace Chsword.Excel2Object.Internal
 {
     internal class ExcelUtil
     {
-        public static Dictionary<PropertyInfo, ExcelTitleAttribute> GetExportAttrDict<T>()
-        {
-            
-            var dict = new Dictionary<PropertyInfo, ExcelTitleAttribute>();
-            foreach (var propertyInfo in CTRC.CTRCHelper.GetPropertiesCache<T>())
-            {
-                var attr = propertyInfo.GetCustomAttributes(true).FirstOrDefault(c => c is ExcelTitleAttribute || c is DisplayAttribute);
-                if (attr != null)
-                {
-                    var attr1 = attr;
-                    if (attr is DisplayAttribute)
-                    {
-                        var display = attr as DisplayAttribute;
-                        attr1 = new ExcelTitleAttribute(display.Name) { Order = display.Order };
-                    }
-                    dict.Add(propertyInfo, attr1 as ExcelTitleAttribute);
+	    /// <summary>
+	    /// get ExcelTitleAttribute in Attributes
+	    /// </summary>
+	    /// <param name="attrs"></param>
+	    /// <param name="defaultOrder">如果未设置Order则使用此Order</param>
+	    /// <returns></returns>
+	    private static ExcelTitleAttribute GetExcelTitleAttributeFromAttributes(object[] attrs, int defaultOrder)
+	    {
+		    var attr = attrs.FirstOrDefault(c => c is ExcelTitleAttribute || c is DisplayAttribute);
+		    if (attr == null) return null;
 
-                }
-            }
-            return dict;
-        }
+		    if (attr is DisplayAttribute display)
+		    {
+			    return new ExcelTitleAttribute(display.Name)
+			    {
+				    Order = display.GetOrder() ?? defaultOrder
+			    };
+		    }
+
+		    var attrResult = attr as ExcelTitleAttribute;
+		    if (attrResult?.Order == 0)
+		    {
+			    attrResult.Order = defaultOrder;
+		    }
+
+		    return attrResult;
+
+	    }
+
+	    /// <summary>
+		/// Get the ExcelTitleAttribute on class
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns>if thers's not a ExcelTitleAttribute, will return null.</returns>
+		public static ExcelTitleAttribute GetClassExportAttribute<T>()
+		{
+			var attrs = typeof(T).GetCustomAttributes(true);
+			var attr = GetExcelTitleAttributeFromAttributes(attrs, 0);
+			return attr;
+		}
+
+	    /// <summary>
+	    /// Get the ExcelTitleAttribute on proerties
+	    /// </summary>
+	    /// <typeparam name="T"></typeparam>
+	    /// <returns></returns>
+	    public static Dictionary<PropertyInfo, ExcelTitleAttribute> GetPropertiesAttributesDict<T>()
+	    {
+		    var dict = new Dictionary<PropertyInfo, ExcelTitleAttribute>();
+		    int defaultOrder = 10000;
+		    foreach (var propertyInfo in CTRCHelper.GetPropertiesCache<T>())
+		    {
+			    var attrs = propertyInfo.GetCustomAttributes(true);
+			    var attr = GetExcelTitleAttributeFromAttributes(attrs, defaultOrder++);
+
+			    if (attr == null) continue;
+			    dict.Add(propertyInfo, attr);
+		    }
+
+		    return dict;
+	    }
     }
 }
