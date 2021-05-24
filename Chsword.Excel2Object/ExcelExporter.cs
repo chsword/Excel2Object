@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
@@ -119,7 +120,7 @@ namespace Chsword.Excel2Object
 
         #region Factory
 
-        private static void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, string val,
+        private void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, string val,
             string[] columnTitles)
         {
             if (column.Type == typeof(Uri))
@@ -144,8 +145,7 @@ namespace Chsword.Excel2Object
                 {
                     if (column.ResultType == typeof(DateTime))
                     {
-                        cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
-                        cell.CellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat("m/d/yy");
+                        cell.CellStyle = CreateStyle("datetime", cell);
                     }
                 }
                 return;
@@ -153,13 +153,39 @@ namespace Chsword.Excel2Object
             else if (column.Type == typeof(string))
             {
                 cell.SetCellType(CellType.String);
-                cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
-                cell.CellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat("text");
+                cell.CellStyle = CreateStyle("text", cell);
             }
 
             //cell.Hyperlink=new HSSFHyperlink
 
             cell.SetCellValue(val);
+        }
+
+
+
+        private ConcurrentDictionary<string, ICellStyle> CellStyleDict = new ConcurrentDictionary<string, ICellStyle>();
+        ICellStyle CreateStyle(string key,ICell cell)
+        {
+            if (CellStyleDict.TryGetValue(key, out var val))
+            {
+                return val;
+            }
+
+            if (key == "text")
+            {
+                var style = cell.Sheet.Workbook.CreateCellStyle();
+                style.DataFormat = HSSFDataFormat.GetBuiltinFormat("text");
+                CellStyleDict.AddOrUpdate(key, style, (k, s) => style);
+                return style;
+            }
+            if (key == "datatime")
+            {
+                var style = cell.Sheet.Workbook.CreateCellStyle();
+                style.DataFormat = HSSFDataFormat.GetBuiltinFormat("m/d/yy");
+                CellStyleDict.AddOrUpdate(key, style, (k, s) => style);
+                return style;
+            }
+            return null;
         }
 
         private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)

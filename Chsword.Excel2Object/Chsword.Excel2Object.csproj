@@ -30,7 +30,7 @@
 
   <ItemGroup>
     <PackageReference Include="CTRC" Version="1.1.0.70" />
-    <PackageReference Include="NPOI" Version="2.4.1" />
-    <PackageReference Include="System.ComponentModel.Annotations" Version="4.7.0" />
+    <PackageReference Include="NPOI" Version="2.5.3" />
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
   </ItemGroup>
 </Project>
