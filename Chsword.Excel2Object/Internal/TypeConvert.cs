@@ -53,7 +53,7 @@ namespace Chsword.Excel2Object.Internal
                 Title = c,
                 Type = typeof(string)
             }).ToList();
-            
+
             sheet.Columns = AttachColumns(columns, options);
             sheet.Rows = list;
 
@@ -127,13 +127,18 @@ namespace Chsword.Excel2Object.Internal
             var columns = new List<ExcelColumn>();
             for (var i = 0; i < objKeysArray.Length; i++)
             {
+                var titleAttr = objKeysArray[i].Value;
                 var column = new ExcelColumn
                 {
-                    Title = objKeysArray[i].Value.Title,
+                    Title = titleAttr.Title,
                     Type = objKeysArray[i].Key.PropertyType,
-                    Order = i
+                    Order = i,
                 };
-
+                if (titleAttr is ExcelColumnAttribute excelColumnAttr)
+                {
+                    column.CellStyle = excelColumnAttr;
+                    column.HeaderStyle = excelColumnAttr;
+                }
                 columns.Add(column);
             }
 
