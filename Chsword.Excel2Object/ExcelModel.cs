@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Chsword.Excel2Object.Functions;
-using NPOI.SS.UserModel;
+using Chsword.Excel2Object.Styles;
 
 namespace Chsword.Excel2Object
 {
@@ -14,8 +14,8 @@ namespace Chsword.Excel2Object
     internal class SheetModel
     {
         public List<ExcelColumn> Columns { get; set; }
-        public List<Dictionary<string, object>> Rows { get; set; }
         public int Index { get; set; }
+        public List<Dictionary<string, object>> Rows { get; set; }
         public string Title { get; set; }
 
         public static SheetModel Create(string title)
@@ -28,24 +28,28 @@ namespace Chsword.Excel2Object
             };
         }
     }
+
     internal class ExcelColumn
     {
-        public int Order { get; set; }
-        public string Title { get; set; }
-        public Type Type { get; set; }
-        /// <summary>
-        /// µ±ÇÒ½öµ± Type = Expression Ê±ÓÐÐ§
-        /// </summary>
-        public Type ResultType { get; set; }
+        public IExcelCellStyle CellStyle { get; set; }
+
+        [Obsolete("", true)] public Font Font { get; set; }
+
         public Expression<Func<ColumnCellDictionary, object>> Formula { get; set; }
 
         public IExcelHeaderStyle HeaderStyle { get; set; }
-        public IExcelCellStyle CellStyle { get; set; }
+        public int Order { get; set; }
 
-        [Obsolete("", true)]
-        public Font Font { get; set; }
+        /// <summary>
+        /// ï¿½ï¿½ï¿½Ò½ï¿½ï¿½ï¿½ Type = Expression Ê±ï¿½ï¿½Ð§
+        /// </summary>
+        public Type ResultType { get; set; }
+
+        public string Title { get; set; }
+        public Type Type { get; set; }
     }
-    [Obsolete("",true)]
+
+    [Obsolete("", true)]
     internal class Font
     {
         public Font(string fontName, double fontHeightInPoints, short color, bool isBold)
@@ -56,9 +60,10 @@ namespace Chsword.Excel2Object
             IsBold = IsBold;
         }
 
-        public string FontName { get; set; }
-        public double FontHeightInPoints { get; set; }
         public short Color { get; set; }
+        public double FontHeightInPoints { get; set; }
+
+        public string FontName { get; set; }
         public bool IsBold { get; set; }
     }
 }

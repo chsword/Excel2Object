@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
@@ -13,26 +12,17 @@ namespace Chsword.Excel2Object.Tests
     [TestClass]
     public class ExcelTest : BaseExcelTest
     {
-        private ReportModelCollection GetModels()
+        [TestMethod]
+        public void ConvertXlsBytesTest()
         {
-            return new ReportModelCollection
-            {
-                new ReportModel
-                {
-                    Name = "a", Title = "b", Enabled = true
-                },
-                new ReportModel
-                {
-                    Name = "c", Title = "d", Enabled = false
-                },
-                new ReportModel
-                {
-                    Name = "f", Title = "e", Uri = new Uri("http://chsword.cnblogs.com")
-                }
-            };
+            var models = GetModels();
+            var bytes = ExcelHelper.ObjectToExcelBytes(models);
+            Assert.IsTrue(bytes.Length > 0);
+            var importer = new ExcelImporter();
+            var result = importer.ExcelToObject<ReportModel>(bytes).ToList();
+            models.AreEqual(result);
         }
 
-   
 
         [TestMethod]
         public void ConvertXlsFileTest()
@@ -62,14 +52,19 @@ namespace Chsword.Excel2Object.Tests
         }
 
         [TestMethod]
-        public void ConvertXlsBytesTest()
+        public void ConvertXlsFromDataTable()
         {
-            var models = GetModels();
-            var bytes = ExcelHelper.ObjectToExcelBytes(models);
-            Assert.IsTrue(bytes.Length > 0);
-            var importer = new ExcelImporter();
-            var result = importer.ExcelToObject<ReportModel>(bytes).ToList();
-            models.AreEqual(result);
+            DataTable dt = new DataTable();
+            dt.Columns.Add(new DataColumn("姓名", typeof(string)));
+            dt.Columns.Add(new DataColumn("Age", typeof(int)));
+            DataRow dr = dt.NewRow();
+            dr["姓名"] = "吴老狗";
+            dr["Age"] = 19;
+            dt.Rows.Add(dr);
+            var bytes = ExcelHelper.ObjectToExcelBytes(dt, ExcelType.Xls);
+            var path = GetFilePath("test.xls");
+            File.WriteAllBytes(path, bytes);
+            Assert.IsTrue(File.Exists(path));
         }
 
         [TestMethod]
@@ -97,21 +92,6 @@ namespace Chsword.Excel2Object.Tests
             models.AreEqual(result);
         }
 
-	    [TestMethod]
-		public void ConvertXlsFromDataTable()
-	    {
-		    DataTable dt = new DataTable();
-		    dt.Columns.Add(new DataColumn("姓名", typeof(string)));
-		    dt.Columns.Add(new DataColumn("Age", typeof(int)));
-		    DataRow dr = dt.NewRow();
-		    dr["姓名"] = "吴老狗";
-		    dr["Age"] = 19;
-			dt.Rows.Add(dr);
-		    var bytes = ExcelHelper.ObjectToExcelBytes(dt, ExcelType.Xls);
-		    var path = GetFilePath("test.xls");
-		    File.WriteAllBytes(path, bytes);
-		    Assert.IsTrue(File.Exists(path));
-		}
         [TestMethod]
         public void ConvertXlsxWithDictionary()
         {
@@ -127,7 +107,26 @@ namespace Chsword.Excel2Object.Tests
             Assert.AreEqual(
                 JsonConvert.SerializeObject(list),
                 JsonConvert.SerializeObject(result)
-                );
+            );
+        }
+
+        private ReportModelCollection GetModels()
+        {
+            return new ReportModelCollection
+            {
+                new ReportModel
+                {
+                    Name = "a", Title = "b", Enabled = true
+                },
+                new ReportModel
+                {
+                    Name = "c", Title = "d", Enabled = false
+                },
+                new ReportModel
+                {
+                    Name = "f", Title = "e", Uri = new Uri("http://chsword.cnblogs.com")
+                }
+            };
         }
     }
 }

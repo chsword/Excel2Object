@@ -9,6 +9,20 @@ namespace Chsword.Excel2Object.Tests
     [TestClass]
     public class ExcelIssue12Test
     {
+        [TestMethod]
+        public void EmptyFirstProperty()
+        {
+            var models = GetModels();
+            var bytes = ExcelHelper.ObjectToExcelBytes(models);
+            Assert.IsNotNull(bytes);
+            Assert.IsTrue(bytes.Length > 0);
+            var importer = new ExcelImporter();
+            var result = importer.ExcelToObject<ReportModel>(bytes).ToList();
+            Console.WriteLine(result.FirstOrDefault());
+            Assert.AreEqual(models.Count, result.Count());
+            models.AreEqual(result);
+        }
+
         private ReportModelCollection GetModels()
         {
             return new ReportModelCollection
@@ -26,19 +40,6 @@ namespace Chsword.Excel2Object.Tests
                     Name = "z", Title = "e", Uri = new Uri("http://chsword.cnblogs.com")
                 }
             };
-        }
-        [TestMethod]
-        public void EmptyFirstProperty()
-        {
-            var models = GetModels();
-            var bytes = ExcelHelper.ObjectToExcelBytes(models);
-            Assert.IsNotNull(bytes);
-            Assert.IsTrue(bytes.Length>0);
-            var importer = new ExcelImporter();
-            var result = importer.ExcelToObject<ReportModel>(bytes).ToList();
-            Console.WriteLine(result.FirstOrDefault());
-            Assert.AreEqual(models.Count, result.Count());
-            models.AreEqual(result);
         }
     }
 }

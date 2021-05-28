@@ -1,4 +1,4 @@
-﻿namespace Chsword.Excel2Object
+﻿namespace Chsword.Excel2Object.Styles
 {
     public enum ExcelStyleColor : short
     {

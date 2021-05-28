@@ -8,7 +8,7 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void If()
         {
-            TestFunction(c => ExcelFunctions.Condition.If(c["One"]=="Yes",1,2), "IF(A4=\"Yes\",1,2)");
+            TestFunction(c => ExcelFunctions.Condition.If(c["One"] == "Yes", 1, 2), "IF(A4=\"Yes\",1,2)");
         }
     }
 }

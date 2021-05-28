@@ -16,10 +16,11 @@ namespace Chsword.Excel2Object.Internal
                 {
                     mod -= 1;
                 }
+
                 x /= 26;
-                list.Add((char)('A' + mod));
+                list.Add((char) ('A' + mod));
             } while (x > 0);
-       
+
             list.Reverse();
             return string.Join("", list);
         }
