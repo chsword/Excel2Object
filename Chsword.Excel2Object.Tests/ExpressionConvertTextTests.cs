@@ -8,8 +8,8 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void Find()
         {
-            TestFunction(c => ExcelFunctions.Text.Find("M",c["One",2]), "FIND(\"M\",A2)");
-            TestFunction(c => ExcelFunctions.Text.Find("M", c["One", 2],2), "FIND(\"M\",A2,2)");
+            TestFunction(c => ExcelFunctions.Text.Find("M", c["One", 2]), "FIND(\"M\",A2)");
+            TestFunction(c => ExcelFunctions.Text.Find("M", c["One", 2], 2), "FIND(\"M\",A2,2)");
         }
     }
 }

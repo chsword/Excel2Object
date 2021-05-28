@@ -15,6 +15,5 @@ namespace Chsword.Excel2Object
 
         public int Order { get; set; }
         public string Title { get; set; }
-
     }
 }

@@ -8,33 +8,6 @@ namespace Chsword.Excel2Object.Internal
 {
     internal class ExcelUtil
     {
-
-        /// <summary>
-        /// get ExcelTitleAttribute in Attributes
-        /// </summary>
-        /// <param name="attrs"></param>
-        /// <param name="defaultOrder">如果未设置Order则使用此Order</param>
-        /// <returns></returns>
-        private static ExcelTitleAttribute GetExcelTitleAttributeFromAttributes(object[] attrs, int defaultOrder)
-        {
-            var attrTitle = attrs.FirstOrDefault(c => c is ExcelTitleAttribute || c is DisplayAttribute);
-            if (attrTitle == null) return null;
-            if (attrTitle is DisplayAttribute display)
-            {
-                return new ExcelTitleAttribute(display.Name)
-                {
-                    Order = display.GetOrder() ?? defaultOrder
-                };
-            }
-            var attrResult = attrTitle as ExcelTitleAttribute;
-            if (attrResult?.Order == 0)
-            {
-                attrResult.Order = defaultOrder;
-            }
-            return attrResult;
-
-        }
-
         /// <summary>
         /// Get the ExcelTitleAttribute on class
         /// </summary>
@@ -65,6 +38,33 @@ namespace Chsword.Excel2Object.Internal
             }
 
             return dict;
+        }
+
+        /// <summary>
+        /// get ExcelTitleAttribute in Attributes
+        /// </summary>
+        /// <param name="attrs"></param>
+        /// <param name="defaultOrder">如果未设置Order则使用此Order</param>
+        /// <returns></returns>
+        private static ExcelTitleAttribute GetExcelTitleAttributeFromAttributes(object[] attrs, int defaultOrder)
+        {
+            var attrTitle = attrs.FirstOrDefault(c => c is ExcelTitleAttribute || c is DisplayAttribute);
+            if (attrTitle == null) return null;
+            if (attrTitle is DisplayAttribute display)
+            {
+                return new ExcelTitleAttribute(display.Name)
+                {
+                    Order = display.GetOrder() ?? defaultOrder
+                };
+            }
+
+            var attrResult = attrTitle as ExcelTitleAttribute;
+            if (attrResult?.Order == 0)
+            {
+                attrResult.Order = defaultOrder;
+            }
+
+            return attrResult;
         }
     }
 }

@@ -8,10 +8,85 @@ namespace Chsword.Excel2Object.Internal
 {
     internal class TypeConvert
     {
+        public static ExcelModel ConvertDictionaryToExcelModel(IEnumerable<Dictionary<string, object>> data,
+            ExcelExporterOptions options)
+        {
+            var sheetTitle = options.SheetTitle;
+            var excel = new ExcelModel {Sheets = new List<SheetModel>()};
+            var sheet = SheetModel.Create(sheetTitle);
+            excel.Sheets.Add(sheet);
+            var list = data.ToList();
+            var title = list.FirstOrDefault();
+            if (title == null) return excel;
+            var columns = title.Keys.Select((c, i) => new ExcelColumn
+            {
+                Order = i,
+                Title = c,
+                Type = typeof(string)
+            }).ToList();
+
+            sheet.Columns = AttachColumns(columns, options);
+            sheet.Rows = list;
+
+            return excel;
+        }
+
+        public static ExcelModel ConvertObjectToExcelModel<TModel>(IEnumerable<TModel> data,
+            ExcelExporterOptions options)
+        {
+            var sheetTitle = options.SheetTitle;
+            var excel = new ExcelModel {Sheets = new List<SheetModel>()};
+            if (string.IsNullOrWhiteSpace(sheetTitle))
+            {
+                var classAttr = ExcelUtil.GetClassExportAttribute<TModel>();
+                sheetTitle = classAttr == null ? sheetTitle : classAttr.Title;
+            }
+
+            var sheet = SheetModel.Create(sheetTitle);
+
+            excel.Sheets.Add(sheet);
+            var attrDict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
+            var objKeysArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
+
+            var columns = new List<ExcelColumn>();
+            for (var i = 0; i < objKeysArray.Length; i++)
+            {
+                var titleAttr = objKeysArray[i].Value;
+                var column = new ExcelColumn
+                {
+                    Title = titleAttr.Title,
+                    Type = objKeysArray[i].Key.PropertyType,
+                    Order = i,
+                };
+                if (titleAttr is ExcelColumnAttribute excelColumnAttr)
+                {
+                    column.CellStyle = excelColumnAttr;
+                    column.HeaderStyle = excelColumnAttr;
+                }
+
+                columns.Add(column);
+            }
+
+            sheet.Columns = AttachColumns(columns, options);
+            foreach (var item in data.Where(c => c != null))
+            {
+                var row = new Dictionary<string, object>();
+                foreach (var column in objKeysArray)
+                {
+                    var prop = column.Key;
+                    row[column.Value.Title] = prop.GetValue(item, null);
+                }
+
+                sheet.Rows.Add(row);
+            }
+
+            return excel;
+        }
+
         internal static ExcelModel ConvertDataSetToExcelModel(DataTable dt, ExcelExporterOptions options)
         {
             var sheetTitle = options.SheetTitle;
-            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
+            var excel = new ExcelModel {Sheets = new List<SheetModel>()};
             var sheet = SheetModel.Create(sheetTitle);
             excel.Sheets.Add(sheet);
             var dataSetColumnArray = dt.Columns.Cast<DataColumn>().ToArray();
@@ -33,29 +108,6 @@ namespace Chsword.Excel2Object.Internal
 
                 sheet.Rows.Add(row);
             }
-
-            return excel;
-        }
-
-        public static ExcelModel ConvertDictionaryToExcelModel(IEnumerable<Dictionary<string, object>> data,
-            ExcelExporterOptions options)
-        {
-            var sheetTitle = options.SheetTitle;
-            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
-            var sheet = SheetModel.Create(sheetTitle);
-            excel.Sheets.Add(sheet);
-            var list = data.ToList();
-            var title = list.FirstOrDefault();
-            if (title == null) return excel;
-            var columns = title.Keys.Select((c, i) => new ExcelColumn
-            {
-                Order = i,
-                Title = c,
-                Type = typeof(string)
-            }).ToList();
-
-            sheet.Columns = AttachColumns(columns, options);
-            sheet.Rows = list;
 
             return excel;
         }
@@ -86,7 +138,8 @@ namespace Chsword.Excel2Object.Internal
                         {
                             var i = columns.FindIndex(c => c.Title == formulaColumn.AfterColumnTitle);
                             if (i < 0)
-                                throw new Excel2ObjectException($"can not find {formulaColumn.AfterColumnTitle} column.");
+                                throw new Excel2ObjectException(
+                                    $"can not find {formulaColumn.AfterColumnTitle} column.");
 
                             columns.Insert(i + 1, excelColumn);
                         }
@@ -104,58 +157,8 @@ namespace Chsword.Excel2Object.Internal
             {
                 columns[i].Order = i * 10;
             }
+
             return columns;
-        }
-
-        public static ExcelModel ConvertObjectToExcelModel<TModel>(IEnumerable<TModel> data,
-            ExcelExporterOptions options)
-        {
-            var sheetTitle = options.SheetTitle;
-            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
-            if (string.IsNullOrWhiteSpace(sheetTitle))
-            {
-                var classAttr = ExcelUtil.GetClassExportAttribute<TModel>();
-                sheetTitle = classAttr == null ? sheetTitle : classAttr.Title;
-            }
-
-            var sheet = SheetModel.Create(sheetTitle);
-
-            excel.Sheets.Add(sheet);
-            var attrDict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
-            var objKeysArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
-
-            var columns = new List<ExcelColumn>();
-            for (var i = 0; i < objKeysArray.Length; i++)
-            {
-                var titleAttr = objKeysArray[i].Value;
-                var column = new ExcelColumn
-                {
-                    Title = titleAttr.Title,
-                    Type = objKeysArray[i].Key.PropertyType,
-                    Order = i,
-                };
-                if (titleAttr is ExcelColumnAttribute excelColumnAttr)
-                {
-                    column.CellStyle = excelColumnAttr;
-                    column.HeaderStyle = excelColumnAttr;
-                }
-                columns.Add(column);
-            }
-
-            sheet.Columns = AttachColumns(columns, options);
-            foreach (var item in data.Where(c => c != null))
-            {
-                var row = new Dictionary<string, object>();
-                foreach (var column in objKeysArray)
-                {
-                    var prop = column.Key;
-                    row[column.Value.Title] = prop.GetValue(item, null);
-                }
-
-                sheet.Rows.Add(row);
-            }
-
-            return excel;
         }
     }
 }

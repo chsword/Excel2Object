@@ -9,8 +9,8 @@ namespace Chsword.Excel2Object.Options
 {
     public class FormulaColumnsCollection : ICollection<FormulaColumn>
     {
-        public List<FormulaColumn> FormulaColumns { get; set; } = new List<FormulaColumn>();
         public int Count => FormulaColumns.Count;
+        public List<FormulaColumn> FormulaColumns { get; set; } = new List<FormulaColumn>();
 
         public bool IsReadOnly => false;
 

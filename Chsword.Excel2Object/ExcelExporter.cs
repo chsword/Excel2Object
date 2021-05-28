@@ -8,15 +8,18 @@ using System.Linq;
 using System.Linq.Expressions;
 using Chsword.Excel2Object.Internal;
 using Chsword.Excel2Object.Options;
+using Chsword.Excel2Object.Styles;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using HorizontalAlignment = NPOI.SS.UserModel.HorizontalAlignment;
 
 namespace Chsword.Excel2Object
 {
     public class ExcelExporter
     {
-        #region Public
+        private readonly ConcurrentDictionary<string, ICellStyle> _cellStyleDict =
+            new ConcurrentDictionary<string, ICellStyle>();
 
         /// <summary>
         /// Export a excel file from a List of T generic list
@@ -35,6 +38,7 @@ namespace Chsword.Excel2Object
                 options.SheetTitle = sheetTitle;
             });
         }
+
         public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, Action<ExcelExporterOptions> optionsAction)
         {
             var options = new ExcelExporterOptions();
@@ -63,9 +67,10 @@ namespace Chsword.Excel2Object
             return ObjectToExcelBytes(excel, options);
         }
 
-        #endregion
-
-        #region Core
+        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
+        {
+            return ObjectToExcelBytes(data, ExcelType.Xls);
+        }
 
         internal byte[] ObjectToExcelBytes(ExcelModel excel, ExcelExporterOptions options)
         {
@@ -84,6 +89,7 @@ namespace Chsword.Excel2Object
                     sheet.SetColumnWidth(i, 16 * 256);
                     // todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
                 }
+
                 var headerRow = sheet.CreateRow(0);
                 for (var i = 0; i < columns.Length; i++)
                 {
@@ -93,6 +99,7 @@ namespace Chsword.Excel2Object
                     cell.SetCellValue(columns[i].Title);
                     SetHeaderStyle(cell, columns[i].HeaderStyle);
                 }
+
                 var columnTitles = columns.Select(c => c.Title).ToArray();
                 var rowNumber = 1;
                 var data = excelSheet.Rows;
@@ -112,55 +119,6 @@ namespace Chsword.Excel2Object
             return ToBytes(workbook);
         }
 
-        private void CheckExcelModel(ExcelModel excel)
-        {
-            //todo validate
-
-        }
-
-        #endregion
-
-        #region Factory
-
-        private void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, string val,
-            string[] columnTitles)
-        {
-          
-            if (column.Type == typeof(Uri))
-            {
-                cell.Hyperlink = Switch<IHyperlink>(
-                    excelType,
-                    () => new HSSFHyperlink(HyperlinkType.Url)
-                    {
-                        Address = val
-                    },
-                    () => new XSSFHyperlink(HyperlinkType.Url)
-                    {
-                        Address = val
-                    }
-                );
-            }
-            else if (column.Type == typeof(Expression))
-            {
-                var convert = new ExpressionConvert(columnTitles, cell.RowIndex);
-                var formula = convert.Convert(column.Formula);
-                cell.SetCellFormula(formula);
-                if (column.ResultType != null)
-                {
-                    if (column.ResultType == typeof(DateTime))
-                    {
-                        cell.CellStyle = CreateStyle("datetime", cell, column.CellStyle);
-                    }
-                }
-                return;
-            }
-            else if (column.Type == typeof(string))
-            {
-                cell.SetCellType(CellType.String);
-                cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
-            }
-            cell.SetCellValue(val);
-        }
         private static void SetHeaderStyle(ICell cell, IExcelHeaderStyle style)
         {
             if (style == null)
@@ -173,9 +131,9 @@ namespace Chsword.Excel2Object
                 font.FontHeightInPoints = style.HeaderFontHeight;
             else
                 font.FontHeightInPoints = 10;
-            
+
             if (style.HeaderFontColor > 0)
-                font.Color = (short)style.HeaderFontColor;
+                font.Color = (short) style.HeaderFontColor;
             //NPOI.SS.UserModel.FontColor.Red
             if (style.HeaderBold)
                 font.IsBold = true;
@@ -189,16 +147,90 @@ namespace Chsword.Excel2Object
             {
                 cell.CellStyle.Alignment = (HorizontalAlignment) style.HeaderAlignment;
             }
-
         }
- 
 
+        private static IFont StyleToFont(ICell cell, IExcelCellStyle style)
+        {
+            if (style == null) return null;
+            IFont font = cell.Sheet.Workbook.CreateFont();
+            if (!string.IsNullOrWhiteSpace(style.CellFontFamily))
+                font.FontName = style.CellFontFamily;
+            if (style.CellFontHeight > 0)
+                font.FontHeightInPoints = style.CellFontHeight;
+            else
+                font.FontHeightInPoints = 10;
 
-        private readonly ConcurrentDictionary<string, ICellStyle> _cellStyleDict = new ConcurrentDictionary<string, ICellStyle>();
+            if (style.CellFontColor > 0)
+                font.Color = (short) style.CellFontColor;
+            if (style.CellBold)
+                font.IsBold = true;
+            if (style.CellItalic)
+                font.IsItalic = true;
+            if (style.CellStrikeout)
+                font.IsStrikeout = true;
+            if (style.CellUnderline)
+                font.Underline = FontUnderlineType.Single;
+            if (style.CellAlignment != Styles.HorizontalAlignment.General)
+            {
+                cell.CellStyle.Alignment = (HorizontalAlignment) style.CellAlignment;
+            }
+
+            return font;
+        }
+
+        private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
+        {
+            T obj;
+            switch (excelType)
+            {
+                case ExcelType.Xls:
+                    obj = funcXlsHssf();
+                    break;
+                case ExcelType.Xlsx:
+                    obj = funcXlsxXssf();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(excelType));
+            }
+
+            return obj;
+        }
+
+        private static byte[] ToBytes(IWorkbook workbook)
+        {
+            using (var output = new MemoryStream())
+            {
+                workbook.Write(output);
+                var bytes = output.ToArray();
+                return bytes;
+            }
+        }
+
+        private static IWorkbook Workbook(ExcelType excelType)
+        {
+            IWorkbook workbook;
+            switch (excelType)
+            {
+                case ExcelType.Xls:
+                    workbook = new HSSFWorkbook();
+                    break;
+                case ExcelType.Xlsx:
+                    workbook = new XSSFWorkbook();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(excelType));
+            }
+
+            return workbook;
+        }
+
+        private void CheckExcelModel(ExcelModel excel)
+        {
+            //todo validate
+        }
 
         ICellStyle CreateStyle(string type, ICell cell, IExcelCellStyle style)
         {
-
             var key = GetKey(type, style);
             if (_cellStyleDict.TryGetValue(key, out var val))
             {
@@ -230,34 +262,6 @@ namespace Chsword.Excel2Object
             return null;
         }
 
-        private static IFont StyleToFont(ICell cell, IExcelCellStyle style)
-        {
-            if (style == null) return null;
-            IFont font = cell.Sheet.Workbook.CreateFont();
-            if (!string.IsNullOrWhiteSpace(style.CellFontFamily))
-                font.FontName = style.CellFontFamily;
-            if (style.CellFontHeight > 0)
-                font.FontHeightInPoints = style.CellFontHeight;
-            else
-                font.FontHeightInPoints = 10;
-
-            if (style.CellFontColor > 0)
-                font.Color = (short) style.CellFontColor;
-            if (style.CellBold)
-                font.IsBold = true;
-            if (style.CellItalic)
-                font.IsItalic = true;
-            if (style.CellStrikeout)
-                font.IsStrikeout = true;
-            if (style.CellUnderline)
-                font.Underline = FontUnderlineType.Single;
-            if (style.CellAlignment!=Styles.HorizontalAlignment.General)
-            {
-                cell.CellStyle.Alignment = (HorizontalAlignment)style.CellAlignment;
-            }
-            return font;
-        }
-
         private string GetKey(string type, IExcelCellStyle style)
         {
             if (style == null) return type;
@@ -274,59 +278,45 @@ namespace Chsword.Excel2Object
             return string.Join("|", arr);
         }
 
-        private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
+        private void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, string val,
+            string[] columnTitles)
         {
-            T obj;
-            switch (excelType)
+            if (column.Type == typeof(Uri))
             {
-                case ExcelType.Xls:
-                    obj = funcXlsHssf();
-                    break;
-                case ExcelType.Xlsx:
-                    obj = funcXlsxXssf();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(excelType));
+                cell.Hyperlink = Switch<IHyperlink>(
+                    excelType,
+                    () => new HSSFHyperlink(HyperlinkType.Url)
+                    {
+                        Address = val
+                    },
+                    () => new XSSFHyperlink(HyperlinkType.Url)
+                    {
+                        Address = val
+                    }
+                );
             }
-            return obj;
-        }
-
-        private static IWorkbook Workbook(ExcelType excelType)
-        {
-            IWorkbook workbook;
-            switch (excelType)
+            else if (column.Type == typeof(Expression))
             {
-                case ExcelType.Xls:
-                    workbook = new HSSFWorkbook();
-                    break;
-                case ExcelType.Xlsx:
-                    workbook = new XSSFWorkbook();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(excelType));
+                var convert = new ExpressionConvert(columnTitles, cell.RowIndex);
+                var formula = convert.Convert(column.Formula);
+                cell.SetCellFormula(formula);
+                if (column.ResultType != null)
+                {
+                    if (column.ResultType == typeof(DateTime))
+                    {
+                        cell.CellStyle = CreateStyle("datetime", cell, column.CellStyle);
+                    }
+                }
+
+                return;
             }
-            return workbook;
-        }
-
-        #endregion
-
-        #region Utils
-
-        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
-        {
-            return ObjectToExcelBytes(data, ExcelType.Xls);
-        }
-
-        private static byte[] ToBytes(IWorkbook workbook)
-        {
-            using (var output = new MemoryStream())
+            else if (column.Type == typeof(string))
             {
-                workbook.Write(output);
-                var bytes = output.ToArray();
-                return bytes;
+                cell.SetCellType(CellType.String);
+                cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
             }
-        }
 
-        #endregion
+            cell.SetCellValue(val);
+        }
     }
 }

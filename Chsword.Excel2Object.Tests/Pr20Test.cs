@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using Chsword.Excel2Object.Styles;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NPOI.XWPF.UserModel;
 
 namespace Chsword.Excel2Object.Tests
 {
@@ -40,15 +39,14 @@ namespace Chsword.Excel2Object.Tests
                 HeaderFontFamily = "宋体",
                 HeaderBold = true,
                 HeaderFontHeight = 30,
-                HeaderItalic = true, 
-                HeaderFontColor = ExcelStyleColor.Blue, 
+                HeaderItalic = true,
+                HeaderFontColor = ExcelStyleColor.Blue,
                 HeaderUnderline = true,
                 HeaderAlignment = HorizontalAlignment.Right,
                 //cell
                 CellAlignment = HorizontalAlignment.Justify
-                )]
+            )]
             public string Mobile { get; set; }
-
         }
     }
 }

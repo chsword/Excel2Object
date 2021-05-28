@@ -6,13 +6,20 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Chsword.Excel2Object.Internal;
-using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 
 namespace Chsword.Excel2Object
 {
     public class ExcelImporter
     {
+        private static readonly Dictionary<Type, Func<IRow, int, object>> SpecialConvertDict =
+            new Dictionary<Type, Func<IRow, int, object>>
+            {
+                [typeof(DateTime)] = GetCellDateTime,
+                [typeof(bool)] = GetCellBoolean,
+                [typeof(Uri)] = GetCellUri,
+            };
+
         public IEnumerable<TModel> ExcelToObject<TModel>(string path) where TModel : class, new()
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -33,44 +40,75 @@ namespace Chsword.Excel2Object
             return list;
         }
 
-        private static readonly Dictionary<Type, Func<IRow, int, object>> SpecialConvertDict =
-            new Dictionary<Type, Func<IRow, int, object>>
-            {
-                [typeof(DateTime)] = GetCellDateTime,
-                [typeof(bool)] = GetCellBoolean,
-                [typeof(Uri)] = GetCellUri,
-
-            };
-
-        private static object GetEnum(IRow row, int key, Type enumType)
+        internal static SheetModel ExcelToExcelModel(IEnumerator result, SheetModel sheet = null)
         {
-            var cellValue = GetCellValue(row, key);
-            if (string.IsNullOrEmpty(cellValue)) return null;
-            if (Enum.GetNames(enumType).Contains(cellValue))
+            var rows = result;
+            if (sheet == null)
             {
-                return Enum.Parse(enumType, cellValue);
+                sheet = SheetModel.Create("Sheet1");
+                var titleRow = (IRow) rows.Current;
+                if (titleRow != null)
+                {
+                    for (var i = 0; i < titleRow.Cells.Count; i++)
+                    {
+                        var cell = titleRow.Cells[i];
+                        sheet.Columns.Add(new ExcelColumn()
+                        {
+                            Order = cell.ColumnIndex,
+                            Title = cell.StringCellValue,
+                            Type = null, //cell.CellType todo
+                        });
+                    }
+                }
             }
 
-            return Enum.Parse(enumType, "0");
+            while (rows.MoveNext())
+            {
+                var row = (IRow) rows.Current;
+                if (row?.Cells?.Count == 0)
+                    continue;
+                var line = new Dictionary<string, object>();
+                foreach (var column in sheet.Columns)
+                {
+                    var propType = column.Type;
+                    var type = TypeUtil.GetUnNullableType(propType);
+                    if (type.IsEnum)
+                    {
+                        var specialValue = GetEnum(row, column.Order, type);
+                        line[column.Title] = specialValue;
+                    }
+                    else
+                    {
+                        if (SpecialConvertDict.ContainsKey(type))
+                        {
+                            var specialValue = SpecialConvertDict[type](row, column.Order);
+                            line[column.Title] = specialValue;
+                        }
+                        else
+                        {
+                            var val = Convert.ChangeType(GetCellValue(row, column.Order), propType);
+                            line[column.Title] = val;
+                        }
+                    }
+                }
+
+                sheet.Rows.Add(line);
+            }
+
+            return sheet;
         }
 
-        private static object GetCellUri(IRow row, int key)
-        {
-            var cellValue = GetCellValue(row, key);
-            if (string.IsNullOrEmpty(cellValue)) return null;
-            return new Uri(cellValue);
-        }
         internal static IEnumerable<Dictionary<string, object>> InternalExcelToDictionary(IEnumerator result)
         {
             var list = new List<Dictionary<string, object>>();
             var rows = result;
-            var titleRow = (IRow)rows.Current;
+            var titleRow = (IRow) rows.Current;
             if (titleRow == null) return list;
             var columns = titleRow.Cells.ToDictionary(c => c.StringCellValue, c => c.ColumnIndex);
 
             while (rows.MoveNext())
             {
-                var row = (IRow)rows.Current;
+                var row = (IRow) rows.Current;
                 if (row?.Cells?.Count == 0)
                     continue;
 
@@ -86,12 +124,14 @@ namespace Chsword.Excel2Object
 
             return list;
         }
-        internal static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator result) where TModel : class, new()
+
+        internal static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator result)
+            where TModel : class, new()
         {
             var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
             var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
             var rows = result;
-            var titleRow = (IRow)rows.Current;
+            var titleRow = (IRow) rows.Current;
             if (titleRow != null)
             {
                 foreach (var cell in titleRow.Cells)
@@ -104,7 +144,7 @@ namespace Chsword.Excel2Object
 
             while (rows.MoveNext())
             {
-                var row = (IRow)rows.Current;
+                var row = (IRow) rows.Current;
                 if (row?.Cells?.Count == 0)
                     continue;
 
@@ -137,66 +177,7 @@ namespace Chsword.Excel2Object
                 yield return model;
             }
         }
-        internal static SheetModel ExcelToExcelModel(IEnumerator result, SheetModel sheet = null)
-        {
 
-            var rows = result;
-            if (sheet == null)
-            {
-                sheet = SheetModel.Create("Sheet1");
-                var titleRow = (IRow)rows.Current;
-                if (titleRow != null)
-                {
-                    for (var i = 0; i < titleRow.Cells.Count; i++)
-                    {
-                        var cell = titleRow.Cells[i];
-                        sheet.Columns.Add(new ExcelColumn()
-                        {
-                            Order = cell.ColumnIndex,
-                            Title = cell.StringCellValue,
-                            Type = null, //cell.CellType todo
-
-                        });
-                    }
-                }
-            }
-
-            while (rows.MoveNext())
-            {
-                var row = (IRow)rows.Current;
-                if (row?.Cells?.Count == 0)
-                    continue;
-                var line = new Dictionary<string, object>();
-                foreach (var column in sheet.Columns)
-                {
-                    var propType = column.Type;
-                    var type = TypeUtil.GetUnNullableType(propType);
-                    if (type.IsEnum)
-                    {
-                        var specialValue = GetEnum(row, column.Order, type);
-                        line[column.Title] = specialValue;
-                    }
-                    else
-                    {
-                        if (SpecialConvertDict.ContainsKey(type))
-                        {
-                            var specialValue = SpecialConvertDict[type](row, column.Order);
-                            line[column.Title] = specialValue;
-                        }
-                        else
-                        {
-                            var val = Convert.ChangeType(GetCellValue(row, column.Order), propType);
-                            line[column.Title] = val;
-                        }
-                    }
-                }
-
-                sheet.Rows.Add(line);
-
-            }
-
-            return sheet;
-        }
         private static object GetCellBoolean(IRow row, int key)
         {
             var cellValue = GetCellValue(row, key);
@@ -217,77 +198,6 @@ namespace Chsword.Excel2Object
                 default:
                     return Convert.ToBoolean(cellValue);
             }
-        }
-        private static string GetCellValue(ICell cell)
-        {
-            var result = string.Empty;
-            if (cell == null) return result;
-            try
-            {
-                switch (cell.CellType)
-                {
-                    case CellType.Numeric:
-                        result = cell.NumericCellValue.ToString(CultureInfo.InvariantCulture);
-                        break;
-                    case CellType.String:
-                        result = cell.StringCellValue;
-                        break;
-                    case CellType.Blank:
-                        result = string.Empty;
-                        break;
-                    case CellType.Formula:
-
-                        var e = WorkbookFactory.CreateFormulaEvaluator(cell.Sheet.Workbook);
-                        result = GetCellValue(e.EvaluateInCell(cell));
-                        //result = e.EvaluateInCell(row.GetCell(index)).StringCellValue;
-                        break;
-                    //case CellType.Boolean:
-                    //    result = row.GetCell(index).NumericCellValue.ToString();
-                    //    break;
-                    //case CellType.Error:
-                    //    result = row.GetCell(index).NumericCellValue.ToString();
-                    //    break;
-                    //case CellType.Unknown:
-                    //    result = row.GetCell(index).NumericCellValue.ToString();
-                    //    break;
-                    default:
-                        result = cell.ToString();
-                        break;
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-
-            return (result ?? "").Trim();
-        }
-        private static string GetCellValue(IRow row, int index)
-        {
-            return GetCellValue(row.GetCell(index));
-        }
-
-        private static IEnumerator GetDataRows(byte[] bytes)
-        {
-            if (bytes == null || bytes.Length == 0)
-                return null;
-            IWorkbook workbook;
-            try
-            {
-                using (var memoryStream = new MemoryStream(bytes))
-                {
-                    workbook = WorkbookFactory.Create(memoryStream);
-                }
-            }
-            catch
-            {
-                return null;
-            }
-
-            var sheet = workbook.GetSheetAt(0);
-            var rows = sheet.GetRowEnumerator();
-            rows.MoveNext();
-            return rows;
         }
 
         private static object GetCellDateTime(IRow row, int index)
@@ -334,6 +244,86 @@ namespace Chsword.Excel2Object
             return result;
         }
 
+        private static object GetCellUri(IRow row, int key)
+        {
+            var cellValue = GetCellValue(row, key);
+            if (string.IsNullOrEmpty(cellValue)) return null;
+            return new Uri(cellValue);
+        }
+
+        private static string GetCellValue(ICell cell)
+        {
+            var result = string.Empty;
+            if (cell == null) return result;
+            try
+            {
+                switch (cell.CellType)
+                {
+                    case CellType.Numeric:
+                        result = cell.NumericCellValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case CellType.String:
+                        result = cell.StringCellValue;
+                        break;
+                    case CellType.Blank:
+                        result = string.Empty;
+                        break;
+                    case CellType.Formula:
+
+                        var e = WorkbookFactory.CreateFormulaEvaluator(cell.Sheet.Workbook);
+                        result = GetCellValue(e.EvaluateInCell(cell));
+                        //result = e.EvaluateInCell(row.GetCell(index)).StringCellValue;
+                        break;
+                    //case CellType.Boolean:
+                    //    result = row.GetCell(index).NumericCellValue.ToString();
+                    //    break;
+                    //case CellType.Error:
+                    //    result = row.GetCell(index).NumericCellValue.ToString();
+                    //    break;
+                    //case CellType.Unknown:
+                    //    result = row.GetCell(index).NumericCellValue.ToString();
+                    //    break;
+                    default:
+                        result = cell.ToString();
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            return (result ?? "").Trim();
+        }
+
+        private static string GetCellValue(IRow row, int index)
+        {
+            return GetCellValue(row.GetCell(index));
+        }
+
+        private static IEnumerator GetDataRows(byte[] bytes)
+        {
+            if (bytes == null || bytes.Length == 0)
+                return null;
+            IWorkbook workbook;
+            try
+            {
+                using (var memoryStream = new MemoryStream(bytes))
+                {
+                    workbook = WorkbookFactory.Create(memoryStream);
+                }
+            }
+            catch
+            {
+                return null;
+            }
+
+            var sheet = workbook.GetSheetAt(0);
+            var rows = sheet.GetRowEnumerator();
+            rows.MoveNext();
+            return rows;
+        }
+
         private static DateTime? GetDateTimeFromString(string str)
         {
             DateTime dt;
@@ -361,6 +351,18 @@ namespace Chsword.Excel2Object
             }
 
             return null;
+        }
+
+        private static object GetEnum(IRow row, int key, Type enumType)
+        {
+            var cellValue = GetCellValue(row, key);
+            if (string.IsNullOrEmpty(cellValue)) return null;
+            if (Enum.GetNames(enumType).Contains(cellValue))
+            {
+                return Enum.Parse(enumType, cellValue);
+            }
+
+            return Enum.Parse(enumType, "0");
         }
     }
 }

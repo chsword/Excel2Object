@@ -1,4 +1,3 @@
-﻿ using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
- [assembly: InternalsVisibleTo("Chsword.Excel2Object")]
- 
+[assembly: InternalsVisibleTo("Chsword.Excel2Object")]
