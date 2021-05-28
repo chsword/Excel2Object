@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using Chsword.Excel2Object.Styles;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NPOI.XWPF.UserModel;
 
 namespace Chsword.Excel2Object.Tests
 {
@@ -24,6 +27,7 @@ namespace Chsword.Excel2Object.Tests
             var bytes = ExcelHelper.ObjectToExcelBytes(list, ExcelType.Xlsx);
             var path = GetFilePath("test.xlsx");
             File.WriteAllBytes(path, bytes);
+            Console.WriteLine(path);
         }
 
         [ExcelTitle("SheetX")]
@@ -36,7 +40,13 @@ namespace Chsword.Excel2Object.Tests
                 HeaderFontFamily = "宋体",
                 HeaderBold = true,
                 HeaderFontHeight = 30,
-                HeaderItalic = true, HeaderFontColor = ExcelStyleColor.Blue, HeaderUnderline = true)]
+                HeaderItalic = true, 
+                HeaderFontColor = ExcelStyleColor.Blue, 
+                HeaderUnderline = true,
+                HeaderAlignment = HorizontalAlignment.Right,
+                //cell
+                CellAlignment = HorizontalAlignment.Justify
+                )]
             public string Mobile { get; set; }
 
         }

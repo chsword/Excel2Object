@@ -185,8 +185,11 @@ namespace Chsword.Excel2Object
                 font.IsStrikeout = true;
             if (style.HeaderUnderline)
                 font.Underline = FontUnderlineType.Single; //暂不考虑等情况 Double
-            
-        
+            if (style.HeaderAlignment != Styles.HorizontalAlignment.General)
+            {
+                cell.CellStyle.Alignment = (HorizontalAlignment) style.HeaderAlignment;
+            }
+
         }
  
 
@@ -248,6 +251,10 @@ namespace Chsword.Excel2Object
                 font.IsStrikeout = true;
             if (style.CellUnderline)
                 font.Underline = FontUnderlineType.Single;
+            if (style.CellAlignment!=Styles.HorizontalAlignment.General)
+            {
+                cell.CellStyle.Alignment = (HorizontalAlignment)style.CellAlignment;
+            }
             return font;
         }
 
@@ -262,6 +269,7 @@ namespace Chsword.Excel2Object
                 style.CellItalic.ToString(),
                 style.CellStrikeout.ToString(),
                 style.CellUnderline.ToString(),
+                ((int) style.CellAlignment).ToString()
             };
             return string.Join("|", arr);
         }
