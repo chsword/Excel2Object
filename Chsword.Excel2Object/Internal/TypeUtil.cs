@@ -16,7 +16,6 @@ namespace Chsword.Excel2Object.Internal
                 var nullableConverter = new System.ComponentModel.NullableConverter(conversionType);
                 conversionType = nullableConverter.UnderlyingType;
             }
-
             return conversionType;
         }
     }
