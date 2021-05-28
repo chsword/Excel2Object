@@ -2,7 +2,7 @@
 
 namespace Chsword.Excel2Object.Internal
 {
-    public class TypeUtil
+    public static class TypeUtil
     {
         /// <summary>
         /// Get a real type of  a Nullable type

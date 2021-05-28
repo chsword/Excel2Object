@@ -6,7 +6,7 @@ using CTRC;
 
 namespace Chsword.Excel2Object.Internal
 {
-    internal class ExcelUtil
+    internal static class ExcelUtil
     {
         /// <summary>
         /// Get the ExcelTitleAttribute on class
