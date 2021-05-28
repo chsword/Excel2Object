@@ -12,17 +12,17 @@ namespace Chsword.Excel2Object.Tests
     /// for config and formula
     /// </summary>
     [TestClass]
-    public class ExcelIssue16Test: BaseExcelTest
+    public class ExcelIssue16Test : BaseExcelTest
     {
         [TestMethod]
         public void FormulaColumnExport()
         {
-
             var list = new List<Dictionary<string, object>>
             {
-                new Dictionary<string, object> {["姓名"] = "吴老狗", ["Age"] = "19"
+                new Dictionary<string, object>
+                {
+                    ["姓名"] = "吴老狗", ["Age"] = "19"
                     //, ["BirthYear"] = null
-
                 },
                 new Dictionary<string, object> {["姓名"] = "老林", ["Age"] = "50"}
             };
@@ -32,7 +32,7 @@ namespace Chsword.Excel2Object.Tests
                 options.FormulaColumns.Add(new FormulaColumn
                 {
                     Title = "BirthYear",
-                    Formula = c =>  c["Age"] + DateTime.Now.Year,
+                    Formula = c => c["Age"] + DateTime.Now.Year,
                     AfterColumnTitle = "姓名"
                 });
                 options.FormulaColumns.Add(new FormulaColumn
@@ -56,14 +56,13 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void FormulaColumnExportCover()
         {
-
             var list = new List<Dictionary<string, object>>
             {
-                new Dictionary<string, object> {["姓名"] = "吴老狗"
-                    , ["BirthYear"] = null
-
+                new Dictionary<string, object>
+                {
+                    ["姓名"] = "吴老狗", ["BirthYear"] = null
                 },
-                new Dictionary<string, object> {["姓名"] = "老林"   , ["BirthYear"] = null }
+                new Dictionary<string, object> {["姓名"] = "老林", ["BirthYear"] = null}
             };
             var bytes = new ExcelExporter().ObjectToExcelBytes(list, options =>
             {
@@ -86,7 +85,7 @@ namespace Chsword.Excel2Object.Tests
             var result = ExcelHelper.ExcelToObject<Dictionary<string, object>>(bytes).ToList();
             Console.WriteLine(JsonConvert.SerializeObject(result));
             Assert.AreEqual(
-                (DateTime.Now.Year*2).ToString(),
+                (DateTime.Now.Year * 2).ToString(),
                 result[0]["BirthYear"]
             );
         }

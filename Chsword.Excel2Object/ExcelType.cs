@@ -9,6 +9,7 @@
         /// Microsoft Excel 97 - 2003 Document
         /// </summary>
         Xls,
+
         /// <summary>
         /// Microsoft Office EXCEL 2007 Document
         /// </summary>

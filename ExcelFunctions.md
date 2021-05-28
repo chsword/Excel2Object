@@ -1,3 +1,19 @@
+### Use formula
+
+``` csharp
+var bytes = new ExcelExporter().ObjectToExcelBytes(list, options =>
+            {
+                options.ExcelType = ExcelType.Xlsx;
+                options.FormulaColumns.Add(new FormulaColumn
+                {
+                    Title = "BirthYear",
+                    Formula = c => (int) c["Age"] + DateTime.Now.Year,
+                    AfterColumnTitle = "Column1"
+                });
+            });
+            // c => (int) c["Age"] + DateTime.Now.Year will convert to like =A3+YEAR(NOW())
+```
+
 ### Base
 
 Function|Syntax |Description

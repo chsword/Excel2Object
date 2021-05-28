@@ -9,7 +9,7 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void Parse()
         {
-            AssertHelper("A",0);
+            AssertHelper("A", 0);
             AssertHelper("B", 1);
             AssertHelper("Z", 25);
             AssertHelper("AA", 26);

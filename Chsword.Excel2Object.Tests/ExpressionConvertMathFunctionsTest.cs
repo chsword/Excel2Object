@@ -1,16 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using Chsword.Excel2Object.Internal;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Chsword.Excel2Object.Tests
 {
     [TestClass]
-    public class ExpressionConvertMathFunctionsTests :BaseFunctionTest
+    public class ExpressionConvertMathFunctionsTests : BaseFunctionTest
     {
-
-   
         [TestMethod]
         public void AbsTest()
         {

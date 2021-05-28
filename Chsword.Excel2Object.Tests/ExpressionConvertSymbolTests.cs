@@ -6,37 +6,18 @@ namespace Chsword.Excel2Object.Tests
     public class ExpressionConvertSymbolTests : BaseFunctionTest
     {
         [TestMethod]
-        public void Negative()
-        {
-            TestFunction(c => -c["Two"], "-B4");
-            TestFunction(c => -2, "-2");
-        }
-
-        [TestMethod]
         public void Addition()
         {
             TestFunction(c => c["One"] + c["Two"], "A4+B4");
             TestFunction(c => c["One"] + 1, "A4+1");
-            TestFunction(c => 11 + c["Two"], "11+B4"); 
+            TestFunction(c => 11 + c["Two"], "11+B4");
             TestFunction(c => 1 + 2, "3");
         }
 
         [TestMethod]
-        public void Subtraction()
+        public void Colon()
         {
-            TestFunction(c => c["One"] - c["Two"], "A4-B4");
-            TestFunction(c => c["One"] - 1, "A4-1");
-            TestFunction(c => 11 - c["Two"], "11-B4");
-            TestFunction(c => 1 - 2, "-1");
-        }
-
-        [TestMethod]
-        public void Multiplication()
-        {
-            TestFunction(c => c["One"] * c["Two"], "A4*B4");
-            TestFunction(c => c["One"] * 1, "A4*1");
-            TestFunction(c => 11 * c["Two"], "11*B4");
-            TestFunction(c => 1 * 2, "2");
+            TestFunction(c => c.Matrix("One", 1, "Two", 2), "A1:B2");
         }
 
         [TestMethod]
@@ -54,14 +35,6 @@ namespace Chsword.Excel2Object.Tests
             TestFunction(c => c["One"] == c["Two"], "A4=B4");
             TestFunction(c => c["One"] == 1, "A4=1");
             TestFunction(c => 11 == c["Two"], "11=B4");
-           // TestFunction(c => 1 == 2, "");
-        }
-        [TestMethod]
-        public void NotEqual()
-        {
-            TestFunction(c => c["One"] != c["Two"], "A4<>B4");
-            TestFunction(c => c["One"] != 1, "A4<>1");
-            TestFunction(c => 11 != c["Two"], "11<>B4");
             // TestFunction(c => 1 == 2, "");
         }
 
@@ -73,14 +46,7 @@ namespace Chsword.Excel2Object.Tests
             TestFunction(c => 11 > c["Two"], "11>B4");
             // TestFunction(c => 1 == 2, "");
         }
-        [TestMethod]
-        public void LessThan()
-        {
-            TestFunction(c => c["One"] < c["Two"], "A4<B4");
-            TestFunction(c => c["One"] < 1, "A4<1");
-            TestFunction(c => 11 < c["Two"], "11<B4");
-            // TestFunction(c => 1 == 2, "");
-        }
+
         [TestMethod]
         public void GreaterThanOrEqual()
         {
@@ -89,6 +55,16 @@ namespace Chsword.Excel2Object.Tests
             TestFunction(c => 11 >= c["Two"], "11>=B4");
             // TestFunction(c => 1 == 2, "");
         }
+
+        [TestMethod]
+        public void LessThan()
+        {
+            TestFunction(c => c["One"] < c["Two"], "A4<B4");
+            TestFunction(c => c["One"] < 1, "A4<1");
+            TestFunction(c => 11 < c["Two"], "11<B4");
+            // TestFunction(c => 1 == 2, "");
+        }
+
         [TestMethod]
         public void LessThanOrEqual()
         {
@@ -99,17 +75,45 @@ namespace Chsword.Excel2Object.Tests
         }
 
         [TestMethod]
+        public void Multiplication()
+        {
+            TestFunction(c => c["One"] * c["Two"], "A4*B4");
+            TestFunction(c => c["One"] * 1, "A4*1");
+            TestFunction(c => 11 * c["Two"], "11*B4");
+            TestFunction(c => 1 * 2, "2");
+        }
+
+        [TestMethod]
+        public void Negative()
+        {
+            TestFunction(c => -c["Two"], "-B4");
+            TestFunction(c => -2, "-2");
+        }
+
+        [TestMethod]
+        public void NotEqual()
+        {
+            TestFunction(c => c["One"] != c["Two"], "A4<>B4");
+            TestFunction(c => c["One"] != 1, "A4<>1");
+            TestFunction(c => 11 != c["Two"], "11<>B4");
+            // TestFunction(c => 1 == 2, "");
+        }
+
+        [TestMethod]
         public void StringJoin()
         {
             TestFunction(c => c["One"] & c["Two"], "A4&B4");
             TestFunction(c => c["One"] & "1", "A4&\"1\"");
             TestFunction(c => "11" & c["Two"], "\"11\"&B4");
-            
         }
+
         [TestMethod]
-        public void Colon()
+        public void Subtraction()
         {
-            TestFunction(c => c.Matrix("One", 1, "Two", 2), "A1:B2");
+            TestFunction(c => c["One"] - c["Two"], "A4-B4");
+            TestFunction(c => c["One"] - 1, "A4-1");
+            TestFunction(c => 11 - c["Two"], "11-B4");
+            TestFunction(c => 1 - 2, "-1");
         }
     }
 }

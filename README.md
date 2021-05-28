@@ -9,7 +9,7 @@ Excel convert to .NET Object / .NET Object convert to Excel.
 
 - [Top](#excel2object)
     - [NuGet install](#nuget-install)
-    - [Release notes](#release-notes)
+    - [Release notes and roadmap](#release-notes-and-roadmap)
     - [Demo code](#demo-code)
     - [Document](#document)
     - [Reference](#reference)
@@ -21,55 +21,76 @@ PM> Install-Package Chsword.Excel2Object
 
 ### Release Notes and roadmap
 
+#### Features not supported
+
 - [ ] cli tool
 - [ ] support auto width column
 - [ ] 1. support date datetime time in excel\
-- [x] support simple formula
-- [x] support standard excel model
-  - [x] excel & JSON convert
-  - [x] excel & Dictionary<string,object> convert
-- [x] 1. convert project to **netstandard2.0** & **.net 4.5.2**
-- [x] 1. export with a sheet name,using ExcelTitleAttribute on class
-- [x] 1. support Uri type to a Hyperlink
-- [x] 1. support xls / xlsx
-- [x] 1. support complex Boolean type
-- [x] 1. support convert List<Model> to excel file and Excel file to List<Model>
-- [x] 1. support to specify the order of fields to export
-- [x] 1. support convert List<Model> to excel bytes and Excel bytes to List<Model>
 
-``` csharp
-var bytes = new ExcelExporter().ObjectToExcelBytes(list, options =>
-            {
-                options.ExcelType = ExcelType.Xlsx;
-                options.FormulaColumns.Add(new FormulaColumn
-                {
-                    Title = "BirthYear",
-                    Formula = c => (int) c["Age"] + DateTime.Now.Year,
-                    AfterColumnTitle = "Column1"
-                });
-            });
-            // c => (int) c["Age"] + DateTime.Now.Year will convert to like =A3+YEAR(NOW())
+#### Release Notes
+* **2021.5.28**
+- [x] support style for header & cell, new [ExcelColumnAttribute] for column.
+- [x] support Functions [./ExcelFunctions.md](./ExcelFunctions.md)
+```C#
+var list = new List<Pr20Model>
+{
+        new Pr20Model
+        {
+            Fullname = "AAA", Mobile = "123456798123"
+        },
+        new Pr20Model
+        {
+            Fullname = "BBB", Mobile = "234"
+        }
+};
+var bytes = ExcelHelper.ObjectToExcelBytes(list, ExcelType.Xlsx);
+// model
+[ExcelTitle("SheetX")]
+public class Pr20Model
+{
+    [ExcelColumn("姓名", CellFontColor = ExcelStyleColor.Red)]
+    public string Fullname { get; set; }
+
+    [ExcelColumn("手机",
+        HeaderFontFamily = "宋体",
+        HeaderBold = true,
+        HeaderFontHeight = 30,
+        HeaderItalic = true,
+        HeaderFontColor = ExcelStyleColor.Blue,
+        HeaderUnderline = true,
+        HeaderAlignment = HorizontalAlignment.Right,
+        //cell
+        CellAlignment = HorizontalAlignment.Justify
+    )]
+    public string Mobile { get; set; }
+}
 ```
 
-* v2.0.0.113
+* **v2.0.0.113**
 ```
 convert project to netstandard2.0 and .net452
 fixbug #12 #13
 ```
 
-* v1.0.0.80
+* **v1.0.0.80**
+
+- [x] support simple formula
+- [x] support standard excel model
+  - [x] excel & JSON convert
+  - [x] excel & Dictionary<string,object> convert
+
 ```
 Support Uri to a hyperlink cell
 And also support text cell to Uri Type
 ```
 
-* v1.0.0.43
+* **v1.0.0.43**
 ```
 Support xlsx [thanks Soar360]
 Support complex Boolean type
 ```
 
-* v1.0.0.36
+* **v1.0.0.36**
 ```
 Add ExcelToObject<T>(bytes)
 ```

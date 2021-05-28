@@ -6,7 +6,6 @@ namespace Chsword.Excel2Object
     {
         public Excel2ObjectException(string message) : base(message)
         {
-
         }
     }
 }
