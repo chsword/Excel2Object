@@ -14,8 +14,8 @@ namespace Chsword.Excel2Object.Internal
             RowIndex = rowIndex;
         }
 
-        public string[] Columns { get; set; }
-        public int RowIndex { get; set; }
+        private string[] Columns { get; }
+        private int RowIndex { get; }
 
         private static Dictionary<ExpressionType, string> BinarySymbolDictionary { get; } =
             new Dictionary<ExpressionType, string>
@@ -49,8 +49,7 @@ namespace Chsword.Excel2Object.Internal
 
         private string ConvertBinaryExpression(Expression expression)
         {
-            var binary = expression as BinaryExpression;
-            if (binary == null) return "null";
+            if (!(expression is BinaryExpression binary)) return "null";
             string symbol = $"unsupport binary symbol:{binary.NodeType}";
             if (BinarySymbolDictionary.ContainsKey(binary.NodeType))
             {
@@ -59,6 +58,16 @@ namespace Chsword.Excel2Object.Internal
 
             return $"{InternalConvert(binary.Left)}{symbol}{InternalConvert(binary.Right)}";
         }
+
+        private static readonly Type[] CallMethodTypes = {
+            typeof(IMathFunction),
+            typeof(IStatisticsFunction),
+            typeof(IConditionFunction),
+            typeof(IReferenceFunction),
+            typeof(IDateTimeFunction),
+            typeof(ITextFunction),
+            typeof(IAllFunction)
+        };
 
         private string ConvertCall(Expression expression)
         {
@@ -88,13 +97,7 @@ namespace Chsword.Excel2Object.Internal
                     return $"EDATE({InternalConvert(exp.Object)},{InternalConvert(exp.Arguments[0])})";
                 }
             }
-            else if (exp.Method.DeclaringType == typeof(IMathFunction) ||
-                     exp.Method.DeclaringType == typeof(IStatisticsFunction) ||
-                     exp.Method.DeclaringType == typeof(IConditionFunction) ||
-                     exp.Method.DeclaringType == typeof(IReferenceFunction) ||
-                     exp.Method.DeclaringType == typeof(IDateTimeFunction) ||
-                     exp.Method.DeclaringType == typeof(ITextFunction) ||
-                     exp.Method.DeclaringType == typeof(IAllFunction))
+            else if (CallMethodTypes.Contains(exp.Method.DeclaringType))
             {
                 return
                     $"{exp.Method.Name.ToUpper()}({string.Join(",", exp.Arguments.Select(c => InternalConvert(c)))})";
@@ -127,14 +130,8 @@ namespace Chsword.Excel2Object.Internal
 
         private string ConvertUnaryExpression(Expression expression)
         {
-            var unary = expression as UnaryExpression;
-            if (unary == null) return "null";
-            string symbol = "unsupport unary symbol";
-            if (unary.NodeType == ExpressionType.Negate)
-            {
-                symbol = "-";
-            }
-
+            if (!(expression is UnaryExpression unary)) return "null";
+            var symbol = unary.NodeType == ExpressionType.Negate ? "-" : "unsupport unary symbol";
             return $"{symbol}{InternalConvert(unary.Operand)}";
         }
 
@@ -171,8 +168,7 @@ namespace Chsword.Excel2Object.Internal
             }
 
             if (expression.NodeType != ExpressionType.NewArrayInit) return $"unsupport type {expressions[0].NodeType}";
-            var exp = expression as NewArrayExpression;
-            if (exp == null) return "null";
+            if (!(expression is NewArrayExpression exp)) return "null";
             return string.Join(",", exp.Expressions.Select(c => InternalConvert(c)));
         }
     }
