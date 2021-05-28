@@ -36,59 +36,15 @@ namespace Chsword.Excel2Object.Internal
         public string Convert(Expression expression)
         {
             if (expression == null) return string.Empty;
-            return expression.NodeType == ExpressionType.Lambda ? InternalConvert((expression as LambdaExpression)?.Body) : string.Empty;
+            return expression.NodeType == ExpressionType.Lambda
+                ? InternalConvert((expression as LambdaExpression)?.Body)
+                : string.Empty;
         }
 
-        string GetColumn(Expression exp)
+        private static string ConvertConstant(Expression expression)
         {
-            if (!(exp is ConstantExpression constant)) return "null";
-            var key = constant.Value.ToString();
-            var columnIndex = Array.IndexOf(Columns, key);
-            return columnIndex == -1 ? $"ERROR key:{key}" : ExcelColumnNameParser.Parse(columnIndex);
-        }
-
-        private string InternalConvert(params Expression[] expressions)
-        {
-            var expression = expressions[0];
-            if (expression == null) return "";
-            switch (expression.NodeType)
-            {
-                case ExpressionType.Convert:
-                    return InternalConvert((expression as UnaryExpression)?.Operand);
-                case ExpressionType.Call:
-                    return ConvertCall(expression);
-                case ExpressionType.MemberAccess:
-                    return ConvertMemberAccess(expression);
-                case ExpressionType.Constant:
-                    return ConvertConstant(expression);
-            }
-
-            switch (expression)
-            {
-                case BinaryExpression _:
-                    return ConvertBinaryExpression(expression);
-                case UnaryExpression _:
-                    return ConvertUnaryExpression(expression);
-            }
-
-            if (expression.NodeType != ExpressionType.NewArrayInit) return $"unsupport type {expressions[0].NodeType}";
-            var exp = expression as NewArrayExpression;
-            if (exp == null) return "null";
-            return string.Join(",", exp.Expressions.Select(c => InternalConvert(c)));
-
-        }
-
-        private string ConvertUnaryExpression(Expression expression)
-        {
-            var unary = expression as UnaryExpression;
-            if (unary == null) return "null";
-            string symbol = "unsupport unary symbol";
-            if (unary.NodeType == ExpressionType.Negate)
-            {
-                symbol = "-";
-            }
-
-            return $"{symbol}{InternalConvert(unary.Operand)}";
+            var exp = expression as ConstantExpression;
+            return exp?.Type == typeof(bool) ? exp.ToString().ToUpper() : exp?.ToString();
         }
 
         private string ConvertBinaryExpression(Expression expression)
@@ -104,36 +60,25 @@ namespace Chsword.Excel2Object.Internal
             return $"{InternalConvert(binary.Left)}{symbol}{InternalConvert(binary.Right)}";
         }
 
-        private static string ConvertConstant(Expression expression)
-        {
-            var exp = expression as ConstantExpression;
-            return exp?.Type == typeof(bool) ? exp.ToString().ToUpper() : exp?.ToString();
-        }
-
         private string ConvertCall(Expression expression)
         {
-            if (!(expression is MethodCallExpression exp) || exp.Object==null) return "null";
+            if (!(expression is MethodCallExpression exp) || exp.Object == null) return "null";
             if (exp.Method.Name == "get_Item" &&
                 (exp.Object.Type == typeof(ColumnCellDictionary)
                  || exp.Object.Type == typeof(Dictionary<string, ColumnValue>)
                 )
             )
             {
-                if (exp.Arguments.Count == 2)
-                {
-                    return $"{GetColumn(exp.Arguments[0])}{InternalConvert(exp.Arguments[1])}";
-                }
-
-                return $"{GetColumn(exp.Arguments[0])}{RowIndex + 1}";
+                return exp.Arguments.Count == 2
+                    ? $"{GetColumn(exp.Arguments[0])}{InternalConvert(exp.Arguments[1])}"
+                    : $"{GetColumn(exp.Arguments[0])}{RowIndex + 1}";
             }
 
-            if (exp.Object.Type == typeof(ColumnCellDictionary))
+            if (exp.Object.Type == typeof(ColumnCellDictionary) &&
+                exp.Method.Name == nameof(ColumnCellDictionary.Matrix))
             {
-                if (exp.Method.Name == nameof(ColumnCellDictionary.Matrix))
-                {
-                    return
-                        $"{GetColumn(exp.Arguments[0])}{exp.Arguments[1]}:{GetColumn(exp.Arguments[2])}{exp.Arguments[3]}";
-                }
+                return
+                    $"{GetColumn(exp.Arguments[0])}{exp.Arguments[1]}:{GetColumn(exp.Arguments[2])}{exp.Arguments[3]}";
             }
 
             if (exp.Method.DeclaringType == typeof(DateTime))
@@ -178,6 +123,57 @@ namespace Chsword.Excel2Object.Internal
                 default:
                     return $"unspport member access type={member.DeclaringType} name={member.Name}";
             }
+        }
+
+        private string ConvertUnaryExpression(Expression expression)
+        {
+            var unary = expression as UnaryExpression;
+            if (unary == null) return "null";
+            string symbol = "unsupport unary symbol";
+            if (unary.NodeType == ExpressionType.Negate)
+            {
+                symbol = "-";
+            }
+
+            return $"{symbol}{InternalConvert(unary.Operand)}";
+        }
+
+        string GetColumn(Expression exp)
+        {
+            if (!(exp is ConstantExpression constant)) return "null";
+            var key = constant.Value.ToString();
+            var columnIndex = Array.IndexOf(Columns, key);
+            return columnIndex == -1 ? $"ERROR key:{key}" : ExcelColumnNameParser.Parse(columnIndex);
+        }
+
+        private string InternalConvert(params Expression[] expressions)
+        {
+            var expression = expressions[0];
+            if (expression == null) return "";
+            switch (expression.NodeType)
+            {
+                case ExpressionType.Convert:
+                    return InternalConvert((expression as UnaryExpression)?.Operand);
+                case ExpressionType.Call:
+                    return ConvertCall(expression);
+                case ExpressionType.MemberAccess:
+                    return ConvertMemberAccess(expression);
+                case ExpressionType.Constant:
+                    return ConvertConstant(expression);
+            }
+
+            switch (expression)
+            {
+                case BinaryExpression _:
+                    return ConvertBinaryExpression(expression);
+                case UnaryExpression _:
+                    return ConvertUnaryExpression(expression);
+            }
+
+            if (expression.NodeType != ExpressionType.NewArrayInit) return $"unsupport type {expressions[0].NodeType}";
+            var exp = expression as NewArrayExpression;
+            if (exp == null) return "null";
+            return string.Join(",", exp.Expressions.Select(c => InternalConvert(c)));
         }
     }
 }
