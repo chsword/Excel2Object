@@ -4,7 +4,7 @@ using Chsword.Excel2Object.Functions;
 using Chsword.Excel2Object.Internal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Chsword.Excel2Object.Tests.Formula
+namespace Chsword.Excel2Object.Tests
 {
     public class BaseFunctionTest
     {

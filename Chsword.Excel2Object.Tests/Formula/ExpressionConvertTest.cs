@@ -6,7 +6,7 @@ using Chsword.Excel2Object.Internal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using static Chsword.Excel2Object.ExcelFunctions;
 
-namespace Chsword.Excel2Object.Tests.Formula
+namespace Chsword.Excel2Object.Tests
 {
     [TestClass]
     public class ExpressionConvertTests : BaseFunctionTest
