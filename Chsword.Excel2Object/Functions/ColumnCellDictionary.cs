@@ -11,5 +11,7 @@ namespace Chsword.Excel2Object.Functions
         {
             throw new NotImplementedException();
         }
+
+        public dynamic Model => throw new NotImplementedException();
     }
 }

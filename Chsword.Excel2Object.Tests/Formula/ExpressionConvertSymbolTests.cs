@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Chsword.Excel2Object.Tests
+namespace Chsword.Excel2Object.Tests.Formula
 {
     [TestClass]
     public class ExpressionConvertSymbolTests : BaseFunctionTest
