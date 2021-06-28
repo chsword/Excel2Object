@@ -10,6 +10,7 @@ namespace Chsword.Excel2Object.Tests
 {
     /// <summary>
     /// for config and formula
+    /// https://github.com/chsword/Excel2Object/issues/16
     /// </summary>
     [TestClass]
     public class ExcelIssue16Test : BaseExcelTest

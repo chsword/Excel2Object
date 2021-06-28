@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 namespace Chsword.Excel2Object.Tests
 {
     [TestClass]
-    public class ExcelTest : BaseExcelTest
+    public class ExcelConvertTest : BaseExcelTest
     {
         [TestMethod]
         public void ConvertXlsBytesTest()
