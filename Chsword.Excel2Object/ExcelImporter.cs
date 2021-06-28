@@ -125,7 +125,7 @@ namespace Chsword.Excel2Object
             return list;
         }
 
-        internal static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator result)
+        private static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator result)
             where TModel : class, new()
         {
             var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
