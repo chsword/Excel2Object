@@ -97,8 +97,8 @@ namespace Chsword.Excel2Object.Tests
         {
             var list = new List<Dictionary<string, object>>
             {
-                new Dictionary<string, object> {["姓名"] = "吴老狗", ["Age"] = "19"},
-                new Dictionary<string, object> {["姓名"] = "老林", ["Age"] = "50"}
+                new Dictionary<string, object> { ["姓名"] = "吴老狗", ["Age"] = "19" },
+                new Dictionary<string, object> { ["姓名"] = "老林", ["Age"] = "50" }
             };
             var bytes = ExcelHelper.ObjectToExcelBytes(list, ExcelType.Xlsx);
             var path = GetFilePath("test.xlsx");

@@ -17,7 +17,7 @@ namespace Chsword.Excel2Object
             {
                 [typeof(DateTime)] = GetCellDateTime,
                 [typeof(bool)] = GetCellBoolean,
-                [typeof(Uri)] = GetCellUri,
+                [typeof(Uri)] = GetCellUri
             };
 
         public IEnumerable<TModel> ExcelToObject<TModel>(string path) where TModel : class, new()
@@ -32,92 +32,29 @@ namespace Chsword.Excel2Object
         {
             var result = GetDataRows(bytes);
             if (typeof(TModel) == typeof(Dictionary<string, object>))
-            {
                 return InternalExcelToDictionary(result) as IEnumerable<TModel>;
-            }
 
             var list = InternalExcelToObject<TModel>(result);
             return list;
-        }
-
-        internal static SheetModel ExcelToExcelModel(IEnumerator result, SheetModel sheet = null)
-        {
-            var rows = result;
-            if (sheet == null)
-            {
-                sheet = SheetModel.Create("Sheet1");
-                var titleRow = (IRow) rows.Current;
-                if (titleRow != null)
-                {
-                    for (var i = 0; i < titleRow.Cells.Count; i++)
-                    {
-                        var cell = titleRow.Cells[i];
-                        sheet.Columns.Add(new ExcelColumn()
-                        {
-                            Order = cell.ColumnIndex,
-                            Title = cell.StringCellValue,
-                            Type = null, //cell.CellType todo
-                        });
-                    }
-                }
-            }
-
-            while (rows.MoveNext())
-            {
-                var row = (IRow) rows.Current;
-                if (row?.Cells?.Count == 0)
-                    continue;
-                var line = new Dictionary<string, object>();
-                foreach (var column in sheet.Columns)
-                {
-                    var propType = column.Type;
-                    var type = TypeUtil.GetUnNullableType(propType);
-                    if (type.IsEnum)
-                    {
-                        var specialValue = GetEnum(row, column.Order, type);
-                        line[column.Title] = specialValue;
-                    }
-                    else
-                    {
-                        if (SpecialConvertDict.ContainsKey(type))
-                        {
-                            var specialValue = SpecialConvertDict[type](row, column.Order);
-                            line[column.Title] = specialValue;
-                        }
-                        else
-                        {
-                            var val = Convert.ChangeType(GetCellValue(row, column.Order), propType);
-                            line[column.Title] = val;
-                        }
-                    }
-                }
-
-                sheet.Rows.Add(line);
-            }
-
-            return sheet;
         }
 
         internal static IEnumerable<Dictionary<string, object>> InternalExcelToDictionary(IEnumerator result)
         {
             var list = new List<Dictionary<string, object>>();
             var rows = result;
-            var titleRow = (IRow) rows.Current;
+            var titleRow = (IRow)rows.Current;
             if (titleRow == null) return list;
             var columns = titleRow.Cells.ToDictionary(c => c.StringCellValue, c => c.ColumnIndex);
 
             while (rows.MoveNext())
             {
-                var row = (IRow) rows.Current;
+                var row = (IRow)rows.Current;
                 if (row?.Cells?.Count == 0)
                     continue;
 
                 var model = new Dictionary<string, object>();
 
-                foreach (var column in columns)
-                {
-                    model[column.Key] = GetCellValue(row, column.Value);
-                }
+                foreach (var column in columns) model[column.Key] = GetCellValue(row, column.Value);
 
                 list.Add(model);
             }
@@ -131,20 +68,18 @@ namespace Chsword.Excel2Object
             var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
             var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
             var rows = result;
-            var titleRow = (IRow) rows.Current;
+            var titleRow = (IRow)rows.Current;
             if (titleRow != null)
-            {
                 foreach (var cell in titleRow.Cells)
                 {
                     var prop = dict.FirstOrDefault(c => cell.StringCellValue == c.Value.Title);
                     if (prop.Key != null && !dictColumns.ContainsKey(cell.ColumnIndex))
                         dictColumns.Add(cell.ColumnIndex, prop);
                 }
-            }
 
             while (rows.MoveNext())
             {
-                var row = (IRow) rows.Current;
+                var row = (IRow)rows.Current;
                 if (row?.Cells?.Count == 0)
                     continue;
 
@@ -168,7 +103,15 @@ namespace Chsword.Excel2Object
                         }
                         else
                         {
-                            var val = Convert.ChangeType(GetCellValue(row, pair.Key), propType);
+                            var cellValue = GetCellValue(row, pair.Key);
+                            object val;
+                            if (string.IsNullOrEmpty(cellValue)
+                                && propType != typeof(string)
+                                && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                val = null;
+                            else
+                                val = Convert.ChangeType(cellValue, type);
+
                             pair.Value.Key.SetValue(model, val, null);
                         }
                     }
@@ -357,10 +300,7 @@ namespace Chsword.Excel2Object
         {
             var cellValue = GetCellValue(row, key);
             if (string.IsNullOrEmpty(cellValue)) return null;
-            if (Enum.GetNames(enumType).Contains(cellValue))
-            {
-                return Enum.Parse(enumType, cellValue);
-            }
+            if (Enum.GetNames(enumType).Contains(cellValue)) return Enum.Parse(enumType, cellValue);
 
             return Enum.Parse(enumType, "0");
         }
