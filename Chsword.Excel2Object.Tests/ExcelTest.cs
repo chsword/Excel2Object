@@ -128,5 +128,20 @@ namespace Chsword.Excel2Object.Tests
                 }
             };
         }
+
+        [TestMethod]
+        public void ImportExcelNullableType()
+        {
+            try
+            {
+                var path = GetLocalFilePath("test.person.xlsx");
+                var importer = new ExcelImporter();
+                var result = importer.ExcelToObject<TestModelPerson>(path).ToList();
+            }
+            catch
+            {
+                Assert.Fail();
+            }
+        }
     }
 }

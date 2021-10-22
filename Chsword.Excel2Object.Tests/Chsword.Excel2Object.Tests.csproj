@@ -25,4 +25,10 @@
     <ProjectReference Include="..\Chsword.Excel2Object\Chsword.Excel2Object.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="ExcelDir\test.person.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

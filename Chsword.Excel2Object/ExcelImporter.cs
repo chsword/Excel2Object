@@ -46,7 +46,7 @@ namespace Chsword.Excel2Object
             if (sheet == null)
             {
                 sheet = SheetModel.Create("Sheet1");
-                var titleRow = (IRow) rows.Current;
+                var titleRow = (IRow)rows.Current;
                 if (titleRow != null)
                 {
                     for (var i = 0; i < titleRow.Cells.Count; i++)
@@ -64,7 +64,7 @@ namespace Chsword.Excel2Object
 
             while (rows.MoveNext())
             {
-                var row = (IRow) rows.Current;
+                var row = (IRow)rows.Current;
                 if (row?.Cells?.Count == 0)
                     continue;
                 var line = new Dictionary<string, object>();
@@ -102,13 +102,13 @@ namespace Chsword.Excel2Object
         {
             var list = new List<Dictionary<string, object>>();
             var rows = result;
-            var titleRow = (IRow) rows.Current;
+            var titleRow = (IRow)rows.Current;
             if (titleRow == null) return list;
             var columns = titleRow.Cells.ToDictionary(c => c.StringCellValue, c => c.ColumnIndex);
 
             while (rows.MoveNext())
             {
-                var row = (IRow) rows.Current;
+                var row = (IRow)rows.Current;
                 if (row?.Cells?.Count == 0)
                     continue;
 
@@ -131,7 +131,7 @@ namespace Chsword.Excel2Object
             var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
             var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
             var rows = result;
-            var titleRow = (IRow) rows.Current;
+            var titleRow = (IRow)rows.Current;
             if (titleRow != null)
             {
                 foreach (var cell in titleRow.Cells)
@@ -144,7 +144,7 @@ namespace Chsword.Excel2Object
 
             while (rows.MoveNext())
             {
-                var row = (IRow) rows.Current;
+                var row = (IRow)rows.Current;
                 if (row?.Cells?.Count == 0)
                     continue;
 
@@ -161,15 +161,23 @@ namespace Chsword.Excel2Object
                     }
                     else
                     {
-                        if (SpecialConvertDict.ContainsKey(type))
+                        var excelVal = GetCellValue(row, pair.Key);
+                        if (string.IsNullOrWhiteSpace(excelVal))
                         {
-                            var specialValue = SpecialConvertDict[type](row, pair.Key);
-                            pair.Value.Key.SetValue(model, specialValue, null);
+                            pair.Value.Key.SetValue(model, default);
                         }
                         else
                         {
-                            var val = Convert.ChangeType(GetCellValue(row, pair.Key), propType);
-                            pair.Value.Key.SetValue(model, val, null);
+                            if (SpecialConvertDict.ContainsKey(type))
+                            {
+                                var specialValue = SpecialConvertDict[type](row, pair.Key);
+                                pair.Value.Key.SetValue(model, specialValue, null);
+                            }
+                            else
+                            {
+                                var val = Convert.ChangeType(GetCellValue(row, pair.Key), type);
+                                pair.Value.Key.SetValue(model, val, null);
+                            }
                         }
                     }
                 }

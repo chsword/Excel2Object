@@ -9,5 +9,10 @@ namespace Chsword.Excel2Object.Tests
         {
             return Path.Combine(Environment.CurrentDirectory, file);
         }
+
+        protected string GetLocalFilePath(string file)
+        {
+            return Path.Combine(Environment.CurrentDirectory, "ExcelDir", file);
+        }
     }
 }
