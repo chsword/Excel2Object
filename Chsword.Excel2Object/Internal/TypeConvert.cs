@@ -6,7 +6,7 @@ using Chsword.Excel2Object.Options;
 
 namespace Chsword.Excel2Object.Internal
 {
-    internal class TypeConvert
+    internal static class TypeConvert
     {
         public static ExcelModel ConvertDictionaryToExcelModel(IEnumerable<Dictionary<string, object>> data,
             ExcelExporterOptions options)

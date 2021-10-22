@@ -28,6 +28,9 @@ PM> Install-Package Chsword.Excel2Object
 - [ ] 1. support date datetime time in excel\
 
 #### Release Notes
+
+* **2021.10.22**
+- [x] support Nullable, test file :```Pr24NullableTest.cs```
 * **2021.5.28**
 - [x] support style for header & cell, new [ExcelColumnAttribute] for column.
 - [x] support Functions [./ExcelFunctions.md](./ExcelFunctions.md)

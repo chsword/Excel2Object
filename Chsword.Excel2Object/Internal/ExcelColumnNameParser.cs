@@ -2,7 +2,7 @@
 
 namespace Chsword.Excel2Object.Internal
 {
-    internal class ExcelColumnNameParser
+    internal static class ExcelColumnNameParser
     {
         public static string Parse(int columnIndex, int initValue = 0)
         {
