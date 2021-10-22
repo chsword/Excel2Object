@@ -162,7 +162,7 @@ namespace Chsword.Excel2Object
                     else
                     {
                         var excelVal = GetCellValue(row, pair.Key);
-                        if (string.IsNullOrWhiteSpace(excelVal))
+                        if (type.Name != typeof(string).Name && string.IsNullOrWhiteSpace(excelVal))
                         {
                             pair.Value.Key.SetValue(model, default);
                         }
