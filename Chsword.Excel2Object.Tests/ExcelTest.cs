@@ -129,6 +129,15 @@ namespace Chsword.Excel2Object.Tests
             };
         }
 
+        private List<TestModelPerson> GetPersonList()
+        {
+            return new List<TestModelPerson>
+            {
+                new TestModelPerson {Name = "张三", Age = 18, Birthday = null},
+                new TestModelPerson {Name = "李四", Age = null, Birthday = new DateTime(2021, 10, 10)}
+            };
+        }
+
         [TestMethod]
         public void ImportExcelNullableType()
         {
@@ -142,6 +151,24 @@ namespace Chsword.Excel2Object.Tests
             {
                 Assert.Fail();
             }
+        }
+
+        [TestMethod]
+        public void ExportExcelNullableType()
+        {
+            try
+            {
+                var personList = GetPersonList();
+                var bytes = ExcelHelper.ObjectToExcelBytes(personList);
+                Assert.IsTrue(bytes.Length > 0);
+                var importer = new ExcelImporter();
+                var result = importer.ExcelToObject<TestModelPerson>(bytes).ToList();
+            }
+            catch
+            {
+                Assert.Fail();
+            }
+            
         }
     }
 }
