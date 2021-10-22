@@ -97,8 +97,8 @@ namespace Chsword.Excel2Object.Tests
         {
             var list = new List<Dictionary<string, object>>
             {
-                new Dictionary<string, object> {["姓名"] = "吴老狗", ["Age"] = "19"},
-                new Dictionary<string, object> {["姓名"] = "老林", ["Age"] = "50"}
+                new Dictionary<string, object> { ["姓名"] = "吴老狗", ["Age"] = "19" },
+                new Dictionary<string, object> { ["姓名"] = "老林", ["Age"] = "50" }
             };
             var bytes = ExcelHelper.ObjectToExcelBytes(list, ExcelType.Xlsx);
             var path = GetFilePath("test.xlsx");
@@ -127,48 +127,6 @@ namespace Chsword.Excel2Object.Tests
                     Name = "f", Title = "e", Uri = new Uri("http://chsword.cnblogs.com")
                 }
             };
-        }
-
-        private List<TestModelPerson> GetPersonList()
-        {
-            return new List<TestModelPerson>
-            {
-                new TestModelPerson {Name = "张三", Age = 18, Birthday = null},
-                new TestModelPerson {Name = "李四", Age = null, Birthday = new DateTime(2021, 10, 10)}
-            };
-        }
-
-        [TestMethod]
-        public void ImportExcelNullableType()
-        {
-            try
-            {
-                var path = GetLocalFilePath("test.person.xlsx");
-                var importer = new ExcelImporter();
-                var result = importer.ExcelToObject<TestModelPerson>(path).ToList();
-            }
-            catch
-            {
-                Assert.Fail();
-            }
-        }
-
-        [TestMethod]
-        public void ExportExcelNullableType()
-        {
-            try
-            {
-                var personList = GetPersonList();
-                var bytes = ExcelHelper.ObjectToExcelBytes(personList);
-                Assert.IsTrue(bytes.Length > 0);
-                var importer = new ExcelImporter();
-                var result = importer.ExcelToObject<TestModelPerson>(bytes).ToList();
-            }
-            catch
-            {
-                Assert.Fail();
-            }
-            
         }
     }
 }
