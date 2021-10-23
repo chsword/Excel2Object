@@ -107,6 +107,7 @@ namespace Chsword.Excel2Object
                             object val;
                             if (string.IsNullOrEmpty(cellValue)
                                 && propType != typeof(string)
+                                && propType.IsGenericType 
                                 && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
                                 val = null;
                             else
@@ -164,7 +165,6 @@ namespace Chsword.Excel2Object
                         {
                             Console.WriteLine(e);
                         }
-
                         break;
                     case CellType.String:
                         var str = cell.StringCellValue;
