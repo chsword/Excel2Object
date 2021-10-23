@@ -33,7 +33,7 @@ namespace Chsword.Excel2Object.Tests
             }
             catch (Exception ex)
             {
-                Assert.AreEqual("\"Int32\" type is required", ex.Message);
+                Assert.AreEqual("This operation is only valid on generic types.", ex.Message);
             }
         }
 
