@@ -96,23 +96,52 @@ namespace Chsword.Excel2Object
                     }
                     else
                     {
-                        if (SpecialConvertDict.ContainsKey(type))
+                        
+                        var cellValue = GetCellValue(row, pair.Key);
+                        if (propType == typeof(string))
                         {
-                            var specialValue = SpecialConvertDict[type](row, pair.Key);
-                            pair.Value.Key.SetValue(model, specialValue, null);
+                            // string 类型，直接赋值
+                            pair.Value.Key.SetValue(model, cellValue);
                         }
                         else
                         {
-                            var cellValue = GetCellValue(row, pair.Key);
-                            object val;
-                            if (string.IsNullOrEmpty(cellValue)
-                                && propType != typeof(string)
-                                && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                                val = null;
+                            // 其他类型， 空值/有值 * 可空/不可空
+                            if (string.IsNullOrWhiteSpace(cellValue))
+                            {
+                                if (propType.IsGenericType && 
+                                    propType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
+                                {
+                                    // 空值 + 可空 => null
+                                    pair.Value.Key.SetValue(model, null);
+                                }
+                                else
+                                {
+                                    // 特殊类型，null
+                                    if (SpecialConvertDict.ContainsKey(type))
+                                    {
+                                        pair.Value.Key.SetValue(model, null);
+                                    }
+                                    else
+                                    {
+                                        //普通类型 空值 + 不可空 => throw error
+                                        throw new Excel2ObjectException($"\"{propType.Name}\" type is required");
+                                    }
+                                }
+                            }
                             else
-                                val = Convert.ChangeType(cellValue, type);
-
-                            pair.Value.Key.SetValue(model, val, null);
+                            {
+                                // 有值 + 可空+不可空 => 转换
+                                if (SpecialConvertDict.ContainsKey(type))
+                                {
+                                    var specialValue = SpecialConvertDict[type](row, pair.Key);
+                                    pair.Value.Key.SetValue(model, specialValue, null);
+                                }
+                                else
+                                {
+                                    var val = Convert.ChangeType(cellValue, type);
+                                    pair.Value.Key.SetValue(model, val);
+                                }
+                            }
                         }
                     }
                 }

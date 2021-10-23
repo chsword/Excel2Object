@@ -14,17 +14,26 @@ namespace Chsword.Excel2Object.Tests
         [TestMethod]
         public void ImportExcelNullableType()
         {
+            var path = GetLocalFilePath("test.person.xlsx");
+            var importer = new ExcelImporter();
+            var result = importer.ExcelToObject<TestModelPerson>(path).ToList();
+            Assert.AreEqual(2, result.Count);
+            Console.WriteLine(JsonConvert.SerializeObject(result));
+        }
+
+        [TestMethod]
+        public void ImportExcelUnNullableType()
+        {
             try
             {
                 var path = GetLocalFilePath("test.person.xlsx");
                 var importer = new ExcelImporter();
-                var result = importer.ExcelToObject<TestModelPerson>(path).ToList();
-                Assert.AreEqual(2, result.Count);
-                Console.WriteLine(JsonConvert.SerializeObject(result));
+                var result = importer.ExcelToObject<TestModelStrictPerson>(path).ToList();
+                Assert.Fail("this test contains an error, but did not throw it");
             }
             catch (Exception ex)
             {
-                Assert.Fail(ex.ToString());
+                Assert.AreEqual("\"Int32\" type is required", ex.Message);
             }
         }
 
@@ -53,7 +62,7 @@ namespace Chsword.Excel2Object.Tests
             {
                 Assert.Fail();
             }
-            
+
         }
     }
 }
