@@ -107,6 +107,7 @@ namespace Chsword.Excel2Object
                             object val;
                             if (string.IsNullOrEmpty(cellValue)
                                 && propType != typeof(string)
+                                && propType.IsGenericType 
                                 && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
                                 val = null;
                             else
@@ -148,21 +149,25 @@ namespace Chsword.Excel2Object
             DateTime? result = null;
             try
             {
-                switch (row.GetCell(index).CellType)
+                ICell cell = row.GetCell(index);
+
+                var cellValue = GetCellValue(cell);
+                if (string.IsNullOrEmpty(cellValue)) return null;
+
+                switch (cell.CellType)
                 {
                     case CellType.Numeric:
                         try
                         {
-                            result = row.GetCell(index).DateCellValue;
+                            result = cell.DateCellValue;
                         }
                         catch (Exception e)
                         {
                             Console.WriteLine(e);
                         }
-
                         break;
                     case CellType.String:
-                        var str = row.GetCell(index).StringCellValue;
+                        var str = cell.StringCellValue;
                         result = GetDateTimeFromString(str);
                         break;
                     case CellType.Blank:

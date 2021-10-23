@@ -13,7 +13,12 @@ Excel convert to .NET Object / .NET Object convert to Excel.
     - [Demo code](#demo-code)
     - [Document](#document)
     - [Reference](#reference)
-          
+
+Platform
+
+[![.NET 4.5.2 +](https://img.shields.io/badge/-4.5.2%2B-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
+[![.NET Standard 2.0+](https://img.shields.io/badge/-standard2.0%2B-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
+
 ### NuGet Install
 ``` powershell
 PM> Install-Package Chsword.Excel2Object
@@ -29,8 +34,10 @@ PM> Install-Package Chsword.Excel2Object
 
 #### Release Notes
 
+* **2021.10.23**
+- [x] Nullable DateTime bugfixed @SunBrook 
 * **2021.10.22**
-- [x] support Nullable, test file :```Pr24NullableTest.cs```
+- [x] support Nullable, test file :```Pr24NullableTest.cs``` @SunBrook 
 * **2021.5.28**
 - [x] support style for header & cell, new [ExcelColumnAttribute] for column.
 - [x] support Functions [./ExcelFunctions.md](./ExcelFunctions.md)
