@@ -29,7 +29,7 @@ namespace Chsword.Excel2Object
         /// <param name="excelType"></param>
         /// <param name="sheetTitle"></param>
         /// <returns></returns>
-        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType,
+        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType = ExcelType.Xls,
             string sheetTitle = null)
         {
             return ObjectToExcelBytes(data, options =>
@@ -65,11 +65,6 @@ namespace Chsword.Excel2Object
             };
             var excel = TypeConvert.ConvertDataSetToExcelModel(dt, options);
             return ObjectToExcelBytes(excel, options);
-        }
-
-        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
-        {
-            return ObjectToExcelBytes(data, ExcelType.Xls);
         }
 
         internal byte[] ObjectToExcelBytes(ExcelModel excel, ExcelExporterOptions options)

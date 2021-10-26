@@ -20,17 +20,17 @@ namespace Chsword.Excel2Object
                 [typeof(Uri)] = GetCellUri
             };
 
-        public IEnumerable<TModel> ExcelToObject<TModel>(string path,string sheetName =null ) where TModel : class, new()
+        public IEnumerable<TModel> ExcelToObject<TModel>(string path,string sheetTitle =null ) where TModel : class, new()
         {
             if (string.IsNullOrWhiteSpace(path))
                 return null;
             var bytes = File.ReadAllBytes(path);
-            return ExcelToObject<TModel>(bytes, sheetName);
+            return ExcelToObject<TModel>(bytes, sheetTitle);
         }
 
-        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string sheetName = null) where TModel : class, new()
+        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string sheetTitle = null) where TModel : class, new()
         {
-            var result = GetDataRows(bytes, sheetName);
+            var result = GetDataRows(bytes, sheetTitle);
             if (typeof(TModel) == typeof(Dictionary<string, object>))
                 return InternalExcelToDictionary(result) as IEnumerable<TModel>;
 
@@ -249,7 +249,7 @@ namespace Chsword.Excel2Object
             return GetCellValue(row.GetCell(index));
         }
 
-        private static IEnumerator GetDataRows(byte[] bytes, string sheetName = null)
+        private static IEnumerator GetDataRows(byte[] bytes, string sheetTitle = null)
         {
             if (bytes == null || bytes.Length == 0)
                 return null;
@@ -267,16 +267,16 @@ namespace Chsword.Excel2Object
             }
 
             ISheet sheet;
-            if (string.IsNullOrEmpty(sheetName))
+            if (string.IsNullOrEmpty(sheetTitle))
             {
                 sheet = workbook.GetSheetAt(0);
             }
             else
             {
-                sheet = workbook.GetSheet(sheetName);
+                sheet = workbook.GetSheet(sheetTitle);
                 if (sheet == null)
                 {
-                    throw new Excel2ObjectException($"The specified sheet:[{sheetName}] does not exist");
+                    throw new Excel2ObjectException($"The specified sheet:[{sheetTitle}] does not exist");
                 }
             }
 
