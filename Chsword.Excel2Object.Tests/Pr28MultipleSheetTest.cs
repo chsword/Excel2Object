@@ -14,12 +14,17 @@ namespace Chsword.Excel2Object.Tests
         {
             var path = GetLocalFilePath("test-pr28-multiples-heet.xlsx");
             var importer = new ExcelImporter();
-            var sheetName = "Flat3Door";
-            var result = importer.ExcelToObject<TestModelPerson>(path, sheetName).ToList();
-            Assert.AreEqual(3,result.Count);
-            Assert.AreEqual("陈皮", result[0].Name);
+    
+            var resultFlat = importer.ExcelToObject<TestModelPerson>(path, "Flat3Door").ToList();
+            Assert.AreEqual(3,resultFlat.Count);
+            Assert.AreEqual("陈皮", resultFlat[0].Name);
 
-            Console.WriteLine(JsonConvert.SerializeObject(result));
+            Console.WriteLine(JsonConvert.SerializeObject(resultFlat));
+            var resultUp = importer.ExcelToObject<TestModelPerson>(path, "Up3Door").ToList();
+            Assert.AreEqual(3, resultUp.Count);
+            Assert.AreEqual("张启山", resultUp[0].Name);
+
+            Console.WriteLine(JsonConvert.SerializeObject(resultUp));
         }
 
         [TestMethod]
