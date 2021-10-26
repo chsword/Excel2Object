@@ -21,6 +21,15 @@ namespace Chsword.Excel2Object
         private readonly ConcurrentDictionary<string, ICellStyle> _cellStyleDict =
             new ConcurrentDictionary<string, ICellStyle>();
 
+        public byte[] AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data, string sheetTitle)
+        {
+            return ObjectToExcelBytes(data, options =>
+            { 
+                options.SheetTitle = sheetTitle;
+                options.SourceExcelBytes = sourceExcelBytes;
+            });
+        }
+
         /// <summary>
         /// Export a excel file from a List of T generic list
         /// </summary>
@@ -70,7 +79,28 @@ namespace Chsword.Excel2Object
         internal byte[] ObjectToExcelBytes(ExcelModel excel, ExcelExporterOptions options)
         {
             ExcelType excelType = options.ExcelType;
-            var workbook = Workbook(excelType);
+
+            IWorkbook workbook ;
+            if (options.SourceExcelBytes == null)
+            {
+                workbook = Workbook(excelType);
+            }
+            else
+            {
+                // read work book
+                try
+                {
+                    using (var memoryStream = new MemoryStream(options.SourceExcelBytes))
+                    {
+                        workbook = WorkbookFactory.Create(memoryStream);
+                    }
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
             CheckExcelModel(excel);
             foreach (var excelSheet in excel.Sheets)
             {

@@ -83,9 +83,10 @@ namespace Chsword.Excel2Object
             return excelExporter.ObjectToExcelBytes(dt, excelType, sheetTitle);
         }
 
-        public static byte[] AppendObjectToExcelBytes<TModel>(byte[] bytes, IEnumerable<TModel> data, string sheetTitle)
+        public static byte[] AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data, string sheetTitle)
         {
-            throw new System.NotImplementedException();
+            var excelExporter = new ExcelExporter();
+            return excelExporter.AppendObjectToExcelBytes(sourceExcelBytes,data, sheetTitle);
         }
     }
 }
