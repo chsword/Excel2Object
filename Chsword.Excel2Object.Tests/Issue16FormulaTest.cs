@@ -12,7 +12,7 @@ namespace Chsword.Excel2Object.Tests
     /// for config and formula
     /// </summary>
     [TestClass]
-    public class ExcelIssue16Test : BaseExcelTest
+    public class Issue16FormulaTest : BaseExcelTest
     {
         [TestMethod]
         public void FormulaColumnExport()
