@@ -18,7 +18,7 @@ namespace Chsword.Excel2Object.Internal
                 }
 
                 x /= 26;
-                list.Add((char) ('A' + mod));
+                list.Add((char)('A' + mod));
             } while (x > 0);
 
             list.Reverse();

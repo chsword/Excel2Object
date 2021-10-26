@@ -20,7 +20,8 @@ namespace Chsword.Excel2Object
                 [typeof(Uri)] = GetCellUri
             };
 
-        public IEnumerable<TModel> ExcelToObject<TModel>(string path,string sheetTitle =null ) where TModel : class, new()
+        public IEnumerable<TModel> ExcelToObject<TModel>(string path, string sheetTitle = null)
+            where TModel : class, new()
         {
             if (string.IsNullOrWhiteSpace(path))
                 return null;
@@ -28,7 +29,8 @@ namespace Chsword.Excel2Object
             return ExcelToObject<TModel>(bytes, sheetTitle);
         }
 
-        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string sheetTitle = null) where TModel : class, new()
+        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string sheetTitle = null)
+            where TModel : class, new()
         {
             var result = GetDataRows(bytes, sheetTitle);
             if (typeof(TModel) == typeof(Dictionary<string, object>))
@@ -107,7 +109,7 @@ namespace Chsword.Excel2Object
                             object val;
                             if (string.IsNullOrEmpty(cellValue)
                                 && propType != typeof(string)
-                                && propType.IsGenericType 
+                                && propType.IsGenericType
                                 && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
                                 val = null;
                             else
@@ -165,6 +167,7 @@ namespace Chsword.Excel2Object
                         {
                             Console.WriteLine(e);
                         }
+
                         break;
                     case CellType.String:
                         var str = cell.StringCellValue;

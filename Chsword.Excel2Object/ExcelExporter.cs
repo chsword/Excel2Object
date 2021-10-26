@@ -21,10 +21,11 @@ namespace Chsword.Excel2Object
         private readonly ConcurrentDictionary<string, ICellStyle> _cellStyleDict =
             new ConcurrentDictionary<string, ICellStyle>();
 
-        public byte[] AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data, string sheetTitle)
+        public byte[] AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data,
+            string sheetTitle)
         {
             return ObjectToExcelBytes(data, options =>
-            { 
+            {
                 options.SheetTitle = sheetTitle;
                 options.SourceExcelBytes = sourceExcelBytes;
             });
@@ -80,7 +81,7 @@ namespace Chsword.Excel2Object
         {
             ExcelType excelType = options.ExcelType;
 
-            IWorkbook workbook ;
+            IWorkbook workbook;
             if (options.SourceExcelBytes == null)
             {
                 workbook = Workbook(excelType);
@@ -158,7 +159,7 @@ namespace Chsword.Excel2Object
                 font.FontHeightInPoints = 10;
 
             if (style.HeaderFontColor > 0)
-                font.Color = (short) style.HeaderFontColor;
+                font.Color = (short)style.HeaderFontColor;
             //NPOI.SS.UserModel.FontColor.Red
             if (style.HeaderBold)
                 font.IsBold = true;
@@ -170,7 +171,7 @@ namespace Chsword.Excel2Object
                 font.Underline = FontUnderlineType.Single; //暂不考虑等情况 Double
             if (style.HeaderAlignment != Styles.HorizontalAlignment.General)
             {
-                cell.CellStyle.Alignment = (HorizontalAlignment) style.HeaderAlignment;
+                cell.CellStyle.Alignment = (HorizontalAlignment)style.HeaderAlignment;
             }
         }
 
@@ -186,7 +187,7 @@ namespace Chsword.Excel2Object
                 font.FontHeightInPoints = 10;
 
             if (style.CellFontColor > 0)
-                font.Color = (short) style.CellFontColor;
+                font.Color = (short)style.CellFontColor;
             if (style.CellBold)
                 font.IsBold = true;
             if (style.CellItalic)
@@ -197,7 +198,7 @@ namespace Chsword.Excel2Object
                 font.Underline = FontUnderlineType.Single;
             if (style.CellAlignment != Styles.HorizontalAlignment.General)
             {
-                cell.CellStyle.Alignment = (HorizontalAlignment) style.CellAlignment;
+                cell.CellStyle.Alignment = (HorizontalAlignment)style.CellAlignment;
             }
 
             return font;
@@ -298,7 +299,7 @@ namespace Chsword.Excel2Object
                 style.CellItalic.ToString(),
                 style.CellStrikeout.ToString(),
                 style.CellUnderline.ToString(),
-                ((int) style.CellAlignment).ToString()
+                ((int)style.CellAlignment).ToString()
             };
             return string.Join("|", arr);
         }

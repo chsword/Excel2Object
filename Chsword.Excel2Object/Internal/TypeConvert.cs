@@ -12,7 +12,7 @@ namespace Chsword.Excel2Object.Internal
             ExcelExporterOptions options)
         {
             var sheetTitle = options.SheetTitle;
-            var excel = new ExcelModel {Sheets = new List<SheetModel>()};
+            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
             var sheet = SheetModel.Create(sheetTitle);
             excel.Sheets.Add(sheet);
             var list = data.ToList();
@@ -35,7 +35,7 @@ namespace Chsword.Excel2Object.Internal
             ExcelExporterOptions options)
         {
             var sheetTitle = options.SheetTitle;
-            var excel = new ExcelModel {Sheets = new List<SheetModel>()};
+            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
             if (string.IsNullOrWhiteSpace(sheetTitle))
             {
                 var classAttr = ExcelUtil.GetClassExportAttribute<TModel>();
@@ -86,7 +86,7 @@ namespace Chsword.Excel2Object.Internal
         internal static ExcelModel ConvertDataSetToExcelModel(DataTable dt, ExcelExporterOptions options)
         {
             var sheetTitle = options.SheetTitle;
-            var excel = new ExcelModel {Sheets = new List<SheetModel>()};
+            var excel = new ExcelModel { Sheets = new List<SheetModel>() };
             var sheet = SheetModel.Create(sheetTitle);
             excel.Sheets.Add(sheet);
             var dataSetColumnArray = dt.Columns.Cast<DataColumn>().ToArray();
