@@ -6,16 +6,25 @@ namespace Chsword.Excel2Object
 {
     public class ExcelHelper
     {
+        public static byte[] AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data,
+            string sheetTitle)
+        {
+            var excelExporter = new ExcelExporter();
+            return excelExporter.AppendObjectToExcelBytes(sourceExcelBytes, data, sheetTitle);
+        }
+
         /// <summary>
         /// convert a excel file(bytes) to IEnumerable of TModel
         /// </summary>
         /// <typeparam name="TModel"></typeparam>
         /// <param name="bytes">the excel file bytes</param>
+        /// <param name="sheetTitle">specify sheet  name which wants to import</param>
         /// <returns></returns>
-        public static IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes) where TModel : class, new()
+        public static IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string sheetTitle = null)
+            where TModel : class, new()
         {
             var importer = new ExcelImporter();
-            return importer.ExcelToObject<TModel>(bytes);
+            return importer.ExcelToObject<TModel>(bytes, sheetTitle);
         }
 
         /// <summary>
@@ -23,11 +32,13 @@ namespace Chsword.Excel2Object
         /// </summary>
         /// <typeparam name="TModel"></typeparam>
         /// <param name="path">excel full path</param>
+        /// <param name="sheetTitle">specify sheet  name which wants to import</param>
         /// <returns></returns>
-        public static IEnumerable<TModel> ExcelToObject<TModel>(string path) where TModel : class, new()
+        public static IEnumerable<TModel> ExcelToObject<TModel>(string path, string sheetTitle = null)
+            where TModel : class, new()
         {
             var importer = new ExcelImporter();
-            return importer.ExcelToObject<TModel>(path);
+            return importer.ExcelToObject<TModel>(path, sheetTitle);
         }
 
         /// <summary>
@@ -63,20 +74,9 @@ namespace Chsword.Excel2Object
         /// </summary>
         /// <typeparam name="TModel"></typeparam>
         /// <param name="data"></param>
-        public static byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data) where TModel : class, new()
-        {
-            var importer = new ExcelExporter();
-            return importer.ObjectToExcelBytes(data);
-        }
-
-        /// <summary>
-        ///     Export object to excel bytes
-        /// </summary>
-        /// <typeparam name="TModel"></typeparam>
-        /// <param name="data"></param>
         /// <param name="excelType"></param>
         /// <param name="sheetTitle"></param>
-        public static byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType,
+        public static byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType = ExcelType.Xls,
             string sheetTitle = null)
             where TModel : class, new()
         {

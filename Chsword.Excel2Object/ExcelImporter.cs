@@ -20,17 +20,19 @@ namespace Chsword.Excel2Object
                 [typeof(Uri)] = GetCellUri
             };
 
-        public IEnumerable<TModel> ExcelToObject<TModel>(string path) where TModel : class, new()
+        public IEnumerable<TModel> ExcelToObject<TModel>(string path, string sheetTitle = null)
+            where TModel : class, new()
         {
             if (string.IsNullOrWhiteSpace(path))
                 return null;
             var bytes = File.ReadAllBytes(path);
-            return ExcelToObject<TModel>(bytes);
+            return ExcelToObject<TModel>(bytes, sheetTitle);
         }
 
-        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes) where TModel : class, new()
+        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string sheetTitle = null)
+            where TModel : class, new()
         {
-            var result = GetDataRows(bytes);
+            var result = GetDataRows(bytes, sheetTitle);
             if (typeof(TModel) == typeof(Dictionary<string, object>))
                 return InternalExcelToDictionary(result) as IEnumerable<TModel>;
 
@@ -107,7 +109,7 @@ namespace Chsword.Excel2Object
                             object val;
                             if (string.IsNullOrEmpty(cellValue)
                                 && propType != typeof(string)
-                                && propType.IsGenericType 
+                                && propType.IsGenericType
                                 && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
                                 val = null;
                             else
@@ -165,6 +167,7 @@ namespace Chsword.Excel2Object
                         {
                             Console.WriteLine(e);
                         }
+
                         break;
                     case CellType.String:
                         var str = cell.StringCellValue;
@@ -249,7 +252,7 @@ namespace Chsword.Excel2Object
             return GetCellValue(row.GetCell(index));
         }
 
-        private static IEnumerator GetDataRows(byte[] bytes)
+        private static IEnumerator GetDataRows(byte[] bytes, string sheetTitle = null)
         {
             if (bytes == null || bytes.Length == 0)
                 return null;
@@ -266,7 +269,20 @@ namespace Chsword.Excel2Object
                 return null;
             }
 
-            var sheet = workbook.GetSheetAt(0);
+            ISheet sheet;
+            if (string.IsNullOrEmpty(sheetTitle))
+            {
+                sheet = workbook.GetSheetAt(0);
+            }
+            else
+            {
+                sheet = workbook.GetSheet(sheetTitle);
+                if (sheet == null)
+                {
+                    throw new Excel2ObjectException($"The specified sheet:[{sheetTitle}] does not exist");
+                }
+            }
+
             var rows = sheet.GetRowEnumerator();
             rows.MoveNext();
             return rows;

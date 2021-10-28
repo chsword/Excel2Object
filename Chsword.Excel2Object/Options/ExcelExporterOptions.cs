@@ -13,5 +13,10 @@ namespace Chsword.Excel2Object.Options
         /// Sheet Title default:null
         /// </summary>
         public string SheetTitle { get; set; }
+
+        /// <summary>
+        /// Use when append export
+        /// </summary>
+        public byte[] SourceExcelBytes { get; set; }
     }
 }

@@ -8,14 +8,22 @@ namespace Chsword.Excel2Object.Internal
 {
     internal class ExpressionConvert
     {
+        private static readonly Type[] CallMethodTypes =
+        {
+            typeof(IMathFunction),
+            typeof(IStatisticsFunction),
+            typeof(IConditionFunction),
+            typeof(IReferenceFunction),
+            typeof(IDateTimeFunction),
+            typeof(ITextFunction),
+            typeof(IAllFunction)
+        };
+
         public ExpressionConvert(string[] columns, int rowIndex)
         {
             Columns = columns;
             RowIndex = rowIndex;
         }
-
-        private string[] Columns { get; }
-        private int RowIndex { get; }
 
         private static Dictionary<ExpressionType, string> BinarySymbolDictionary { get; } =
             new Dictionary<ExpressionType, string>
@@ -32,6 +40,9 @@ namespace Chsword.Excel2Object.Internal
                 [ExpressionType.LessThanOrEqual] = "<=",
                 [ExpressionType.And] = "&"
             };
+
+        private string[] Columns { get; }
+        private int RowIndex { get; }
 
         public string Convert(Expression expression)
         {
@@ -58,16 +69,6 @@ namespace Chsword.Excel2Object.Internal
 
             return $"{InternalConvert(binary.Left)}{symbol}{InternalConvert(binary.Right)}";
         }
-
-        private static readonly Type[] CallMethodTypes = {
-            typeof(IMathFunction),
-            typeof(IStatisticsFunction),
-            typeof(IConditionFunction),
-            typeof(IReferenceFunction),
-            typeof(IDateTimeFunction),
-            typeof(ITextFunction),
-            typeof(IAllFunction)
-        };
 
         private string ConvertCall(Expression expression)
         {

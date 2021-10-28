@@ -34,7 +34,7 @@ namespace Chsword.Excel2Object.Tests
             Assert.IsTrue(File.Exists(path));
             var importer = new ExcelImporter();
             var result = importer.ExcelToObject<ReportModel>(path).ToList();
-            Assert.AreEqual(models.Count, result.Count());
+            Assert.AreEqual(models.Count, result.Count);
             models.AreEqual(result);
         }
 

@@ -21,6 +21,16 @@ namespace Chsword.Excel2Object
         private readonly ConcurrentDictionary<string, ICellStyle> _cellStyleDict =
             new ConcurrentDictionary<string, ICellStyle>();
 
+        public byte[] AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data,
+            string sheetTitle)
+        {
+            return ObjectToExcelBytes(data, options =>
+            {
+                options.SheetTitle = sheetTitle;
+                options.SourceExcelBytes = sourceExcelBytes;
+            });
+        }
+
         /// <summary>
         /// Export a excel file from a List of T generic list
         /// </summary>
@@ -29,7 +39,7 @@ namespace Chsword.Excel2Object
         /// <param name="excelType"></param>
         /// <param name="sheetTitle"></param>
         /// <returns></returns>
-        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType,
+        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data, ExcelType excelType = ExcelType.Xls,
             string sheetTitle = null)
         {
             return ObjectToExcelBytes(data, options =>
@@ -67,15 +77,31 @@ namespace Chsword.Excel2Object
             return ObjectToExcelBytes(excel, options);
         }
 
-        public byte[] ObjectToExcelBytes<TModel>(IEnumerable<TModel> data)
-        {
-            return ObjectToExcelBytes(data, ExcelType.Xls);
-        }
-
         internal byte[] ObjectToExcelBytes(ExcelModel excel, ExcelExporterOptions options)
         {
             ExcelType excelType = options.ExcelType;
-            var workbook = Workbook(excelType);
+
+            IWorkbook workbook;
+            if (options.SourceExcelBytes == null)
+            {
+                workbook = Workbook(excelType);
+            }
+            else
+            {
+                // read work book
+                try
+                {
+                    using (var memoryStream = new MemoryStream(options.SourceExcelBytes))
+                    {
+                        workbook = WorkbookFactory.Create(memoryStream);
+                    }
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
             CheckExcelModel(excel);
             foreach (var excelSheet in excel.Sheets)
             {
@@ -133,7 +159,7 @@ namespace Chsword.Excel2Object
                 font.FontHeightInPoints = 10;
 
             if (style.HeaderFontColor > 0)
-                font.Color = (short) style.HeaderFontColor;
+                font.Color = (short)style.HeaderFontColor;
             //NPOI.SS.UserModel.FontColor.Red
             if (style.HeaderBold)
                 font.IsBold = true;
@@ -145,7 +171,7 @@ namespace Chsword.Excel2Object
                 font.Underline = FontUnderlineType.Single; //暂不考虑等情况 Double
             if (style.HeaderAlignment != Styles.HorizontalAlignment.General)
             {
-                cell.CellStyle.Alignment = (HorizontalAlignment) style.HeaderAlignment;
+                cell.CellStyle.Alignment = (HorizontalAlignment)style.HeaderAlignment;
             }
         }
 
@@ -161,7 +187,7 @@ namespace Chsword.Excel2Object
                 font.FontHeightInPoints = 10;
 
             if (style.CellFontColor > 0)
-                font.Color = (short) style.CellFontColor;
+                font.Color = (short)style.CellFontColor;
             if (style.CellBold)
                 font.IsBold = true;
             if (style.CellItalic)
@@ -172,7 +198,7 @@ namespace Chsword.Excel2Object
                 font.Underline = FontUnderlineType.Single;
             if (style.CellAlignment != Styles.HorizontalAlignment.General)
             {
-                cell.CellStyle.Alignment = (HorizontalAlignment) style.CellAlignment;
+                cell.CellStyle.Alignment = (HorizontalAlignment)style.CellAlignment;
             }
 
             return font;
@@ -273,7 +299,7 @@ namespace Chsword.Excel2Object
                 style.CellItalic.ToString(),
                 style.CellStrikeout.ToString(),
                 style.CellUnderline.ToString(),
-                ((int) style.CellAlignment).ToString()
+                ((int)style.CellAlignment).ToString()
             };
             return string.Join("|", arr);
         }

@@ -7,7 +7,7 @@ namespace Chsword.Excel2Object.Tests
 {
     //https://github.com/chsword/Excel2Object/issues/12
     [TestClass]
-    public class ExcelIssue12Test
+    public class Issue12FirstColumnEmptyTest
     {
         [TestMethod]
         public void EmptyFirstProperty()
@@ -19,7 +19,7 @@ namespace Chsword.Excel2Object.Tests
             var importer = new ExcelImporter();
             var result = importer.ExcelToObject<ReportModel>(bytes).ToList();
             Console.WriteLine(result.FirstOrDefault());
-            Assert.AreEqual(models.Count, result.Count());
+            Assert.AreEqual(models.Count, result.Count);
             models.AreEqual(result);
         }
 
