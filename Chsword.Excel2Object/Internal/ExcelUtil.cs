@@ -2,7 +2,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
-using CTRC;
 
 namespace Chsword.Excel2Object.Internal
 {
@@ -21,7 +20,7 @@ namespace Chsword.Excel2Object.Internal
         }
 
         /// <summary>
-        /// Get the ExcelTitleAttribute on proerties
+        /// Get the ExcelTitleAttribute on properties
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
@@ -29,7 +28,8 @@ namespace Chsword.Excel2Object.Internal
         {
             var dict = new Dictionary<PropertyInfo, ExcelTitleAttribute>();
             int defaultOrder = 10000;
-            foreach (var propertyInfo in CTRCHelper.GetPropertiesCache<T>())
+            var props = typeof(T).GetTypeInfo().GetRuntimeProperties();
+            foreach (var propertyInfo in props)
             {
                 var attrs = propertyInfo.GetCustomAttributes(true);
                 var attr = GetExcelTitleAttributeFromAttributes(attrs, defaultOrder++);
