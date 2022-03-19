@@ -34,6 +34,7 @@ PM> Install-Package Chsword.Excel2Object
 
 #### Release Notes
 * **2022.03.19**
+- [x] support ExcelImporterOptions , Skipline [Issue32SkipLineImport.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue32SkipLineImport.cs)
 - [x] fixed super class prop bug [Issue31SuperClass.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue31SuperClass.cs)
 * **2021.11.4**
 - [x] multiple sheet , demo & test file : [Pr28MultipleSheetTest.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Pr28MultipleSheetTest.cs)

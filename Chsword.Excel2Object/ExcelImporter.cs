@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Chsword.Excel2Object.Internal;
+using Chsword.Excel2Object.Options;
 using NPOI.SS.UserModel;
 
 namespace Chsword.Excel2Object
@@ -20,24 +21,45 @@ namespace Chsword.Excel2Object
                 [typeof(Uri)] = GetCellUri
             };
 
-        public IEnumerable<TModel> ExcelToObject<TModel>(string path, string sheetTitle = null)
+        public IEnumerable<TModel> ExcelToObject<TModel>(string path, string sheetTitle)
+            where TModel : class, new()
+        {
+            return ExcelToObject<TModel>(path, options =>
+            {
+                options.SheetTitle = sheetTitle;
+            });
+        }
+
+        public IEnumerable<TModel> ExcelToObject<TModel>(string path,
+            Action<ExcelImporterOptions> optionAction = null)
             where TModel : class, new()
         {
             if (string.IsNullOrWhiteSpace(path))
                 return null;
             var bytes = File.ReadAllBytes(path);
-            return ExcelToObject<TModel>(bytes, sheetTitle);
+            return ExcelToObject<TModel>(bytes, optionAction);
         }
-
-        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string sheetTitle = null)
+        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes,
+            Action<ExcelImporterOptions> optionAction = null)
             where TModel : class, new()
         {
-            var result = GetDataRows(bytes, sheetTitle);
+            var options = new ExcelImporterOptions();
+            optionAction?.Invoke(options);
+            var result = GetDataRows(bytes, options);
             if (typeof(TModel) == typeof(Dictionary<string, object>))
                 return InternalExcelToDictionary(result) as IEnumerable<TModel>;
 
             var list = InternalExcelToObject<TModel>(result);
             return list;
+        }
+        public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string sheetTitle)
+            where TModel : class, new()
+        {
+
+            return ExcelToObject<TModel>(bytes, options =>
+            {
+                options.SheetTitle = sheetTitle;
+            });
         }
 
         internal static IEnumerable<Dictionary<string, object>> InternalExcelToDictionary(IEnumerator result)
@@ -252,7 +274,7 @@ namespace Chsword.Excel2Object
             return GetCellValue(row.GetCell(index));
         }
 
-        private static IEnumerator GetDataRows(byte[] bytes, string sheetTitle = null)
+        private static IEnumerator GetDataRows(byte[] bytes,ExcelImporterOptions options)
         {
             if (bytes == null || bytes.Length == 0)
                 return null;
@@ -270,21 +292,25 @@ namespace Chsword.Excel2Object
             }
 
             ISheet sheet;
-            if (string.IsNullOrEmpty(sheetTitle))
+            if (string.IsNullOrEmpty(options.SheetTitle))
             {
                 sheet = workbook.GetSheetAt(0);
             }
             else
             {
-                sheet = workbook.GetSheet(sheetTitle);
+                sheet = workbook.GetSheet(options.SheetTitle);
                 if (sheet == null)
                 {
-                    throw new Excel2ObjectException($"The specified sheet:[{sheetTitle}] does not exist");
+                    throw new Excel2ObjectException($"The specified sheet:[{options.SheetTitle}] does not exist");
                 }
             }
 
             var rows = sheet.GetRowEnumerator();
             rows.MoveNext();
+            for (int i = 0; i < options.TitleSkipLine; i++)
+            {
+                rows.MoveNext();
+            }
             return rows;
         }
 
