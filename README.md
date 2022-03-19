@@ -33,6 +33,8 @@ PM> Install-Package Chsword.Excel2Object
 - [ ] 1. support date datetime time in excel\
 
 #### Release Notes
+* **2022.03.19**
+- [x] fixed super class prop bug [Issue31SuperClass.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue31SuperClass.cs)
 * **2021.11.4**
 - [x] multiple sheet , demo & test file : [Pr28MultipleSheetTest.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Pr28MultipleSheetTest.cs)
 * **2021.10.23**
