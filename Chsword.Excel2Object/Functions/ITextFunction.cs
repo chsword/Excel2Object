@@ -2,7 +2,7 @@
 {
     public interface ITextFunction
     {
-        ColumnValue Asc(string str);
+        ColumnValue Asc(ColumnValue str);
         ColumnValue Find(ColumnValue findText, ColumnValue withinText, int startNum);
         ColumnValue Find(ColumnValue findText, ColumnValue withinText);
     }

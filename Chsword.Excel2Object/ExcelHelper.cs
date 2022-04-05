@@ -10,6 +10,7 @@ namespace Chsword.Excel2Object
             string sheetTitle)
         {
             var excelExporter = new ExcelExporter();
+            
             return excelExporter.AppendObjectToExcelBytes(sourceExcelBytes, data, sheetTitle);
         }
 
