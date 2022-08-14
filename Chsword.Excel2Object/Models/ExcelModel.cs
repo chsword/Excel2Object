@@ -1,9 +1,6 @@
-using System.Collections.Generic;
+namespace Chsword.Excel2Object;
 
-namespace Chsword.Excel2Object
+internal class ExcelModel
 {
-    internal class ExcelModel
-    {
-        public List<SheetModel> Sheets { get; set; }
-    }
+    public List<SheetModel>? Sheets { get; set; }
 }

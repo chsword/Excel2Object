@@ -1,17 +1,17 @@
 using System;
 using System.IO;
 
-namespace Chsword.Excel2Object.Tests
+namespace Chsword.Excel2Object.Tests;
+
+public class BaseExcelTest
 {
-    public class BaseExcelTest
+    protected string GetFilePath(string file)
     {
-        protected string GetFilePath(string file)
-        {
-            return Path.Combine(Environment.CurrentDirectory, file);
-        }
-        protected string GetLocalFilePath(string file)
-        {
-            return Path.Combine(Environment.CurrentDirectory, "ExcelDir", file);
-        }
+        return Path.Combine(Environment.CurrentDirectory, file);
+    }
+
+    protected string GetLocalFilePath(string file)
+    {
+        return Path.Combine(Environment.CurrentDirectory, "ExcelDir", file);
     }
 }

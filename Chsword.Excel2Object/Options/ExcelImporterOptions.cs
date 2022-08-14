@@ -1,8 +1,7 @@
-namespace Chsword.Excel2Object.Options
+namespace Chsword.Excel2Object.Options;
+
+public class ExcelImporterOptions
 {
-    public class ExcelImporterOptions
-    {
-        public string SheetTitle { get; set; }
-        public int TitleSkipLine { get; set; }
-    }
+    public string? SheetTitle { get; set; }
+    public int TitleSkipLine { get; set; }
 }

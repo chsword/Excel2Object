@@ -1,12 +1,9 @@
-﻿using System;
+﻿namespace Chsword.Excel2Object;
 
-namespace Chsword.Excel2Object
+[Obsolete("instand of ExcelTitleAttribute", true)]
+public class ExcelAttribute : ExcelTitleAttribute
 {
-    [Obsolete("instand of ExcelTitleAttribute", true)]
-    public class ExcelAttribute : ExcelTitleAttribute
+    public ExcelAttribute(string name) : base(name)
     {
-        public ExcelAttribute(string name) : base(name)
-        {
-        }
     }
 }

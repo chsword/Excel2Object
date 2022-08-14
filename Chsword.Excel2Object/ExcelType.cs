@@ -1,18 +1,17 @@
-﻿namespace Chsword.Excel2Object
+﻿namespace Chsword.Excel2Object;
+
+/// <summary>
+///     Excel File Type
+/// </summary>
+public enum ExcelType
 {
     /// <summary>
-    /// Excel File Type
+    ///     Microsoft Excel 97 - 2003 Document
     /// </summary>
-    public enum ExcelType
-    {
-        /// <summary>
-        /// Microsoft Excel 97 - 2003 Document
-        /// </summary>
-        Xls,
+    Xls,
 
-        /// <summary>
-        /// Microsoft Office EXCEL 2007 Document
-        /// </summary>
-        Xlsx
-    }
+    /// <summary>
+    ///     Microsoft Office EXCEL 2007 Document
+    /// </summary>
+    Xlsx
 }

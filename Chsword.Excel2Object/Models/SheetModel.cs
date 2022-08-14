@@ -1,22 +1,16 @@
-using System.Collections.Generic;
+namespace Chsword.Excel2Object;
 
-namespace Chsword.Excel2Object
+internal class SheetModel
 {
-    internal class SheetModel
+    public List<ExcelColumn> Columns { get; set; } = new();
+    public int Index { get; set; }
+    public List<Dictionary<string, object>> Rows { get; set; } = new();
+    public string Title { get; private set; } = null!;
+    public static SheetModel Create(string? title)
     {
-        public List<ExcelColumn> Columns { get; set; }
-        public int Index { get; set; }
-        public List<Dictionary<string, object>> Rows { get; set; }
-        public string Title { get; set; }
-
-        public static SheetModel Create(string title)
+        return new SheetModel
         {
-            return new SheetModel()
-            {
-                Title = title,
-                Columns = new List<ExcelColumn>(),
-                Rows = new List<Dictionary<string, object>>()
-            };
-        }
+            Title = title ?? "Sheet1",
+        };
     }
 }

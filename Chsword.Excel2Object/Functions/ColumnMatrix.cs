@@ -1,6 +1,5 @@
-﻿namespace Chsword.Excel2Object.Functions
+﻿namespace Chsword.Excel2Object.Functions;
+
+public class ColumnMatrix
 {
-    public class ColumnMatrix
-    {
-    }
 }

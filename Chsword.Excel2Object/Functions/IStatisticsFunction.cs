@@ -1,7 +1,6 @@
-﻿namespace Chsword.Excel2Object.Functions
+﻿namespace Chsword.Excel2Object.Functions;
+
+public interface IStatisticsFunction
 {
-    public interface IStatisticsFunction
-    {
-        ColumnValue Sum(params ColumnMatrix[] matrix);
-    }
+    ColumnValue Sum(params ColumnMatrix[] matrix);
 }
