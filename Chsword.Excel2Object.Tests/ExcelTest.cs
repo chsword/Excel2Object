@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
@@ -17,7 +17,10 @@ public class ExcelTest : BaseExcelTest
     {
         var models = GetModels();
         var bytes = ExcelHelper.ObjectToExcelBytes(models);
+        Assert.IsNotNull(bytes);
+
         Assert.IsTrue(bytes.Length > 0);
+        
         var importer = new ExcelImporter();
         var result = importer.ExcelToObject<ReportModel>(bytes).ToList();
         models.AreEqual(result);
@@ -29,11 +32,12 @@ public class ExcelTest : BaseExcelTest
     {
         var models = GetModels();
         var bytes = ExcelHelper.ObjectToExcelBytes(models);
+        Assert.IsNotNull(bytes);
         var path = GetFilePath("test.xls");
         File.WriteAllBytes(path, bytes);
         Assert.IsTrue(File.Exists(path));
         var importer = new ExcelImporter();
-        var result = importer.ExcelToObject<ReportModel>(path).ToList();
+        var result = importer.ExcelToObject<ReportModel>(path)!.ToList();
         Assert.AreEqual(models.Count, result.Count);
         models.AreEqual(result);
     }
@@ -46,7 +50,7 @@ public class ExcelTest : BaseExcelTest
         ExcelHelper.ObjectToExcel(models, path);
         Assert.IsTrue(File.Exists(path));
         var importer = new ExcelImporter();
-        var result = importer.ExcelToObject<ReportModel>(path).ToList();
+        var result = importer.ExcelToObject<ReportModel>(path)!.ToList();
         Assert.AreEqual(models.Count, result.Count);
         models.AreEqual(result);
     }
@@ -62,6 +66,7 @@ public class ExcelTest : BaseExcelTest
         dr["Age"] = 19;
         dt.Rows.Add(dr);
         var bytes = ExcelHelper.ObjectToExcelBytes(dt, ExcelType.Xls);
+        Assert.IsNotNull(bytes);
         var path = GetFilePath("test.xls");
         File.WriteAllBytes(path, bytes);
         Assert.IsTrue(File.Exists(path));
@@ -72,6 +77,7 @@ public class ExcelTest : BaseExcelTest
     {
         var models = GetModels();
         var array = ExcelHelper.ObjectToExcelBytes(models, ExcelType.Xlsx);
+        Assert.IsNotNull(array);
         Assert.IsTrue(array.Length != 0);
         var excelImporter = new ExcelImporter();
         var result = excelImporter.ExcelToObject<ReportModel>(array).ToList();
@@ -83,11 +89,12 @@ public class ExcelTest : BaseExcelTest
     {
         var models = GetModels();
         var bytes = ExcelHelper.ObjectToExcelBytes(models, ExcelType.Xlsx);
+        Assert.IsNotNull(bytes);
         var path = GetFilePath("test.xlsx");
         File.WriteAllBytes(path, bytes);
         Assert.IsTrue(File.Exists(path));
         var importer = new ExcelImporter();
-        var result = importer.ExcelToObject<ReportModel>(path).ToList();
+        var result = importer.ExcelToObject<ReportModel>(path)!.ToList();
         Assert.AreEqual(models.Count, result.Count);
         models.AreEqual(result);
     }
@@ -101,6 +108,7 @@ public class ExcelTest : BaseExcelTest
             new() {["姓名"] = "老林", ["Age"] = "50"}
         };
         var bytes = ExcelHelper.ObjectToExcelBytes(list, ExcelType.Xlsx);
+        Assert.IsNotNull(bytes);
         var path = GetFilePath("test.xlsx");
         File.WriteAllBytes(path, bytes);
         var result = ExcelHelper.ExcelToObject<Dictionary<string, object>>(bytes).ToList();

@@ -24,6 +24,8 @@ public class Pr20Test : BaseExcelTest
             }
         };
         var bytes = ExcelHelper.ObjectToExcelBytes(list, ExcelType.Xlsx);
+        Assert.IsNotNull(bytes);
+
         var path = GetFilePath("test.xlsx");
         File.WriteAllBytes(path, bytes);
         Console.WriteLine(path);
@@ -33,7 +35,7 @@ public class Pr20Test : BaseExcelTest
     public class Pr20Model
     {
         [ExcelColumn("姓名", CellFontColor = ExcelStyleColor.Red)]
-        public string Fullname { get; set; }
+        public string? Fullname { get; set; }
 
         [ExcelColumn("手机",
             HeaderFontFamily = "宋体",
@@ -46,6 +48,6 @@ public class Pr20Test : BaseExcelTest
             //cell
             CellAlignment = HorizontalAlignment.Justify
         )]
-        public string Mobile { get; set; }
+        public string Mobile { get; set; } = null!;
     }
 }

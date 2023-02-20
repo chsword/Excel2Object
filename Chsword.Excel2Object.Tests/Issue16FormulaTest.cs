@@ -43,6 +43,7 @@ public class Issue16FormulaTest : BaseExcelTest
                 FormulaResultType = typeof(DateTime)
             });
         });
+        Assert.IsNotNull(bytes);
         var path = GetFilePath("test.xlsx");
         File.WriteAllBytes(path, bytes);
         var result = ExcelHelper.ExcelToObject<Dictionary<string, object>>(bytes).ToList();
@@ -80,6 +81,7 @@ public class Issue16FormulaTest : BaseExcelTest
                 AfterColumnTitle = "BirthYear"
             });
         });
+        Assert.IsNotNull(bytes);
         var path = GetFilePath("test.xlsx");
         File.WriteAllBytes(path, bytes);
         var result = ExcelHelper.ExcelToObject<Dictionary<string, object>>(bytes).ToList();

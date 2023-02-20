@@ -15,7 +15,7 @@ public class Pr24NullableTest : BaseExcelTest
     {
         var path = GetLocalFilePath("test.person.xlsx");
         var importer = new ExcelImporter();
-        var result = importer.ExcelToObject<TestModelPerson>(path).ToList();
+        var result = importer.ExcelToObject<TestModelPerson>(path)!.ToList();
         Assert.AreEqual(2, result.Count);
         Console.WriteLine(JsonConvert.SerializeObject(result));
     }
@@ -27,7 +27,7 @@ public class Pr24NullableTest : BaseExcelTest
         var importer = new ExcelImporter();
         Assert.ThrowsException<FormatException>(() =>
         {
-            var result = importer.ExcelToObject<TestModelStrictPerson>(path).ToList();
+            var result = importer.ExcelToObject<TestModelStrictPerson>(path)!.ToList();
             Console.WriteLine(JsonConvert.SerializeObject(result));
         });
     }
@@ -37,7 +37,7 @@ public class Pr24NullableTest : BaseExcelTest
     {
         var path = GetLocalFilePath("test.person.unnullable.xlsx");
         var importer = new ExcelImporter();
-        var result = importer.ExcelToObject<TestModelStrictPerson>(path).ToList();
+        var result = importer.ExcelToObject<TestModelStrictPerson>(path)!.ToList();
         Assert.AreEqual(2, result.Count);
         Console.WriteLine(JsonConvert.SerializeObject(result));
     }
@@ -56,6 +56,7 @@ public class Pr24NullableTest : BaseExcelTest
     {
         var personList = GetPersonList();
         var bytes = ExcelHelper.ObjectToExcelBytes(personList);
+        Assert.IsNotNull(bytes);
         Assert.IsTrue(bytes.Length > 0);
         var importer = new ExcelImporter();
         var result = importer.ExcelToObject<TestModelPerson>(bytes).ToList();

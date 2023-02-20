@@ -1,4 +1,5 @@
 ﻿using System;
+// ReSharper disable All
 
 namespace Chsword.Excel2Object.Tests.Models;
 

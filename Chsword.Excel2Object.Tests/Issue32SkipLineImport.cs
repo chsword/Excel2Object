@@ -16,7 +16,7 @@ public class Issue32SkipLineImport : BaseExcelTest
         var importer = new ExcelImporter();
         var result =
             importer.ExcelToObject<TestModelPerson>(
-                    path, options => { options.TitleSkipLine = 3; })
+                    path, options => { options.TitleSkipLine = 3; })!
                 .ToList();
         Assert.AreEqual(2, result.Count);
         Console.WriteLine(JsonConvert.SerializeObject(result));

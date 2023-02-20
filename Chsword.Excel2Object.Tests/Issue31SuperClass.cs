@@ -14,10 +14,13 @@ public class Issue31SuperClass
     [TestMethod]
     public void CheckModelA()
     {
-        var excel = TypeConvert.ConvertObjectToExcelModel(GetExcel<SubClassA>(),
+        var excel = TypeConvert.ConvertObjectToExcelModel(GetExcel<SubClassA>()!,
             new ExcelExporterOptions());
+        
         Assert.IsNotNull(excel);
-        Assert.AreEqual(1, excel.Sheets.Count);
+        
+        Assert.AreEqual(1, excel.Sheets?.Count);
+        Assert.IsNotNull(excel.Sheets);
         Assert.AreEqual("SuperClass", excel.Sheets[0].Title);
         Console.WriteLine(JsonConvert.SerializeObject(excel));
 
@@ -32,6 +35,7 @@ public class Issue31SuperClass
             GetExcel<SubClassB>(),
             new ExcelExporterOptions());
         Assert.IsNotNull(excel);
+        Assert.IsNotNull(excel.Sheets);
         Assert.AreEqual(1, excel.Sheets.Count);
         Assert.AreEqual("SubClassB", excel.Sheets[0].Title);
         Console.WriteLine(JsonConvert.SerializeObject(excel));
@@ -48,7 +52,9 @@ public class Issue31SuperClass
         var export = new ExcelExporter();
         var bytes = export.ObjectToExcelBytes(GetExcel<SubClassA>());
         var importer = new ExcelImporter();
-
+        Assert.IsNotNull(bytes);
+        Console.WriteLine(bytes.Length);
+        Assert.IsNotNull(importer);
         // var model = ExcelImporter.
     }
 
@@ -61,7 +67,7 @@ public class Issue31SuperClass
                 new() {Id = 1, P = "x"},
                 new() {Id = 2, P = "x"}
             };
-            return list as List<T>;
+            return (list as List<T>)!;
         }
 
         if (typeof(T).Name == "SubClassB")
@@ -71,10 +77,9 @@ public class Issue31SuperClass
                 new() {Id = 11, P = "x"},
                 new() {Id = 12, P = "x"}
             };
-            return list as List<T>;
+            return (list as List<T>)!;
         }
-
-        return null;
+        throw new Exception("not support");
     }
 
     [ExcelTitle("SuperClass")]
@@ -82,6 +87,7 @@ public class Issue31SuperClass
     {
         [ExcelColumn("Id1")] public int Id { get; set; }
 
+        // ReSharper disable once NotNullOrRequiredMemberIsNotInitialized
         [ExcelColumn("P1")] public string P { get; set; }
     }
 
