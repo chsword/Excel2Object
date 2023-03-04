@@ -197,7 +197,7 @@ public class ExcelExporter
     private static byte[] ToBytes(IWorkbook workbook)
     {
         using var output = new MemoryStream();
-        workbook.Write(output);
+        workbook.Write(output, true);
         var bytes = output.ToArray();
         return bytes;
     }
