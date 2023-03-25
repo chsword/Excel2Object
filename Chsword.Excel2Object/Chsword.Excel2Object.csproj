@@ -10,7 +10,7 @@
 		<Product>Chsword.Excel2Object Library</Product>
 		<Authors>Zou Jian</Authors>
 		<Version>2.0.0</Version>
-		<Copyright>Copyright © 2014-2020</Copyright>
+		<Copyright>Copyright © 2014-2023</Copyright>
 		<PackageProjectUrl>https://github.com/chsword/Excel2Object/</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>excel,.net,netcore</PackageTags>
