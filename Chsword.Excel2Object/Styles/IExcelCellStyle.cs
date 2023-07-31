@@ -10,4 +10,6 @@ public interface IExcelCellStyle
     bool CellItalic { get; set; }
     bool CellStrikeout { get; set; }
     bool CellUnderline { get; set; }
+
+    string? Format { get; set; }
 }

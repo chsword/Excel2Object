@@ -118,7 +118,7 @@ public class ExcelExporter
                     {
                         var column = columns[i];
                         var cell = row.CreateCell(i);
-                        var val = column.Title != null && item.ContainsKey(column.Title) ? (item[column.Title] ?? "").ToString() : "";
+                        var val = column.Title != null && item.TryGetValue(column.Title, out var value) ? (value ?? "").ToString() : "";
                         SetCellValue(excelType, column, cell, val, columnTitles);
                     }
                 }
@@ -242,7 +242,7 @@ public class ExcelExporter
         {
             var s1 = cell.Sheet.Workbook.CreateCellStyle();
             if (font != null) s1.SetFont(font);
-            s1.DataFormat = HSSFDataFormat.GetBuiltinFormat("m/d/yy");
+            s1.DataFormat = HSSFDataFormat.GetBuiltinFormat(style?.Format ?? "m/d/yy");
             _cellStyleDict.AddOrUpdate(key, s1, (_, _) => s1);
             return s1;
         }
@@ -286,6 +286,23 @@ public class ExcelExporter
         else if (column.Type == typeof(Expression))
         {
             var convert = new ExpressionConvert(columnTitles, cell.RowIndex);
+
+            if (column.CellStyle?.Format != null &&
+                !HSSFDataFormat.GetBuiltinFormats().Contains(column.CellStyle.Format))
+            {
+                if (DateTime.TryParse(val, out var dt))
+                {
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(dt.ToString(column.CellStyle.Format));
+                }
+                else
+                {
+                    cell.SetCellValue(val);
+                }
+
+                return;
+            }
+
             var formula = convert.Convert(column.Formula);
             cell.SetCellFormula(formula);
             if (column.ResultType != null)
@@ -296,10 +313,35 @@ public class ExcelExporter
         }
         else if (column.Type == typeof(string))
         {
+
+
+            cell.SetCellType(CellType.String);
+            cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
+        }
+        else if (column.Type == typeof(DateTime))
+        {
+            if (column.CellStyle?.Format != null &&
+                !HSSFDataFormat.GetBuiltinFormats().Contains(column.CellStyle.Format))
+            {
+                if (DateTime.TryParse(val, out var dt))
+                {
+                    cell.SetCellType(CellType.String);
+                    cell.SetCellValue(dt.ToString(column.CellStyle.Format));
+                }
+                else
+                {
+                    cell.SetCellValue(val);
+                }
+
+                return;
+            }
+
             cell.SetCellType(CellType.String);
             cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
         }
 
+        cell.SetCellType(CellType.String);
+        cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
         cell.SetCellValue(val);
     }
 }

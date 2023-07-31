@@ -19,6 +19,7 @@ public class ExcelColumnAttribute : ExcelTitleAttribute, IExcelHeaderStyle, IExc
     public bool CellItalic { get; set; }
     public bool CellStrikeout { get; set; }
     public bool CellUnderline { get; set; }
+    public string? Format { get; set; }
 
 
     // Header
