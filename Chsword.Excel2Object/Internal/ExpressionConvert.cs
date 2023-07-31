@@ -59,7 +59,7 @@ internal class ExpressionConvert
     {
         if (!(expression is BinaryExpression binary)) return "null";
         var symbol = $"unsupported binary symbol:{binary.NodeType}";
-        if (BinarySymbolDictionary.ContainsKey(binary.NodeType)) symbol = BinarySymbolDictionary[binary.NodeType];
+        if (BinarySymbolDictionary.TryGetValue(binary.NodeType, out var value)) symbol = value;
 
         return $"{InternalConvert(binary.Left)}{symbol}{InternalConvert(binary.Right)}";
     }
@@ -113,20 +113,20 @@ internal class ExpressionConvert
             case "Day":
                 return $"DAY({InternalConvert(exp.Expression)})";
             default:
-                return $"unspport member access type={member.DeclaringType} name={member.Name}";
+                return $"unsupported member access type={member.DeclaringType} name={member.Name}";
         }
     }
 
     private string ConvertUnaryExpression(Expression expression)
     {
         if (!(expression is UnaryExpression unary)) return "null";
-        var symbol = unary.NodeType == ExpressionType.Negate ? "-" : "unsupport unary symbol";
+        var symbol = unary.NodeType == ExpressionType.Negate ? "-" : "unsupported unary symbol";
         return $"{symbol}{InternalConvert(unary.Operand)}";
     }
 
     private string GetColumn(Expression exp)
     {
-        if (!(exp is ConstantExpression constant)) return "null";
+        if (exp is not ConstantExpression constant) return "null";
         var key = constant.Value.ToString();
         var columnIndex = Array.IndexOf(Columns, key);
         return columnIndex == -1 ? $"ERROR key:{key}" : ExcelColumnNameParser.Parse(columnIndex);

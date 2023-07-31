@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using NPOI.HSSF.UserModel;
 
 namespace Chsword.Excel2Object.Tests;
+
 [TestClass]
 public class ExportDateFormatTest : BaseExcelTest
 {
@@ -17,11 +18,20 @@ public class ExportDateFormatTest : BaseExcelTest
             {
                 Age = 18,
                 Birthday = DateTime.Now,
+                Birthday2 = DateTime.Now,
                 Name = "test"
+            },
+            new()
+            {
+                Age = 18,
+                Birthday = DateTime.Now,
+
+                Name = "test2"
             }
         };
         ExcelHelper.ObjectToExcel(list, GetFilePath(DateTime.Now.Ticks + "test.xls"));
     }
+
     [TestMethod]
     public void MyTestMethod()
     {

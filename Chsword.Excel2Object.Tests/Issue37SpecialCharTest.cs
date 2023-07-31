@@ -1,5 +1,4 @@
-﻿using Chsword.Excel2Object.Tests.Models;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using System;
 using System.Linq;
@@ -20,12 +19,13 @@ public class Issue37SpecialCharTest : BaseExcelTest
         Console.WriteLine(JsonConvert.SerializeObject(result));
     }
 
-    [ExcelTitle("Test Person")]
-    class TestModelPersonSpecialChar
-    {
-        [ExcelTitle("姓名$")] public string Name { get; set; }
-        [ExcelTitle("$年龄")] public int? Age { get; set; }
-        [ExcelTitle("出生日期#")] public DateTime? Birthday { get; set; }
-        [ExcelTitle("金额$")] public string Money { get; set; }
-    }
+
+}
+[ExcelTitle("Test Person")]
+public class TestModelPersonSpecialChar
+{
+    [ExcelTitle("姓名$")] public string Name { get; set; } = null!;
+    [ExcelTitle("$年龄")] public int? Age { get; set; }
+    [ExcelTitle("出生日期#")] public DateTime? Birthday { get; set; }
+    [ExcelTitle("金额$")] public string Money { get; set; } = null!;
 }

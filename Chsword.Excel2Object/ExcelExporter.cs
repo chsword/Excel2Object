@@ -318,7 +318,7 @@ public class ExcelExporter
             cell.SetCellType(CellType.String);
             cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
         }
-        else if (column.Type == typeof(DateTime))
+        else if (column.Type == typeof(DateTime) || column.Type == typeof(DateTime?))
         {
             if (column.CellStyle?.Format != null &&
                 !HSSFDataFormat.GetBuiltinFormats().Contains(column.CellStyle.Format))
@@ -339,9 +339,7 @@ public class ExcelExporter
             cell.SetCellType(CellType.String);
             cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
         }
-
-        cell.SetCellType(CellType.String);
-        cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
+        
         cell.SetCellValue(val);
     }
 }
