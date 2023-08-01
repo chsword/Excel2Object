@@ -33,6 +33,12 @@ PM> Install-Package Chsword.Excel2Object
 - [ ] 1. support date datetime time in excel\
 
 #### Release Notes
+* **2023.07.31**
+- [x] support DateTime and Nullable<DateTime> format ,such as `[ExcelColumn("Title",Format="yyyy-MM-dd HH:mm:ss")]`
+* **2023.03.26**
+- [x] support special symbol in columns title #37 [Issue37SpecialCharTest.cs](https://github.com/chsword/Excel2Object/commit/273122275e724367bb6154e03df61702fcec81b3#diff-5f0f5f7558bf7d4207cfa752a4506c4df89d9b491e2501e4862aff0c2276bd61)
+* **2023.02.20**
+- [x] support platform netstandard2.0/netstandard2.1/.net6.0/.netframework4.7.2
 * **2022.03.19**
 - [x] support ExcelImporterOptions , Skipline [Issue32SkipLineImport.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue32SkipLineImport.cs)
 - [x] fixed super class prop bug [Issue31SuperClass.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue31SuperClass.cs)
