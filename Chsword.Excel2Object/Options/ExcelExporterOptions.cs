@@ -18,4 +18,6 @@ public class ExcelExporterOptions
     ///     Use when append export
     /// </summary>
     public byte[]? SourceExcelBytes { get; set; }
+
+    public Func<string,Type,string>? MappingColumnAction { get; set; }
 }

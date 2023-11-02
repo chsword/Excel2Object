@@ -16,7 +16,7 @@ Excel convert to .NET Object / .NET Object convert to Excel.
 
 Platform
 
-[![.NET 4.5.2 +](https://img.shields.io/badge/-4.5.2%2B-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
+[![.NET 4.7.2 +](https://img.shields.io/badge/-4.7.2%2B-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
 [![.NET Standard 2.0+](https://img.shields.io/badge/-standard2.0%2B-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
 
 ### NuGet Install
@@ -33,6 +33,8 @@ PM> Install-Package Chsword.Excel2Object
 - [ ] 1. support date datetime time in excel\
 
 #### Release Notes
+* **2023.11.02**
+- [x] support column title mapping Issue39DynamicMappingTitle.cs
 * **2023.07.31**
 - [x] support DateTime and Nullable<DateTime> format ,such as `[ExcelColumn("Title",Format="yyyy-MM-dd HH:mm:ss")]`
 * **2023.03.26**

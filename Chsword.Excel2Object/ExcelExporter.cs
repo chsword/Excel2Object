@@ -88,6 +88,10 @@ public class ExcelExporter
             }
 
         CheckExcelModel(excel);
+        if (options.MappingColumnAction == null)
+        {
+            options.MappingColumnAction = (s, _) => s;
+        }
         if (excel.Sheets != null)
             foreach (var excelSheet in excel.Sheets)
             {
@@ -104,7 +108,7 @@ public class ExcelExporter
                     var cell = headerRow.CreateCell(i);
                     cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
                     cell.SetCellType(CellType.String);
-                    cell.SetCellValue(columns[i].Title);
+                    cell.SetCellValue(options.MappingColumnAction(columns[i].Title, columns[i].Type));
                     SetHeaderStyle(cell, columns[i].HeaderStyle);
                 }
 

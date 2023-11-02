@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using Chsword.Excel2Object.Options;
 
 namespace Chsword.Excel2Object;
 
@@ -90,5 +91,12 @@ public class ExcelHelper
     {
         var excelExporter = new ExcelExporter();
         return excelExporter.ObjectToExcelBytes(dt, excelType, sheetTitle);
+    }
+
+    public static byte[]? ObjectToExcelBytes<TModel>(IEnumerable<TModel> data,
+        Action<ExcelExporterOptions> optionsAction)
+    {
+        var excelExporter = new ExcelExporter();
+        return excelExporter.ObjectToExcelBytes(data, optionsAction);
     }
 }
