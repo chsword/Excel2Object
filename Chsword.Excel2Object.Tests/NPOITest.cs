@@ -1,6 +1,6 @@
-﻿using System;
-using Chsword.Excel2Object.Styles;
+﻿using Chsword.Excel2Object.Styles;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 
 namespace Chsword.Excel2Object.Tests;
 

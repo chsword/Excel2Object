@@ -1,6 +1,6 @@
+using Chsword.Excel2Object.Functions;
 using System.Collections;
 using System.Linq.Expressions;
-using Chsword.Excel2Object.Functions;
 
 namespace Chsword.Excel2Object.Options;
 

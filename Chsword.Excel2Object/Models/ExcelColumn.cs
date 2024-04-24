@@ -1,13 +1,13 @@
-using System.Linq.Expressions;
 using Chsword.Excel2Object.Functions;
 using Chsword.Excel2Object.Styles;
+using System.Linq.Expressions;
 
 namespace Chsword.Excel2Object;
 
 internal class ExcelColumn
 {
     public IExcelCellStyle? CellStyle { get; set; }
-    
+
     public Expression<Func<ColumnCellDictionary, object>>? Formula { get; set; }
 
     public IExcelHeaderStyle? HeaderStyle { get; set; }

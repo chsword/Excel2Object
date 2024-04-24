@@ -1,8 +1,8 @@
-﻿using System;
-using System.Linq;
-using Chsword.Excel2Object.Tests.Models;
+﻿using Chsword.Excel2Object.Tests.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using System;
+using System.Linq;
 
 namespace Chsword.Excel2Object.Tests;
 

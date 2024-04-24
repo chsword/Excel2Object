@@ -19,5 +19,5 @@ public class ExcelExporterOptions
     /// </summary>
     public byte[]? SourceExcelBytes { get; set; }
 
-    public Func<string,Type,string>? MappingColumnAction { get; set; }
+    public Func<string, Type, string>? MappingColumnAction { get; set; }
 }

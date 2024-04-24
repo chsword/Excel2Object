@@ -1,5 +1,5 @@
-﻿using System.Linq.Expressions;
-using Chsword.Excel2Object.Functions;
+﻿using Chsword.Excel2Object.Functions;
+using System.Linq.Expressions;
 
 namespace Chsword.Excel2Object.Internal;
 
@@ -127,7 +127,7 @@ internal class ExpressionConvert
     private string GetColumn(Expression exp)
     {
         if (exp is not ConstantExpression constant) return "null";
-        var key = constant.Value.ToString();
+        var key = constant.Value?.ToString();
         var columnIndex = Array.IndexOf(Columns, key);
         return columnIndex == -1 ? $"ERROR key:{key}" : ExcelColumnNameParser.Parse(columnIndex);
     }

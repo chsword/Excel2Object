@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Chsword.Excel2Object.Internal;
+﻿using Chsword.Excel2Object.Internal;
 using Chsword.Excel2Object.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Chsword.Excel2Object.Tests;
 
@@ -16,9 +16,9 @@ public class Issue31SuperClass
     {
         var excel = TypeConvert.ConvertObjectToExcelModel(GetExcel<SubClassA>()!,
             new ExcelExporterOptions());
-        
+
         Assert.IsNotNull(excel);
-        
+
         Assert.AreEqual(1, excel.Sheets?.Count);
         Assert.IsNotNull(excel.Sheets);
         Assert.AreEqual("SuperClass", excel.Sheets[0].Title);

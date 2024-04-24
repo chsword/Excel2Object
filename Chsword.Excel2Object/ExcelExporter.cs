@@ -1,13 +1,13 @@
-﻿using System.Collections.Concurrent;
-using System.Data;
-using System.Globalization;
-using System.Linq.Expressions;
-using Chsword.Excel2Object.Internal;
+﻿using Chsword.Excel2Object.Internal;
 using Chsword.Excel2Object.Options;
 using Chsword.Excel2Object.Styles;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using System.Collections.Concurrent;
+using System.Data;
+using System.Globalization;
+using System.Linq.Expressions;
 using HorizontalAlignment = Chsword.Excel2Object.Styles.HorizontalAlignment;
 
 namespace Chsword.Excel2Object;
@@ -123,7 +123,7 @@ public class ExcelExporter
                         var column = columns[i];
                         var cell = row.CreateCell(i);
                         var val = column.Title != null && item.TryGetValue(column.Title, out var value) ? (value ?? "").ToString() : "";
-                        SetCellValue(excelType, column, cell, val, columnTitles);
+                        SetCellValue(excelType, column, cell, val!, columnTitles);
                     }
                 }
             }
@@ -145,7 +145,7 @@ public class ExcelExporter
             font.FontHeightInPoints = 10;
 
         if (style.HeaderFontColor > 0)
-            font.Color = (short) style.HeaderFontColor;
+            font.Color = (short)style.HeaderFontColor;
         //NPOI.SS.UserModel.FontColor.Red
         if (style.HeaderBold)
             font.IsBold = true;
@@ -156,7 +156,7 @@ public class ExcelExporter
         if (style.HeaderUnderline)
             font.Underline = FontUnderlineType.Single; //暂不考虑等情况 Double
         if (style.HeaderAlignment != HorizontalAlignment.General)
-            cell.CellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.HeaderAlignment;
+            cell.CellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment)style.HeaderAlignment;
     }
 
     private static IFont? StyleToFont(ICell cell, IExcelCellStyle? style)
@@ -171,7 +171,7 @@ public class ExcelExporter
             font.FontHeightInPoints = 10;
 
         if (style.CellFontColor > 0)
-            font.Color = (short) style.CellFontColor;
+            font.Color = (short)style.CellFontColor;
         if (style.CellBold)
             font.IsBold = true;
         if (style.CellItalic)
@@ -181,7 +181,7 @@ public class ExcelExporter
         if (style.CellUnderline)
             font.Underline = FontUnderlineType.Single;
         if (style.CellAlignment != HorizontalAlignment.General)
-            cell.CellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.CellAlignment;
+            cell.CellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment)style.CellAlignment;
 
         return font;
     }
@@ -343,7 +343,7 @@ public class ExcelExporter
             cell.SetCellType(CellType.String);
             cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
         }
-        
+
         cell.SetCellValue(val);
     }
 }

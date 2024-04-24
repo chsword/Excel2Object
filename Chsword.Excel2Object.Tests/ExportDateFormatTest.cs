@@ -1,8 +1,8 @@
-﻿using System;
-using Chsword.Excel2Object.Tests.Models;
+﻿using Chsword.Excel2Object.Tests.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
 using NPOI.HSSF.UserModel;
+using System;
+using System.Collections.Generic;
 
 namespace Chsword.Excel2Object.Tests;
 

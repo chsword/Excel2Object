@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Chsword.Excel2Object.Tests.Models;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using Chsword.Excel2Object.Tests.Models;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
 
 namespace Chsword.Excel2Object.Tests;
 
@@ -20,7 +20,7 @@ public class ExcelTest : BaseExcelTest
         Assert.IsNotNull(bytes);
 
         Assert.IsTrue(bytes.Length > 0);
-        
+
         var importer = new ExcelImporter();
         var result = importer.ExcelToObject<ReportModel>(bytes).ToList();
         models.AreEqual(result);

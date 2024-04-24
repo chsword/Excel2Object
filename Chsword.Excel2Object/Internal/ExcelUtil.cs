@@ -11,7 +11,7 @@ internal static class ExcelUtil
     /// <typeparam name="T"></typeparam>
     /// <returns>if there's not a ExcelTitleAttribute, will return null.</returns>
     public static ExcelTitleAttribute? GetClassExportAttribute<T>()
-    { 
+    {
         var attrs = typeof(T).GetCustomAttributes(true);
         var attr = GetExcelTitleAttributeFromAttributes(attrs, 0);
         return attr;
@@ -49,7 +49,7 @@ internal static class ExcelUtil
         var attrTitle = attrs.FirstOrDefault(c => c is ExcelTitleAttribute or DisplayAttribute);
         if (attrTitle == null) return null;
         if (attrTitle is DisplayAttribute display)
-            return new ExcelTitleAttribute(display.Name)
+            return new ExcelTitleAttribute(display.Name!)
             {
                 Order = display.GetOrder() ?? defaultOrder
             };

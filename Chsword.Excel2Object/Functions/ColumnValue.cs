@@ -1,4 +1,5 @@
-﻿namespace Chsword.Excel2Object.Functions;
+﻿// ReSharper disable UnusedParameter.Global
+namespace Chsword.Excel2Object.Functions;
 
 // this type only used in the Expression
 public class ColumnValue
@@ -93,7 +94,7 @@ public class ColumnValue
         throw new NotImplementedException();
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         throw new NotImplementedException();
     }

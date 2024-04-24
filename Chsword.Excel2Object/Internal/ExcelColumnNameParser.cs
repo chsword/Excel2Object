@@ -13,7 +13,7 @@ internal static class ExcelColumnNameParser
             if (x != columnIndex) mod -= 1;
 
             x /= 26;
-            list.Add((char) ('A' + mod));
+            list.Add((char)('A' + mod));
         } while (x > 0);
 
         list.Reverse();
