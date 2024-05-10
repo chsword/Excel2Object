@@ -2,7 +2,7 @@
 
 [![install from nuget](http://img.shields.io/nuget/v/Chsword.Excel2Object.svg?style=flat-square)](https://www.nuget.org/packages/Chsword.Excel2Object)
 [![release](https://img.shields.io/github/release/chsword/Excel2Object.svg?style=flat-square)](https://github.com/chsword/Excel2Object/releases)
-[![Build status](https://ci.appveyor.com/api/projects/status/4po2h27j7yg4bph5/branch/master?svg=true)](https://ci.appveyor.com/project/chsword/excel2object/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/4po2h27j7yg4bph5/branch/master?svg=true)](https://ci.appveyor.com/project/chsword/excel2object)
 [![CodeFactor](https://www.codefactor.io/repository/github/chsword/excel2object/badge)](https://www.codefactor.io/repository/github/chsword/excel2object)
 
 Excel convert to .NET Object / .NET Object convert to Excel.
@@ -17,7 +17,10 @@ Excel convert to .NET Object / .NET Object convert to Excel.
 Platform
 
 [![.NET 4.7.2 +](https://img.shields.io/badge/-4.7.2%2B-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
-[![.NET Standard 2.0+](https://img.shields.io/badge/-standard2.0%2B-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
+[![.NET Standard 2.0](https://img.shields.io/badge/-standard2.0-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
+[![.NET Standard 2.1](https://img.shields.io/badge/-standard2.1-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
+[![.NET 6.0](https://img.shields.io/badge/-6.0-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
+[![.NET 8.0](https://img.shields.io/badge/-8.0-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
 
 ### NuGet Install
 ``` powershell
@@ -33,6 +36,10 @@ PM> Install-Package Chsword.Excel2Object
 - [ ] 1. support date datetime time in excel\
 
 #### Release Notes
+
+* **2024.05.10**
+- [x] support .net8.0 / .net6.0 / .netstandard2.1 / .netstandard2.0 / .net4.7.2
+- [x] clear deprecated library
 * **2023.11.02**
 - [x] support column title mapping Issue39DynamicMappingTitle.cs
 * **2023.07.31**
@@ -53,6 +60,7 @@ PM> Install-Package Chsword.Excel2Object
 * **2021.5.28**
 - [x] support style for header & cell, new [ExcelColumnAttribute] for column.
 - [x] support Functions [./ExcelFunctions.md](./ExcelFunctions.md)
+
 ```C#
 var list = new List<Pr20Model>
 {
@@ -70,11 +78,11 @@ var bytes = ExcelHelper.ObjectToExcelBytes(list, ExcelType.Xlsx);
 [ExcelTitle("SheetX")]
 public class Pr20Model
 {
-    [ExcelColumn("姓名", CellFontColor = ExcelStyleColor.Red)]
+    [ExcelColumn("Full name", CellFontColor = ExcelStyleColor.Red)]
     public string Fullname { get; set; }
 
-    [ExcelColumn("手机",
-        HeaderFontFamily = "宋体",
+    [ExcelColumn("Phone Number",
+        HeaderFontFamily = "Normal",
         HeaderBold = true,
         HeaderFontHeight = 30,
         HeaderItalic = true,
