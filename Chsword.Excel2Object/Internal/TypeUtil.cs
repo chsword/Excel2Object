@@ -5,7 +5,7 @@ namespace Chsword.Excel2Object.Internal;
 public static class TypeUtil
 {
     /// <summary>
-    ///     Get a real type of  a Nullable type
+    ///     Get a real type of Nullable type
     /// </summary>
     /// <param name="conversionType"></param>
     /// <returns></returns>

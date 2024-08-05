@@ -6,11 +6,12 @@ internal class SheetModel
     public int Index { get; set; }
     public List<Dictionary<string, object>> Rows { get; set; } = new();
     public string Title { get; private set; } = null!;
+
     public static SheetModel Create(string? title)
     {
         return new SheetModel
         {
-            Title = title ?? "Sheet1",
+            Title = title ?? "Sheet1"
         };
     }
 }

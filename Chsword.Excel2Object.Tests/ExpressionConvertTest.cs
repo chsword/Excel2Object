@@ -1,9 +1,9 @@
-﻿using Chsword.Excel2Object.Functions;
-using Chsword.Excel2Object.Internal;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using Chsword.Excel2Object.Functions;
+using Chsword.Excel2Object.Internal;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using static Chsword.Excel2Object.ExcelFunctions;
 
 namespace Chsword.Excel2Object.Tests;
@@ -63,8 +63,8 @@ public class ExpressionConvertTests : BaseFunctionTest
     public void EDateWithColumn()
     {
         Expression<Func<Dictionary<string, ColumnValue>, object>> exp = c =>
-            ((DateTime)c["Date"]).AddMonths((int)c["Month"]);
-        var convert = new ExpressionConvert(new[] { "Date", "Month" }, 3);
+            ((DateTime) c["Date"]).AddMonths((int) c["Month"]);
+        var convert = new ExpressionConvert(new[] {"Date", "Month"}, 3);
         var ret = convert.Convert(exp);
         Assert.AreEqual("EDATE(A4,B4)", ret);
     }

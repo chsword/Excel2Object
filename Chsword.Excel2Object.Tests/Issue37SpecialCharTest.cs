@@ -1,9 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 
 namespace Chsword.Excel2Object.Tests;
+
 [TestClass]
 public class Issue37SpecialCharTest : BaseExcelTest
 {
@@ -18,9 +19,8 @@ public class Issue37SpecialCharTest : BaseExcelTest
         Assert.AreEqual("200", result[1].Money);
         Console.WriteLine(JsonConvert.SerializeObject(result));
     }
-
-
 }
+
 [ExcelTitle("Test Person")]
 public class TestModelPersonSpecialChar
 {

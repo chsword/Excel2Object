@@ -1,4 +1,5 @@
 ﻿// ReSharper disable UnusedParameter.Global
+
 namespace Chsword.Excel2Object.Functions;
 
 // this type only used in the Expression

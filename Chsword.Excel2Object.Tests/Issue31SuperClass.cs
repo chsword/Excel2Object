@@ -1,10 +1,10 @@
-﻿using Chsword.Excel2Object.Internal;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Chsword.Excel2Object.Internal;
 using Chsword.Excel2Object.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Chsword.Excel2Object.Tests;
 
@@ -79,6 +79,7 @@ public class Issue31SuperClass
             };
             return (list as List<T>)!;
         }
+
         throw new Exception("not support");
     }
 

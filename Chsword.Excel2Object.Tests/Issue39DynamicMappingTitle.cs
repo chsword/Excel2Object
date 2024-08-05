@@ -1,11 +1,12 @@
-﻿using Chsword.Excel2Object.Tests.Models;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Chsword.Excel2Object.Tests.Models;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 
 namespace Chsword.Excel2Object.Tests;
+
 [TestClass]
 public class Issue39DynamicMappingTitleTest
 {
@@ -17,10 +18,7 @@ public class Issue39DynamicMappingTitleTest
         {
             options.MappingColumnAction = (title, _) =>
             {
-                if (title == "姓名")
-                {
-                    return "n c name";
-                }
+                if (title == "姓名") return "n c name";
                 return title;
             };
         });
@@ -31,7 +29,6 @@ public class Issue39DynamicMappingTitleTest
         var importer = new ExcelImporter();
         var result = importer.ExcelToObject<Dictionary<string, object>>(bytes).ToList();
         Console.WriteLine(JsonConvert.SerializeObject(result));
-
     }
 
     private IEnumerable<TestModelDatePerson> GetModels()
@@ -51,7 +48,7 @@ public class Issue39DynamicMappingTitleTest
                 Age = 18,
                 Birthday = new DateTime(1990, 1, 1),
                 Birthday2 = null
-            },
+            }
         };
         return list;
     }

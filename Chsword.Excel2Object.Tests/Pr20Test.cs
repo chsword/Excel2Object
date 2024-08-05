@@ -1,8 +1,8 @@
-﻿using Chsword.Excel2Object.Styles;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using Chsword.Excel2Object.Styles;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Chsword.Excel2Object.Tests;
 

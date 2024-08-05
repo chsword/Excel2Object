@@ -1,9 +1,9 @@
-using Chsword.Excel2Object.Internal;
-using Chsword.Excel2Object.Options;
-using NPOI.SS.UserModel;
 using System.Collections;
 using System.Globalization;
 using System.Reflection;
+using Chsword.Excel2Object.Internal;
+using Chsword.Excel2Object.Options;
+using NPOI.SS.UserModel;
 
 namespace Chsword.Excel2Object;
 
@@ -60,13 +60,13 @@ public class ExcelImporter
         if (result == null)
             return list;
         var rows = result;
-        var titleRow = (IRow)rows.Current;
+        var titleRow = (IRow) rows.Current;
         if (titleRow == null) return list;
         var columns = titleRow.Cells.ToDictionary(c => c.StringCellValue, c => c.ColumnIndex);
 
         while (rows.MoveNext())
         {
-            var row = (IRow)rows.Current;
+            var row = (IRow) rows.Current;
             if (row == null || row.Cells?.Count == 0)
                 continue;
 
@@ -88,7 +88,7 @@ public class ExcelImporter
         var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
         var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
         var rows = result;
-        var titleRow = (IRow)rows.Current;
+        var titleRow = (IRow) rows.Current;
         if (titleRow != null)
             foreach (var cell in titleRow.Cells)
             {
@@ -99,7 +99,7 @@ public class ExcelImporter
 
         while (rows.MoveNext())
         {
-            var row = (IRow)rows.Current;
+            var row = (IRow) rows.Current;
 
             if (row == null || row.Cells?.Count == 0)
                 continue;

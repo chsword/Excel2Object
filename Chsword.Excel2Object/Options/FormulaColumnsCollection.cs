@@ -1,6 +1,6 @@
-using Chsword.Excel2Object.Functions;
 using System.Collections;
 using System.Linq.Expressions;
+using Chsword.Excel2Object.Functions;
 
 namespace Chsword.Excel2Object.Options;
 
@@ -16,7 +16,7 @@ public class FormulaColumnsCollection : ICollection<FormulaColumn>
         if (item == null) throw new Excel2ObjectException("item must not null");
 
         if (FormulaColumns.Any(c => c.Title == item.Title))
-            throw new Excel2ObjectException("same title has existsed in options.FormulaColumns");
+            throw new Excel2ObjectException("same title has existed in options.FormulaColumns");
 
         if (!string.IsNullOrWhiteSpace(item.AfterColumnTitle) &&
             FormulaColumns.Any(c => c.AfterColumnTitle == item.AfterColumnTitle))
