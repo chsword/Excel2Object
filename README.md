@@ -37,6 +37,9 @@ PM> Install-Package Chsword.Excel2Object
 
 #### Release Notes
 
+* **2024.10.21**
+- [x] update SixLabors.ImageSharp to 2.1.9
+- [x] test for .net8.0
 * **2024.05.10**
 - [x] support .net8.0 / .net6.0 / .netstandard2.1 / .netstandard2.0 / .net4.7.2
 - [x] clear deprecated library

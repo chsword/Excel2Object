@@ -36,5 +36,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="NPOI" Version="2.7.1" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="2.1.9" PrivateAssets="all" IncludeAssets="runtime" />
 	</ItemGroup>
 </Project>
