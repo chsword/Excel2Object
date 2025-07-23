@@ -85,10 +85,29 @@ public class ExcelImporter
     {
         if (result == null)
             yield break;
+            
+        var dictColumns = BuildColumnMappings<TModel>(result);
+
+        while (result.MoveNext())
+        {
+            var row = (IRow) result.Current;
+
+            if (row == null || row.Cells?.Count == 0)
+                continue;
+
+            var model = new TModel();
+            PopulateModelFromRow(model, row, dictColumns);
+            yield return model;
+        }
+    }
+
+    private static Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>> BuildColumnMappings<TModel>(IEnumerator result)
+        where TModel : class, new()
+    {
         var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
         var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
-        var rows = result;
-        var titleRow = (IRow) rows.Current;
+        var titleRow = (IRow) result.Current;
+        
         if (titleRow != null)
             foreach (var cell in titleRow.Cells)
             {
@@ -96,51 +115,42 @@ public class ExcelImporter
                 if (prop.Key != null && !dictColumns.ContainsKey(cell.ColumnIndex))
                     dictColumns.Add(cell.ColumnIndex, prop);
             }
+            
+        return dictColumns;
+    }
 
-        while (rows.MoveNext())
+    private static void PopulateModelFromRow<TModel>(TModel model, IRow row, 
+        Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>> dictColumns)
+        where TModel : class, new()
+    {
+        foreach (var pair in dictColumns)
         {
-            var row = (IRow) rows.Current;
-
-            if (row == null || row.Cells?.Count == 0)
-                continue;
-
-            var model = new TModel();
-
-            foreach (var pair in dictColumns)
-            {
-                var propType = pair.Value.Key.PropertyType;
-                var type = TypeUtil.GetUnNullableType(propType);
-                if (type.IsEnum)
-                {
-                    var specialValue = GetEnum(row, pair.Key, type);
-                    pair.Value.Key.SetValue(model, specialValue, null);
-                }
-                else
-                {
-                    if (SpecialConvertDict.ContainsKey(type))
-                    {
-                        var specialValue = SpecialConvertDict[type](row, pair.Key);
-                        pair.Value.Key.SetValue(model, specialValue, null);
-                    }
-                    else
-                    {
-                        var cellValue = GetCellValue(row, pair.Key);
-                        object val;
-                        if (string.IsNullOrEmpty(cellValue)
-                            && propType != typeof(string)
-                            && propType.IsGenericType
-                            && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                            val = null;
-                        else
-                            val = Convert.ChangeType(cellValue, type);
-
-                        pair.Value.Key.SetValue(model, val, null);
-                    }
-                }
-            }
-
-            yield return model;
+            var propType = pair.Value.Key.PropertyType;
+            var type = TypeUtil.GetUnNullableType(propType);
+            
+            object? value = type.IsEnum 
+                ? GetEnum(row, pair.Key, type)
+                : GetCellValueByType(row, pair.Key, propType, type);
+                
+            pair.Value.Key.SetValue(model, value, null);
         }
+    }
+
+    private static object? GetCellValueByType(IRow row, int columnIndex, Type propType, Type type)
+    {
+        if (SpecialConvertDict.ContainsKey(type))
+        {
+            return SpecialConvertDict[type](row, columnIndex);
+        }
+
+        var cellValue = GetCellValue(row, columnIndex);
+        if (string.IsNullOrEmpty(cellValue)
+            && propType != typeof(string)
+            && propType.IsGenericType
+            && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
+            return null;
+            
+        return Convert.ChangeType(cellValue, type);
     }
 
     private static object? GetCellBoolean(IRow row, int key)
@@ -148,18 +158,14 @@ public class ExcelImporter
         var cellValue = GetCellValue(row, key);
         if (string.IsNullOrEmpty(cellValue)) return null;
         if (bool.TryParse(cellValue, out var value)) return value;
-        return cellValue.ToLower() switch
-        {
-            "1" => true,
-            "是" => true,
-            "yes" => true,
-            "true" => true,
-            "0" => false,
-            "否" => false,
-            "no" => false,
-            "false" => false,
-            _ => Convert.ToBoolean(cellValue)
-        };
+        
+        var lowerValue = cellValue.ToLower();
+        if (ExcelConstants.BooleanValues.TrueValues.Any(v => v.Equals(lowerValue, StringComparison.OrdinalIgnoreCase)))
+            return true;
+        if (ExcelConstants.BooleanValues.FalseValues.Any(v => v.Equals(lowerValue, StringComparison.OrdinalIgnoreCase)))
+            return false;
+            
+        return Convert.ToBoolean(cellValue);
     }
 
     private static object? GetCellDateTime(IRow row, int index)
@@ -303,26 +309,26 @@ public class ExcelImporter
     private static DateTime? GetDateTimeFromString(string str)
     {
         DateTime dt;
-        if (str.EndsWith("年"))
+        if (str.EndsWith(ExcelConstants.DateFormats.YearSuffix))
         {
-            if (DateTime.TryParse((str + "-01-01").Replace("年", ""), out dt))
+            if (DateTime.TryParse((str + ExcelConstants.DateFormats.DefaultYearMonthSuffix).Replace(ExcelConstants.DateFormats.YearSuffix, ""), out dt))
                 return dt;
         }
-        else if (str.EndsWith("月"))
+        else if (str.EndsWith(ExcelConstants.DateFormats.MonthSuffix))
         {
-            if (DateTime.TryParse((str + "-01").Replace("年", "").Replace("月", ""), out dt))
+            if (DateTime.TryParse((str + ExcelConstants.DateFormats.DefaultDaySuffix).Replace(ExcelConstants.DateFormats.YearSuffix, "").Replace(ExcelConstants.DateFormats.MonthSuffix, ""), out dt))
                 return dt;
         }
-        else if (!str.Contains("年") && !str.Contains("月") && !str.Contains("日"))
+        else if (!str.Contains(ExcelConstants.DateFormats.YearSuffix) && !str.Contains(ExcelConstants.DateFormats.MonthSuffix) && !str.Contains(ExcelConstants.DateFormats.DaySuffix))
         {
             if (DateTime.TryParse(str, out dt))
                 return dt;
-            if (DateTime.TryParse((str + "-01-01").Replace("年", "").Replace("月", ""), out dt))
+            if (DateTime.TryParse((str + ExcelConstants.DateFormats.DefaultYearMonthSuffix).Replace(ExcelConstants.DateFormats.YearSuffix, "").Replace(ExcelConstants.DateFormats.MonthSuffix, ""), out dt))
                 return dt;
         }
         else
         {
-            if (DateTime.TryParse(str.Replace("年", "").Replace("月", ""), out dt))
+            if (DateTime.TryParse(str.Replace(ExcelConstants.DateFormats.YearSuffix, "").Replace(ExcelConstants.DateFormats.MonthSuffix, ""), out dt))
                 return dt;
         }
 

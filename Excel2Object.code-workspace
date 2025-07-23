@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"github.copilot.chat.agent.terminal.allowList": {
+			"powershell": true,
+			"bash": true,
+			"dotnet": true
+		}
+	}
+}

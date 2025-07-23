@@ -89,6 +89,10 @@ public class ExcelExporter
 
         CheckExcelModel(excel);
         if (options.MappingColumnAction == null) options.MappingColumnAction = (s, _) => s;
+        
+        // Clear style cache for each new workbook
+        _cellStyleDict.Clear();
+        
         if (excel.Sheets != null)
             foreach (var excelSheet in excel.Sheets)
             {
@@ -97,25 +101,25 @@ public class ExcelExporter
                     : workbook.CreateSheet(excelSheet.Title);
                 sheet.ForceFormulaRecalculation = true;
                 var columns = excelSheet.Columns.OrderBy(c => c.Order).ToArray();
-                
+
                 // Calculate column widths
                 if (options.AutoColumnWidth)
                 {
                     var columnWidths = CalculateColumnWidths(columns, excelSheet.Rows, options, options.MappingColumnAction);
                     for (var i = 0; i < columns.Length; i++)
                     {
-                        sheet.SetColumnWidth(i, columnWidths[i] * 256);
+                        sheet.SetColumnWidth(i, columnWidths[i] * ExcelConstants.DefaultColumnWidthMultiplier);
                     }
                 }
                 else
                 {
                     for (var i = 0; i < columns.Length; i++)
                     {
-                        sheet.SetColumnWidth(i, options.DefaultColumnWidth * 256);
+                        sheet.SetColumnWidth(i, options.DefaultColumnWidth * ExcelConstants.DefaultColumnWidthMultiplier);
                     }
                 }
                 
-                var headerRow = sheet.CreateRow(0);
+                var headerRow = sheet.CreateRow(ExcelConstants.DefaultHeaderRowIndex);
                 for (var i = 0; i < columns.Length; i++)
                 {
                     var cell = headerRow.CreateCell(i);
@@ -126,7 +130,7 @@ public class ExcelExporter
                 }
 
                 var columnTitles = columns.Select(c => c.Title).ToArray();
-                var rowNumber = 1;
+                var rowNumber = ExcelConstants.DefaultDataStartRowIndex;
                 var data = excelSheet.Rows;
                 foreach (var item in data)
                 {
@@ -144,9 +148,7 @@ public class ExcelExporter
             }
 
         return ToBytes(workbook);
-    }
-
-    private static void SetHeaderStyle(ICell cell, IExcelHeaderStyle? style)
+    }    private static void SetHeaderStyle(ICell cell, IExcelHeaderStyle? style)
     {
         if (style == null)
             return;
@@ -157,7 +159,7 @@ public class ExcelExporter
         if (style.HeaderFontHeight > 0)
             font.FontHeightInPoints = style.HeaderFontHeight;
         else
-            font.FontHeightInPoints = 10;
+            font.FontHeightInPoints = ExcelConstants.DefaultFontHeightInPoints;
 
         if (style.HeaderFontColor > 0)
             font.Color = (short) style.HeaderFontColor;
@@ -326,14 +328,14 @@ public class ExcelExporter
             cell.SetCellFormula(formula);
             if (column.ResultType != null)
                 if (column.ResultType == typeof(DateTime))
-                    cell.CellStyle = CreateStyle("datetime", cell, column.CellStyle);
+                    cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.DateTime, cell, column.CellStyle);
 
             return;
         }
         else if (column.Type == typeof(string))
         {
             cell.SetCellType(CellType.String);
-            cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
+            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle);
         }
         else if (column.Type == typeof(DateTime) || column.Type == typeof(DateTime?))
         {
@@ -354,7 +356,7 @@ public class ExcelExporter
             }
 
             cell.SetCellType(CellType.String);
-            cell.CellStyle = CreateStyle("text", cell, column.CellStyle);
+            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle);
         }
 
         cell.SetCellValue(val);

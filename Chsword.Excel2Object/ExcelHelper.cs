@@ -3,13 +3,12 @@ using Chsword.Excel2Object.Options;
 
 namespace Chsword.Excel2Object;
 
-public class ExcelHelper
+public static class ExcelHelper
 {
     public static byte[]? AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data,
         string sheetTitle)
     {
         var excelExporter = new ExcelExporter();
-
         return excelExporter.AppendObjectToExcelBytes(sourceExcelBytes, data, sheetTitle);
     }
 
@@ -49,9 +48,9 @@ public class ExcelHelper
     /// <param name="path">excel full path</param>
     public static void ObjectToExcel<TModel>(IEnumerable<TModel> data, string path) where TModel : class, new()
     {
-        var importer = new ExcelExporter();
-        var bytes = importer.ObjectToExcelBytes(data);
-        if (bytes != null) File.WriteAllBytes(path, bytes);
+        var excelExporter = new ExcelExporter();
+        var bytes = excelExporter.ObjectToExcelBytes(data);
+        WriteExcelBytesToFile(bytes, path);
     }
 
     /// <summary>
@@ -66,7 +65,7 @@ public class ExcelHelper
     {
         var excelExporter = new ExcelExporter();
         var bytes = excelExporter.ObjectToExcelBytes(data, excelType);
-        if (bytes != null) File.WriteAllBytes(path, bytes);
+        WriteExcelBytesToFile(bytes, path);
     }
 
     /// <summary>
@@ -87,7 +86,6 @@ public class ExcelHelper
 
     public static byte[]? ObjectToExcelBytes(DataTable dt, ExcelType excelType,
         string? sheetTitle = null)
-
     {
         var excelExporter = new ExcelExporter();
         return excelExporter.ObjectToExcelBytes(dt, excelType, sheetTitle);
@@ -98,5 +96,11 @@ public class ExcelHelper
     {
         var excelExporter = new ExcelExporter();
         return excelExporter.ObjectToExcelBytes(data, optionsAction);
+    }
+
+    private static void WriteExcelBytesToFile(byte[]? bytes, string path)
+    {
+        if (bytes != null) 
+            File.WriteAllBytes(path, bytes);
     }
 }
