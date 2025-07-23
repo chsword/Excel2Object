@@ -29,19 +29,43 @@ public class ExcelImporter
     {
         if (string.IsNullOrWhiteSpace(path))
             return null;
-        var bytes = File.ReadAllBytes(path);
-        return ExcelToObject<TModel>(bytes, optionAction);
+            
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"Excel file not found: {path}");
+            
+        try
+        {
+            var bytes = File.ReadAllBytes(path);
+            return ExcelToObject<TModel>(bytes, optionAction);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new Excel2ObjectException($"Access denied reading file: {path}", ex);
+        }
+        catch (IOException ex)
+        {
+            throw new Excel2ObjectException($"IO error reading file: {path}", ex);
+        }
     }
 
     public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes,
         Action<ExcelImporterOptions>? optionAction = null)
         where TModel : class, new()
     {
+        if (bytes == null)
+            throw new ArgumentNullException(nameof(bytes));
+            
+        if (bytes.Length == 0)
+            throw new ArgumentException("Byte array cannot be empty.", nameof(bytes));
+            
+        if (!ValidateExcelFileFormat(bytes))
+            throw new Excel2ObjectException("Invalid Excel file format. Only .xls and .xlsx files are supported.");
+        
         var options = new ExcelImporterOptions();
         optionAction?.Invoke(options);
         var result = GetDataRows(bytes, options);
         if (typeof(TModel) == typeof(Dictionary<string, object>))
-            return (InternalExcelToDictionary(result) as IEnumerable<TModel>)!;
+            return (InternalExcelToDictionary(result) as IEnumerable<TModel>)!;;
 
         var list = InternalExcelToObject<TModel>(result);
         return list;
@@ -51,6 +75,37 @@ public class ExcelImporter
         where TModel : class, new()
     {
         return ExcelToObject<TModel>(bytes, options => { options.SheetTitle = sheetTitle; });
+    }
+
+    /// <summary>
+    /// Validates if the specified file is a valid Excel file
+    /// </summary>
+    /// <param name="filePath">Path to the file to validate</param>
+    /// <returns>True if the file is a valid Excel file, false otherwise</returns>
+    public static bool IsValidExcelFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            return false;
+            
+        try
+        {
+            var bytes = File.ReadAllBytes(filePath);
+            return IsValidExcelFile(bytes);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// Validates if the byte array represents a valid Excel file
+    /// </summary>
+    /// <param name="bytes">The byte array to validate</param>
+    /// <returns>True if the data appears to be a valid Excel file, false otherwise</returns>
+    public static bool IsValidExcelFile(byte[] bytes)
+    {
+        return ValidateExcelFileFormat(bytes);
     }
 
     private static IEnumerable<Dictionary<string, object>> InternalExcelToDictionary(IEnumerator? result)
@@ -159,10 +214,10 @@ public class ExcelImporter
         if (string.IsNullOrEmpty(cellValue)) return null;
         if (bool.TryParse(cellValue, out var value)) return value;
         
-        var lowerValue = cellValue.ToLower();
-        if (ExcelConstants.BooleanValues.TrueValues.Any(v => v.Equals(lowerValue, StringComparison.OrdinalIgnoreCase)))
+        // Use StringComparison.OrdinalIgnoreCase instead of ToLower() for better performance
+        if (ExcelConstants.BooleanValues.TrueValues.Any(v => v.Equals(cellValue, StringComparison.OrdinalIgnoreCase)))
             return true;
-        if (ExcelConstants.BooleanValues.FalseValues.Any(v => v.Equals(lowerValue, StringComparison.OrdinalIgnoreCase)))
+        if (ExcelConstants.BooleanValues.FalseValues.Any(v => v.Equals(cellValue, StringComparison.OrdinalIgnoreCase)))
             return false;
             
         return Convert.ToBoolean(cellValue);
@@ -170,51 +225,48 @@ public class ExcelImporter
 
     private static object? GetCellDateTime(IRow row, int index)
     {
-        DateTime? result = null;
         try
         {
             var cell = row.GetCell(index);
-
             var cellValue = GetCellValue(cell);
             if (string.IsNullOrEmpty(cellValue)) return null;
 
-            switch (cell.CellType)
+            return cell.CellType switch
             {
-                case CellType.Numeric:
-                    try
-                    {
-                        result = cell.DateCellValue;
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                    }
-
-                    break;
-                case CellType.String:
-                    var str = cell.StringCellValue;
-                    result = GetDateTimeFromString(str);
-                    break;
-                case CellType.Blank:
-                    break;
-                case CellType.Unknown:
-                    break;
-                case CellType.Formula:
-                    break;
-                case CellType.Boolean:
-                    break;
-                case CellType.Error:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+                CellType.Numeric => TryGetDateCellValue(cell),
+                CellType.String => GetDateTimeFromString(cell.StringCellValue),
+                CellType.Blank or CellType.Unknown or CellType.Formula or CellType.Boolean or CellType.Error => null,
+                _ => null
+            };
         }
-        catch (Exception e)
+        catch (InvalidOperationException)
         {
-            Console.WriteLine(e);
+            // Cell contains invalid date format
+            return null;
         }
+        catch (FormatException)
+        {
+            // Cell value cannot be converted to DateTime
+            return null;
+        }
+        catch (Exception)
+        {
+            // Any other unexpected error - return null for robustness
+            return null;
+        }
+    }
 
-        return result;
+    private static DateTime? TryGetDateCellValue(ICell cell)
+    {
+        try
+        {
+            return cell.DateCellValue;
+        }
+        catch (Exception)
+        {
+            // If it's not a valid date, return null
+            return null;
+        }
     }
 
     private static object? GetCellUri(IRow row, int key)
@@ -225,47 +277,51 @@ public class ExcelImporter
 
     private static string GetCellValue(ICell? cell)
     {
-        var result = string.Empty;
-        if (cell == null) return result;
+        if (cell == null) return string.Empty;
+        
         try
         {
-            switch (cell.CellType)
+            return cell.CellType switch
             {
-                case CellType.Numeric:
-                    result = cell.NumericCellValue.ToString(CultureInfo.InvariantCulture);
-                    break;
-                case CellType.String:
-                    result = cell.StringCellValue;
-                    break;
-                case CellType.Blank:
-                    result = string.Empty;
-                    break;
-                case CellType.Formula:
-
-                    var e = WorkbookFactory.CreateFormulaEvaluator(cell.Sheet.Workbook);
-                    result = GetCellValue(e.EvaluateInCell(cell));
-                    //result = e.EvaluateInCell(row.GetCell(index)).StringCellValue;
-                    break;
-                //case CellType.Boolean:
-                //    result = row.GetCell(index).NumericCellValue.ToString();
-                //    break;
-                //case CellType.Error:
-                //    result = row.GetCell(index).NumericCellValue.ToString();
-                //    break;
-                //case CellType.Unknown:
-                //    result = row.GetCell(index).NumericCellValue.ToString();
-                //    break;
-                default:
-                    result = cell.ToString();
-                    break;
-            }
+                CellType.Numeric => cell.NumericCellValue.ToString(CultureInfo.InvariantCulture),
+                CellType.String => cell.StringCellValue,
+                CellType.Blank => string.Empty,
+                CellType.Formula => EvaluateFormula(cell),
+                CellType.Boolean => cell.BooleanCellValue.ToString(),
+                CellType.Error => ExcelConstants.CellTypes.Text, // Return placeholder for error cells
+                _ => cell.ToString() ?? string.Empty
+            };
         }
-        catch (Exception e)
+        catch (InvalidOperationException)
         {
-            Console.WriteLine(e);
+            // Cell type mismatch or invalid operation
+            return cell.ToString() ?? string.Empty;
         }
+        catch (InvalidCastException)
+        {
+            // Type conversion error
+            return cell.ToString() ?? string.Empty;
+        }
+        catch (Exception)
+        {
+            // Any other error - return empty string for robustness
+            return string.Empty;
+        }
+    }
 
-        return (result ?? "").Trim();
+    private static string EvaluateFormula(ICell cell)
+    {
+        try
+        {
+            var evaluator = WorkbookFactory.CreateFormulaEvaluator(cell.Sheet.Workbook);
+            var evaluatedCell = evaluator.EvaluateInCell(cell);
+            return GetCellValue(evaluatedCell).Trim();
+        }
+        catch (Exception)
+        {
+            // If formula evaluation fails, return the raw formula
+            return cell.CellFormula ?? string.Empty;
+        }
     }
 
     private static string GetCellValue(IRow row, int index)
@@ -339,8 +395,54 @@ public class ExcelImporter
     {
         var cellValue = GetCellValue(row, key);
         if (string.IsNullOrEmpty(cellValue)) return null;
-        if (Enum.GetNames(enumType).Contains(cellValue)) return Enum.Parse(enumType, cellValue);
-
-        return Enum.Parse(enumType, "0");
+        
+        try
+        {
+            // Try exact match first
+            if (Enum.GetNames(enumType).Contains(cellValue))
+                return Enum.Parse(enumType, cellValue);
+            
+            // Try case-insensitive match using Enum.Parse with ignoreCase parameter
+            return Enum.Parse(enumType, cellValue, true);
+        }
+        catch (ArgumentException)
+        {
+            // Try parsing as integer value if string parsing fails
+            if (int.TryParse(cellValue, out var intValue) && Enum.IsDefined(enumType, intValue))
+                return Enum.ToObject(enumType, intValue);
+            
+            // Default to first enum value (0) if no match found
+            var enumValues = Enum.GetValues(enumType);
+            return enumValues.Length > 0 ? enumValues.GetValue(0) : null;
+        }
+    }
+    
+    /// <summary>
+    /// Validates if the byte array represents a valid Excel file (.xls or .xlsx)
+    /// </summary>
+    /// <param name="bytes">The byte array to validate</param>
+    /// <returns>True if the file appears to be a valid Excel file, false otherwise</returns>
+    private static bool ValidateExcelFileFormat(byte[] bytes)
+    {
+        if (bytes.Length < 8) return false;
+        
+        // Check for Excel file signatures
+        // XLSX (Office Open XML) starts with PK (ZIP file)
+        if (bytes[0] == 0x50 && bytes[1] == 0x4B)
+        {
+            return true; // XLSX file
+        }
+        
+        // XLS (BIFF8) file signature
+        if (bytes.Length >= 512 && 
+            bytes[0] == 0xD0 && bytes[1] == 0xCF && 
+            bytes[2] == 0x11 && bytes[3] == 0xE0 && 
+            bytes[4] == 0xA1 && bytes[5] == 0xB1 && 
+            bytes[6] == 0x1A && bytes[7] == 0xE1)
+        {
+            return true; // XLS file
+        }
+        
+        return false;
     }
 }

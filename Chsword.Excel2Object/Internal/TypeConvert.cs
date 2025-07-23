@@ -46,35 +46,32 @@ internal static class TypeConvert
         var attrDict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
         var objKeysArray = attrDict.OrderBy(c => c.Value.Order).ToArray();
 
-        var columns = new List<ExcelColumn>();
-        for (var i = 0; i < objKeysArray.Length; i++)
+        var columns = objKeysArray.Select((kvp, index) => 
         {
-            var titleAttr = objKeysArray[i].Value;
+            var titleAttr = kvp.Value;
             var column = new ExcelColumn
             {
                 Title = titleAttr.Title,
-                Type = objKeysArray[i].Key.PropertyType,
-                Order = i
+                Type = kvp.Key.PropertyType,
+                Order = index
             };
+            
             if (titleAttr is ExcelColumnAttribute excelColumnAttr)
             {
                 column.CellStyle = excelColumnAttr;
                 column.HeaderStyle = excelColumnAttr;
             }
 
-            columns.Add(column);
-        }
+            return column;
+        }).ToList();
 
         sheet.Columns = AttachColumns(columns, options);
         foreach (var item in data.Where(c => c != null))
         {
-            var row = new Dictionary<string, object>();
-            foreach (var column in objKeysArray)
-            {
-                var prop = column.Key;
-                row[column.Value.Title] = prop.GetValue(item, null);
-            }
-
+            var row = objKeysArray.ToDictionary(
+                column => column.Value.Title,
+                column => column.Key.GetValue(item, null)
+            );
             sheet.Rows.Add(row);
         }
 

@@ -24,18 +24,17 @@ internal static class ExcelUtil
     /// <returns></returns>
     public static Dictionary<PropertyInfo, ExcelTitleAttribute> GetPropertiesAttributesDict<T>()
     {
-        var dict = new Dictionary<PropertyInfo, ExcelTitleAttribute>();
         var defaultOrder = 10000;
         var props = typeof(T).GetTypeInfo().GetRuntimeProperties();
-        foreach (var propertyInfo in props)
-        {
-            var attrs = propertyInfo.GetCustomAttributes(true);
-            var attr = GetExcelTitleAttributeFromAttributes(attrs, defaultOrder++);
-            if (attr == null) continue;
-            dict.Add(propertyInfo, attr);
-        }
-
-        return dict;
+        
+        return props
+            .Select(propertyInfo => new
+            {
+                Property = propertyInfo,
+                Attribute = GetExcelTitleAttributeFromAttributes(propertyInfo.GetCustomAttributes(true).ToArray(), defaultOrder++)
+            })
+            .Where(x => x.Attribute != null)
+            .ToDictionary(x => x.Property, x => x.Attribute!);
     }
 
     /// <summary>

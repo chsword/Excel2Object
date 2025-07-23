@@ -238,7 +238,41 @@ public class ExcelExporter
     // ReSharper disable once UnusedParameter.Local
     private void CheckExcelModel(ExcelModel excel)
     {
-        //todo validate
+        if (excel == null)
+            throw new ArgumentNullException(nameof(excel));
+            
+        if (excel.Sheets == null || !excel.Sheets.Any())
+            throw new Excel2ObjectException("ExcelModel must contain at least one sheet.");
+            
+        foreach (var sheet in excel.Sheets)
+        {
+            if (sheet == null)
+                throw new Excel2ObjectException("ExcelModel contains null sheet.");
+                
+            if (sheet.Columns == null || !sheet.Columns.Any())
+                throw new Excel2ObjectException($"Sheet '{sheet.Title ?? "Unknown"}' must contain at least one column.");
+                
+            // Validate column order uniqueness
+            var duplicateOrders = sheet.Columns
+                .GroupBy(c => c.Order)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToArray();
+                
+            if (duplicateOrders.Any())
+                throw new Excel2ObjectException($"Sheet '{sheet.Title ?? "Unknown"}' contains duplicate column orders: {string.Join(", ", duplicateOrders)}");
+                
+            // Validate column titles
+            var duplicateTitles = sheet.Columns
+                .Where(c => !string.IsNullOrWhiteSpace(c.Title))
+                .GroupBy(c => c.Title)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToArray();
+                
+            if (duplicateTitles.Any())
+                throw new Excel2ObjectException($"Sheet '{sheet.Title ?? "Unknown"}' contains duplicate column titles: {string.Join(", ", duplicateTitles)}");
+        }
     }
 
     private ICellStyle? CreateStyle(string type, ICell cell, IExcelCellStyle? style)
@@ -249,17 +283,17 @@ public class ExcelExporter
 
         var font = StyleToFont(cell, style);
 
-        if (key == "text")
+        if (key == ExcelConstants.CellTypes.Text)
         {
             var s1 = cell.Sheet.Workbook.CreateCellStyle();
             if (font != null)
                 s1.SetFont(font);
-            s1.DataFormat = HSSFDataFormat.GetBuiltinFormat("text");
+            s1.DataFormat = HSSFDataFormat.GetBuiltinFormat(ExcelConstants.CellTypes.Text);
             _cellStyleDict.AddOrUpdate(key, s1, (_, _) => s1);
             return s1;
         }
 
-        if (key == "datatime")
+        if (key == ExcelConstants.CellTypes.DateTime)
         {
             var s1 = cell.Sheet.Workbook.CreateCellStyle();
             if (font != null) s1.SetFont(font);
