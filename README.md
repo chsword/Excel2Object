@@ -32,11 +32,17 @@ PM> Install-Package Chsword.Excel2Object
 #### Features not supported
 
 - [ ] cli tool
-- [ ] support auto width column
+- [x] support auto width column ✅ **New in v2.0.1**
 - [ ] 1. support date datetime time in excel\
 
 #### Release Notes
 
+* **2025.07.23** - v2.0.1
+- [x] ✨ **NEW:** Auto column width adjustment based on content
+  - Automatically calculates optimal column widths
+  - Supports minimum and maximum width constraints
+  - Handles Chinese/Unicode characters properly
+  - Configurable through `ExcelExporterOptions`
 * **2024.10.21**
 - [x] update SixLabors.ImageSharp to 2.1.9
 - [x] test for .net8.0
@@ -164,6 +170,19 @@ Convert Excel file to Object
       IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>("c:\\demo.xls");
       // also can use bytes
       //IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>(bytes);
+```
+
+Auto Column Width (New Feature)
+``` csharp
+      // Enable auto column width adjustment
+      var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+      {
+          options.ExcelType = ExcelType.Xlsx;
+          options.AutoColumnWidth = true;        // Enable auto width
+          options.MinColumnWidth = 8;            // Minimum width in characters
+          options.MaxColumnWidth = 50;           // Maximum width in characters
+          options.DefaultColumnWidth = 16;       // Default width when auto is disabled
+      });
 ```
 
 With ASP.NET MVC

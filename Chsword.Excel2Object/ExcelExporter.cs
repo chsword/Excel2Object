@@ -97,8 +97,24 @@ public class ExcelExporter
                     : workbook.CreateSheet(excelSheet.Title);
                 sheet.ForceFormulaRecalculation = true;
                 var columns = excelSheet.Columns.OrderBy(c => c.Order).ToArray();
-                for (var i = 0; i < columns.Length; i++) sheet.SetColumnWidth(i, 16 * 256);
-                // todo 此处可统计字节数Min(50,Max(16,标题与内容最大长))
+                
+                // Calculate column widths
+                if (options.AutoColumnWidth)
+                {
+                    var columnWidths = CalculateColumnWidths(columns, excelSheet.Rows, options, options.MappingColumnAction);
+                    for (var i = 0; i < columns.Length; i++)
+                    {
+                        sheet.SetColumnWidth(i, columnWidths[i] * 256);
+                    }
+                }
+                else
+                {
+                    for (var i = 0; i < columns.Length; i++)
+                    {
+                        sheet.SetColumnWidth(i, options.DefaultColumnWidth * 256);
+                    }
+                }
+                
                 var headerRow = sheet.CreateRow(0);
                 for (var i = 0; i < columns.Length; i++)
                 {
@@ -342,5 +358,76 @@ public class ExcelExporter
         }
 
         cell.SetCellValue(val);
+    }
+
+    /// <summary>
+    /// Calculate optimal column widths based on content
+    /// </summary>
+    private int[] CalculateColumnWidths(ExcelColumn[] columns, IEnumerable<Dictionary<string, object>> data, 
+        ExcelExporterOptions options, Func<string, Type, string> mappingColumnAction)
+    {
+        var columnWidths = new int[columns.Length];
+        
+        // Initialize with header widths
+        for (var i = 0; i < columns.Length; i++)
+        {
+            var headerText = mappingColumnAction(columns[i].Title ?? "", columns[i].Type);
+            columnWidths[i] = CalculateTextWidth(headerText);
+        }
+
+        // Calculate widths based on data content
+        foreach (var item in data)
+        {
+            for (var i = 0; i < columns.Length; i++)
+            {
+                var column = columns[i];
+                if (column.Title != null && item.TryGetValue(column.Title, out var value))
+                {
+                    var cellText = (value ?? "").ToString() ?? "";
+                    var textWidth = CalculateTextWidth(cellText);
+                    if (textWidth > columnWidths[i])
+                    {
+                        columnWidths[i] = textWidth;
+                    }
+                }
+            }
+        }
+
+        // Apply min/max constraints
+        for (var i = 0; i < columnWidths.Length; i++)
+        {
+            columnWidths[i] = Math.Max(options.MinColumnWidth, 
+                Math.Min(options.MaxColumnWidth, columnWidths[i]));
+        }
+
+        return columnWidths;
+    }
+
+    /// <summary>
+    /// Calculate text width in characters (approximation)
+    /// </summary>
+    private static int CalculateTextWidth(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return 1;
+
+        // Basic character width calculation
+        // This is a simple approximation - could be enhanced with font metrics
+        double width = 0;
+        foreach (var c in text)
+        {
+            if (char.IsControl(c))
+                continue;
+                
+            // Wide characters (like Chinese) count as 2, others as 1
+            if (c > 127)
+                width += 2;
+            else if (char.IsUpper(c) || "MWmw".Contains(c))
+                width += 1.2; // Slightly wider for uppercase and wide letters
+            else
+                width += 1;
+        }
+
+        return (int)Math.Ceiling(width) + 2; // Add padding
     }
 }
