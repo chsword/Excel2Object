@@ -11,6 +11,8 @@ public class TestModelPerson
     [ExcelTitle("年龄")] public int? Age { get; set; }
     [ExcelTitle("出生日期")] public DateTime? Birthday { get; set; }
     [ExcelTitle("创建时间")] public DateTime? CreateTime { get; set; }
+    [ExcelTitle("是否活跃")] public bool IsActive { get; set; }
+    [ExcelTitle("薪资")] public decimal Salary { get; set; }
 }
 
 [ExcelTitle("Test Strict Person")]

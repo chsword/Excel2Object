@@ -52,23 +52,26 @@ public class ExcelImporter
         Action<ExcelImporterOptions>? optionAction = null)
         where TModel : class, new()
     {
-        if (bytes == null)
-            throw new ArgumentNullException(nameof(bytes));
+        return PerformanceMonitor.Monitor($"ExcelToObject<{typeof(TModel).Name}>", () =>
+        {
+            if (bytes == null)
+                throw new ArgumentNullException(nameof(bytes));
+                
+            if (bytes.Length == 0)
+                throw new ArgumentException("Byte array cannot be empty.", nameof(bytes));
+                
+            if (!ValidateExcelFileFormat(bytes))
+                throw new Excel2ObjectException("Invalid Excel file format. Only .xls and .xlsx files are supported.");
             
-        if (bytes.Length == 0)
-            throw new ArgumentException("Byte array cannot be empty.", nameof(bytes));
-            
-        if (!ValidateExcelFileFormat(bytes))
-            throw new Excel2ObjectException("Invalid Excel file format. Only .xls and .xlsx files are supported.");
-        
-        var options = new ExcelImporterOptions();
-        optionAction?.Invoke(options);
-        var result = GetDataRows(bytes, options);
-        if (typeof(TModel) == typeof(Dictionary<string, object>))
-            return (InternalExcelToDictionary(result) as IEnumerable<TModel>)!;
+            var options = new ExcelImporterOptions();
+            optionAction?.Invoke(options);
+            var result = GetDataRows(bytes, options);
+            if (typeof(TModel) == typeof(Dictionary<string, object>))
+                return (InternalExcelToDictionary(result) as IEnumerable<TModel>)!;
 
-        var list = InternalExcelToObject<TModel>(result);
-        return list;
+            var list = InternalExcelToObject<TModel>(result);
+            return list;
+        });
     }
 
     public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string? sheetTitle)
@@ -143,30 +146,33 @@ public class ExcelImporter
         CancellationToken cancellationToken = default)
         where TModel : class, new()
     {
-        if (bytes == null)
-            throw new ArgumentNullException(nameof(bytes));
-            
-        if (bytes.Length == 0)
-            throw new ArgumentException("Byte array cannot be empty.", nameof(bytes));
-            
-        if (!ValidateExcelFileFormat(bytes))
-            throw new Excel2ObjectException("Invalid Excel file format. Only .xls and .xlsx files are supported.");
-        
-        var options = new ExcelImporterOptions();
-        optionAction?.Invoke(options);
-        
-        // Run the potentially blocking operations on a background thread
-        var result = await Task.Run(() => 
+        return await PerformanceMonitor.MonitorAsync($"ExcelToObjectAsync<{typeof(TModel).Name}>", async () =>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            return GetDataRows(bytes, options);
-        }, cancellationToken);
-        
-        if (typeof(TModel) == typeof(Dictionary<string, object>))
-            return (await InternalExcelToDictionaryAsync(result, cancellationToken) as IEnumerable<TModel>)!;
+            if (bytes == null)
+                throw new ArgumentNullException(nameof(bytes));
+                
+            if (bytes.Length == 0)
+                throw new ArgumentException("Byte array cannot be empty.", nameof(bytes));
+                
+            if (!ValidateExcelFileFormat(bytes))
+                throw new Excel2ObjectException("Invalid Excel file format. Only .xls and .xlsx files are supported.");
+            
+            var options = new ExcelImporterOptions();
+            optionAction?.Invoke(options);
+            
+            // Run the potentially blocking operations on a background thread
+            var result = await Task.Run(() => 
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return GetDataRows(bytes, options);
+            }, cancellationToken);
+            
+            if (typeof(TModel) == typeof(Dictionary<string, object>))
+                return (await InternalExcelToDictionaryAsync(result, cancellationToken) as IEnumerable<TModel>)!;
 
-        var list = await InternalExcelToObjectAsync<TModel>(result, cancellationToken);
-        return list;
+            var list = await InternalExcelToObjectAsync<TModel>(result, cancellationToken);
+            return list;
+        });
     }
 
     /// <summary>

@@ -44,9 +44,17 @@ internal class ExpressionConvert
     public string Convert(Expression? expression)
     {
         if (expression == null) return string.Empty;
-        return expression.NodeType == ExpressionType.Lambda
-            ? InternalConvert((expression as LambdaExpression)?.Body)
-            : string.Empty;
+        
+        if (expression.NodeType == ExpressionType.Lambda)
+        {
+            var body = (expression as LambdaExpression)?.Body;
+            if (body == null) return string.Empty;
+            
+            // 使用缓存机制优化性能
+            return ExpressionCache.GetOrAdd(body, Columns, RowIndex, () => InternalConvert(body));
+        }
+        
+        return string.Empty;
     }
 
     private static string ConvertConstant(Expression expression)
