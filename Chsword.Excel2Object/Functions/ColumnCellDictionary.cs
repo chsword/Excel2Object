@@ -23,6 +23,6 @@ public class ColumnCellDictionary : Dictionary<string, ColumnValue>
     /// <returns>A <see cref="ColumnMatrix"/> representing the matrix of column values.</returns>
     public ColumnMatrix Matrix(string keyA, int rowA, string keyB, int rowB)
     {
-        throw new NotImplementedException();
+        return new ColumnMatrix(keyA, rowA, keyB, rowB);
     }
 }

@@ -88,8 +88,9 @@ namespace Chsword.Excel2Object.Tests
         public void TestTemplateEngine_Feature()
         {
             // Excel模板引擎
-            var templatePath = "Templates/ReportTemplate.xlsx";
-            var outputPath = "Output/GeneratedReport.xlsx";
+            // TODO: 实现模板引擎功能
+            // var templatePath = "Templates/ReportTemplate.xlsx";
+            // var outputPath = "Output/GeneratedReport.xlsx";
             
             var templateData = new
             {

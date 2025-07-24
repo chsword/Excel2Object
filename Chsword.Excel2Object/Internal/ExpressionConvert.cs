@@ -136,8 +136,52 @@ internal class ExpressionConvert
     {
         if (exp is not ConstantExpression constant) return "null";
         var key = constant.Value?.ToString();
+        
+        // 如果key是完整的单元格引用（如 "A1", "B5"），直接返回
+        if (!string.IsNullOrEmpty(key) && IsExcelCellReference(key))
+        {
+            return key;
+        }
+        
+        // 如果key是直接的Excel列名（如 "A", "B", "C"），直接返回
+        if (!string.IsNullOrEmpty(key) && IsExcelColumnName(key))
+        {
+            return key;
+        }
+        
+        // 否则查找在Columns数组中的位置
         var columnIndex = Array.IndexOf(Columns, key);
         return columnIndex == -1 ? $"ERROR key:{key}" : ExcelColumnNameParser.Parse(columnIndex);
+    }
+
+    private bool IsExcelColumnName(string key)
+    {
+        return !string.IsNullOrEmpty(key) && key.All(c => c >= 'A' && c <= 'Z');
+    }
+
+    private bool IsExcelCellReference(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return false;
+        
+        // 检查是否符合Excel单元格引用格式（如A1, B5, AA123）
+        int i = 0;
+        // 检查列部分（字母）
+        while (i < key.Length && key[i] >= 'A' && key[i] <= 'Z')
+        {
+            i++;
+        }
+        
+        // 必须有至少一个字母，且后面跟着数字
+        if (i == 0 || i == key.Length) return false;
+        
+        // 检查行部分（数字）
+        while (i < key.Length && char.IsDigit(key[i]))
+        {
+            i++;
+        }
+        
+        // 整个字符串必须被消费完
+        return i == key.Length;
     }
 
     private string InternalConvert(params Expression?[] expressions)
