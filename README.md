@@ -192,6 +192,11 @@ With ASP.NET MVC
 
 http://www.cnblogs.com/chsword/p/excel2object.html
 
+### Contributors
+
+
+[![Contributors](https://contrib.rocks/image?repo=chsword/Excel2Object)](https://github.com/chsword/Excel2Object/graphs/contributors)
+
 ### Reference
 
 https://github.com/tonyqus/npoi
