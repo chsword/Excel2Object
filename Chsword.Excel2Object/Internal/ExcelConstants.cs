@@ -27,5 +27,64 @@ internal static class ExcelConstants
         public const string DaySuffix = "日";
         public const string DefaultYearMonthSuffix = "-01-01";
         public const string DefaultDaySuffix = "-01";
+        
+        // Common date/time format patterns for parsing
+        public static readonly string[] CommonDateTimeFormats = 
+        {
+            // ISO 8601 formats
+            "yyyy-MM-ddTHH:mm:ss",
+            "yyyy-MM-ddTHH:mm:ssZ",
+            "yyyy-MM-ddTHH:mm:ss.fff",
+            "yyyy-MM-ddTHH:mm:ss.fffZ",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
+            
+            // Date with various separators
+            "yyyy-MM-dd",
+            "yyyy/MM/dd",
+            "yyyy.MM.dd",
+            "dd-MM-yyyy",
+            "dd/MM/yyyy",
+            "dd.MM.yyyy",
+            "MM-dd-yyyy",
+            "MM/dd/yyyy",
+            "MM.dd.yyyy",
+            
+            // Date with time (12-hour format)
+            "yyyy-MM-dd hh:mm:ss tt",
+            "yyyy-MM-dd hh:mm tt",
+            "dd-MM-yyyy hh:mm:ss tt",
+            "dd/MM/yyyy hh:mm:ss tt",
+            "MM-dd-yyyy hh:mm:ss tt",
+            "MM/dd/yyyy hh:mm:ss tt",
+            
+            // Date with time (24-hour format)
+            "dd-MM-yyyy HH:mm:ss",
+            "dd/MM/yyyy HH:mm:ss",
+            "MM-dd-yyyy HH:mm:ss",
+            "MM/dd/yyyy HH:mm:ss",
+            "dd-MM-yyyy HH:mm",
+            "dd/MM/yyyy HH:mm",
+            "MM-dd-yyyy HH:mm",
+            "MM/dd/yyyy HH:mm",
+            
+            // Short date formats
+            "yyyy/M/d",
+            "yyyy-M-d",
+            "d/M/yyyy",
+            "d-M-yyyy",
+            "M/d/yyyy",
+            "M-d-yyyy",
+            
+            // Time only formats
+            "HH:mm:ss",
+            "HH:mm",
+            "hh:mm:ss tt",
+            "hh:mm tt",
+            "H:mm:ss",
+            "H:mm",
+            "h:mm:ss tt",
+            "h:mm tt"
+        };
     }
 }
