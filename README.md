@@ -41,11 +41,18 @@ dotnet add package Chsword.Excel2Object
 
 - [ ] CLI 工具
 - [x] 支持自动列宽 ✅ **v2.0.1 新增**
-- [ ] 支持 Excel 日期/日期时间/时间格式
+- [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.2 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 
 ### 发布说明
 
 * **2025.01.XX** - v2.0.2
+- [x] ✨ **新增:** 全面的日期/时间格式支持（56 种格式）- 查看 [DateTimeFormats.md](DateTimeFormats.md)
+  - ISO 8601 格式（支持时区和毫秒）
+  - 多种日期分隔符（横线、斜线、点号）
+  - 12 小时制和 24 小时制时间格式
+  - 仅时间格式
+  - 区域格式支持（美国、欧洲等）
+  - 向后兼容现有的中文日期格式（年月日）
 - [x] ✨ **更新:** NPOI 到 2.7.5
 - [x] ✨ **更新:** SixLabors.ImageSharp 到 3.1.11（修复安全漏洞）
 

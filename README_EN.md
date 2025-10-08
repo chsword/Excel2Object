@@ -39,11 +39,18 @@ dotnet add package Chsword.Excel2Object
 
 - [ ] CLI tool
 - [x] Support auto width column ✅ **New in v2.0.1**
-- [ ] Support date/datetime/time formats in Excel
+- [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.2** - See [DateTimeFormats.md](DateTimeFormats.md)
 
 ### Release Notes
 
 * **2025.01.XX** - v2.0.2
+- [x] ✨ **NEW:** Comprehensive date/time format support (56 formats) - See [DateTimeFormats.md](DateTimeFormats.md)
+  - ISO 8601 formats with/without timezone and milliseconds
+  - Multiple date separators (dash, slash, dot)
+  - 12-hour and 24-hour time formats
+  - Time-only formats
+  - Regional format support (US, European, etc.)
+  - Backward compatible with existing Chinese date formats (年月日)
 - [x] ✨ **Updated:** NPOI to 2.7.5
 - [x] ✨ **Updated:** SixLabors.ImageSharp to 3.1.11 (Fixed security vulnerability)
 
