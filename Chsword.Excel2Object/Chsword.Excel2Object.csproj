@@ -9,7 +9,7 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Product>Chsword.Excel2Object Library</Product>
 		<Authors>Zou Jian</Authors>
-		<Version>2.0.1</Version>
+		<Version>2.0.2</Version>
 		<Copyright>Copyright © 2014-2025</Copyright>
 		<PackageProjectUrl>https://github.com/chsword/Excel2Object/</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -39,7 +39,7 @@
 		<None Include="..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="NPOI" Version="2.7.4" />
-		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.10" PrivateAssets="all" IncludeAssets="runtime" />
+		<PackageReference Include="NPOI" Version="2.7.5" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" PrivateAssets="all" IncludeAssets="runtime" />
 	</ItemGroup>
 </Project>

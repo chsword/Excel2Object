@@ -5,16 +5,18 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/4po2h27j7yg4bph5/branch/master?svg=true)](https://ci.appveyor.com/project/chsword/excel2object)
 [![CodeFactor](https://www.codefactor.io/repository/github/chsword/excel2object/badge)](https://www.codefactor.io/repository/github/chsword/excel2object)
 
-Excel convert to .NET Object / .NET Object convert to Excel.
+Excel 与 .NET 对象互相转换 / Excel convert to .NET Object and vice versa.
+
+[English](README_EN.md) | 中文
 
 - [Top](#excel2object)
-    - [NuGet install](#nuget-install)
-    - [Release notes and roadmap](#release-notes-and-roadmap)
-    - [Demo code](#demo-code)
-    - [Document](#document)
-    - [Reference](#reference)
+    - [安装 NuGet](#安装-nuget)
+    - [发布说明和路线图](#发布说明和路线图)
+    - [示例代码](#示例代码)
+    - [文档](#文档)
+    - [参考](#参考)
 
-Platform
+## 平台支持
 
 [![.NET 4.7.2 +](https://img.shields.io/badge/-4.7.2%2B-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
 [![.NET Standard 2.0](https://img.shields.io/badge/-standard2.0-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
@@ -22,53 +24,74 @@ Platform
 [![.NET 6.0](https://img.shields.io/badge/-6.0-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
 [![.NET 8.0](https://img.shields.io/badge/-8.0-brightgreen?logo=dotnet&style=for-the-badge&color=blue)](#)
 
-### NuGet Install
+## 安装 NuGet
+
 ``` powershell
 PM> Install-Package Chsword.Excel2Object
 ```
 
-### Release Notes and roadmap
+或使用 .NET CLI:
+``` bash
+dotnet add package Chsword.Excel2Object
+```
 
-#### Features not supported
+## 发布说明和路线图
 
-- [ ] cli tool
-- [x] support auto width column ✅ **New in v2.0.1**
-- [ ] 1. support date datetime time in excel\
+### 暂不支持的特性
 
-#### Release Notes
+- [ ] CLI 工具
+- [x] 支持自动列宽 ✅ **v2.0.1 新增**
+- [ ] 支持 Excel 日期/日期时间/时间格式
+
+### 发布说明
+
+* **2025.01.XX** - v2.0.2
+- [x] ✨ **更新:** NPOI 到 2.7.5
+- [x] ✨ **更新:** SixLabors.ImageSharp 到 3.1.11（修复安全漏洞）
 
 * **2025.07.23** - v2.0.1
-- [x] ✨ **NEW:** Auto column width adjustment based on content
-  - Automatically calculates optimal column widths
-  - Supports minimum and maximum width constraints
-  - Handles Chinese/Unicode characters properly
-  - Configurable through `ExcelExporterOptions`
+- [x] ✨ **新增:** 基于内容的自动列宽调整
+  - 自动计算最优列宽
+  - 支持最小和最大宽度限制
+  - 正确处理中文/Unicode 字符
+  - 可通过 `ExcelExporterOptions` 配置
+
 * **2024.10.21**
-- [x] update SixLabors.ImageSharp to 2.1.9
-- [x] test for .net8.0
+- [x] 更新 SixLabors.ImageSharp 到 2.1.9
+- [x] 测试 .NET 8.0
+
 * **2024.05.10**
-- [x] support .net8.0 / .net6.0 / .netstandard2.1 / .netstandard2.0 / .net4.7.2
-- [x] clear deprecated library
+- [x] 支持 .NET 8.0 / .NET 6.0 / .NET Standard 2.1 / .NET Standard 2.0 / .NET Framework 4.7.2
+- [x] 清理已弃用的库
+
 * **2023.11.02**
-- [x] support column title mapping Issue39DynamicMappingTitle.cs
+- [x] 支持列标题映射 - [Issue39DynamicMappingTitle.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue39DynamicMappingTitle.cs)
+
 * **2023.07.31**
-- [x] support DateTime and Nullable<DateTime> format ,such as `[ExcelColumn("Title",Format="yyyy-MM-dd HH:mm:ss")]`
+- [x] 支持 DateTime 和 Nullable<DateTime> 格式，如 `[ExcelColumn("Title",Format="yyyy-MM-dd HH:mm:ss")]`
+
 * **2023.03.26**
-- [x] support special symbol in columns title #37 [Issue37SpecialCharTest.cs](https://github.com/chsword/Excel2Object/commit/273122275e724367bb6154e03df61702fcec81b3#diff-5f0f5f7558bf7d4207cfa752a4506c4df89d9b491e2501e4862aff0c2276bd61)
+- [x] 支持列标题中的特殊符号 #37 - [Issue37SpecialCharTest.cs](https://github.com/chsword/Excel2Object/commit/273122275e724367bb6154e03df61702fcec81b3#diff-5f0f5f7558bf7d4207cfa752a4506c4df89d9b491e2501e4862aff0c2276bd61)
+
 * **2023.02.20**
-- [x] support platform netstandard2.0/netstandard2.1/.net6.0/.netframework4.7.2
+- [x] 支持平台：.NET Standard 2.0/2.1、.NET 6.0、.NET Framework 4.7.2
+
 * **2022.03.19**
-- [x] support ExcelImporterOptions , Skipline [Issue32SkipLineImport.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue32SkipLineImport.cs)
-- [x] fixed super class prop bug [Issue31SuperClass.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue31SuperClass.cs)
+- [x] 支持 ExcelImporterOptions，跳过行 - [Issue32SkipLineImport.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue32SkipLineImport.cs)
+- [x] 修复超类属性 bug - [Issue31SuperClass.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue31SuperClass.cs)
+
 * **2021.11.4**
-- [x] multiple sheet , demo & test file : [Pr28MultipleSheetTest.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Pr28MultipleSheetTest.cs)
+- [x] 多 sheet 支持 - [Pr28MultipleSheetTest.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Pr28MultipleSheetTest.cs)
+
 * **2021.10.23**
-- [x] Nullable DateTime bugfixed @SunBrook 
+- [x] 修复 Nullable DateTime bug @SunBrook
+
 * **2021.10.22**
-- [x] support Nullable, test file :[Pr24NullableTest.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Pr24NullableTest.cs) @SunBrook 
+- [x] 支持 Nullable 类型 - [Pr24NullableTest.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Pr24NullableTest.cs) @SunBrook
+
 * **2021.5.28**
-- [x] support style for header & cell, new [ExcelColumnAttribute] for column.
-- [x] support Functions [./ExcelFunctions.md](./ExcelFunctions.md)
+- [x] 支持表头和单元格样式，新增列的 [ExcelColumnAttribute] 
+- [x] 支持公式 - [ExcelFunctions.md](./ExcelFunctions.md)
 
 ```C#
 var list = new List<Pr20Model>
@@ -134,71 +157,82 @@ Support complex Boolean type
 Add ExcelToObject<T>(bytes)
 ```
 
-### Demo Code
 
-Model
+## 示例代码
+
+### 定义模型
+
 ``` csharp
-    public class ReportModel
-    {
-        [Excel("My Title",Order=1)]
-        public string Title { get; set; }
-        [Excel("User Name",Order=2)]
-        public string Name { get; set; }
-    }
+public class ReportModel
+{
+    [Excel("My Title", Order=1)]
+    public string Title { get; set; }
+    
+    [Excel("User Name", Order=2)]
+    public string Name { get; set; }
+}
 ```
 
-Model List
+### 创建模型列表
+
 ``` csharp
-      var models = new List<ReportModel>
-            {
-                new ReportModel{Name="a",Title="b"},
-                new ReportModel{Name="c",Title="d"},
-                new ReportModel{Name="f",Title="e"}
-            };
+var models = new List<ReportModel>
+{
+    new ReportModel{Name="a", Title="b"},
+    new ReportModel{Name="c", Title="d"},
+    new ReportModel{Name="f", Title="e"}
+};
 ```
 
-Convert Object to Excel file.
+### 对象转 Excel 文件
+
 ``` csharp
-      var exporter = new ExcelExporter();
-      var bytes = exporter.ObjectToExcelBytes(models);
-      File.WriteAllBytes("C:\\demo.xls", bytes);
+var exporter = new ExcelExporter();
+var bytes = exporter.ObjectToExcelBytes(models);
+File.WriteAllBytes("C:\\demo.xls", bytes);
 ```
 
-Convert Excel file to Object
+### Excel 文件转对象
+
 ``` csharp
-      var importer = new ExcelImporter();
-      IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>("c:\\demo.xls");
-      // also can use bytes
-      //IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>(bytes);
+var importer = new ExcelImporter();
+IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>("c:\\demo.xls");
+
+// 也可以直接使用字节数组
+// IEnumerable<ReportModel> result = importer.ExcelToObject<ReportModel>(bytes);
 ```
 
-Auto Column Width (New Feature)
+### 自动列宽（新特性）
+
 ``` csharp
-      // Enable auto column width adjustment
-      var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
-      {
-          options.ExcelType = ExcelType.Xlsx;
-          options.AutoColumnWidth = true;        // Enable auto width
-          options.MinColumnWidth = 8;            // Minimum width in characters
-          options.MaxColumnWidth = 50;           // Maximum width in characters
-          options.DefaultColumnWidth = 16;       // Default width when auto is disabled
-      });
+// 启用自动列宽调整
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    options.ExcelType = ExcelType.Xlsx;
+    options.AutoColumnWidth = true;        // 启用自动宽度
+    options.MinColumnWidth = 8;            // 最小宽度（字符）
+    options.MaxColumnWidth = 50;           // 最大宽度（字符）
+    options.DefaultColumnWidth = 16;       // 禁用自动时的默认宽度
+});
 ```
 
-With ASP.NET MVC
-      In ASP.NET MVC Model, DisplayAttribute can be supported like ExcelTitleAttribute.
+### 在 ASP.NET MVC 中使用
 
-### Document
+在 ASP.NET MVC 模型中，`DisplayAttribute` 可以像 `ExcelTitleAttribute` 一样被支持。
 
-http://www.cnblogs.com/chsword/p/excel2object.html
+## 文档
 
-### Contributors
+更多信息请访问：http://www.cnblogs.com/chsword/p/excel2object.html
 
+## 贡献者
 
 [![Contributors](https://contrib.rocks/image?repo=chsword/Excel2Object)](https://github.com/chsword/Excel2Object/graphs/contributors)
 
-### Reference
+## 参考
 
-https://github.com/tonyqus/npoi
+- https://github.com/tonyqus/npoi
+- https://github.com/chsword/ctrc
 
-https://github.com/chsword/ctrc
+## 许可证
+
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
