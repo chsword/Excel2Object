@@ -68,7 +68,7 @@ internal static class ExcelConstants
             "MM-dd-yyyy HH:mm",
             "MM/dd/yyyy HH:mm",
             
-            // Short date formats
+            // Short date formats (with single digit month/day)
             "yyyy/M/d",
             "yyyy-M-d",
             "d/M/yyyy",
@@ -76,13 +76,15 @@ internal static class ExcelConstants
             "M/d/yyyy",
             "M-d-yyyy",
             
-            // Time only formats
+            // Time only formats (24-hour)
             "HH:mm:ss",
             "HH:mm",
-            "hh:mm:ss tt",
-            "hh:mm tt",
             "H:mm:ss",
             "H:mm",
+            
+            // Time only formats (12-hour with AM/PM)
+            "hh:mm:ss tt",
+            "hh:mm tt",
             "h:mm:ss tt",
             "h:mm tt"
         };
