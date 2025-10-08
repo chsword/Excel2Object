@@ -28,9 +28,21 @@ internal static class ExcelConstants
         public const string DefaultYearMonthSuffix = "-01-01";
         public const string DefaultDaySuffix = "-01";
         
-        // Common date/time format patterns for parsing
+        /// <summary>
+        /// Provides a comprehensive list of common date and time format patterns used for parsing date/time strings from Excel cells.
+        /// </summary>
+        /// <remarks>
+        /// The formats are organized into groups, including:
+        /// <list type="bullet">
+        /// <item>ISO 8601 formats (e.g., "yyyy-MM-ddTHH:mm:ss")</item>
+        /// <item>Date with various separators (e.g., "yyyy/MM/dd", "dd-MM-yyyy")</item>
+        /// <item>Date with time (12-hour and 24-hour formats, with or without AM/PM)</item>
+        /// <item>Short date formats (single digit month/day)</item>
+        /// <item>Time only formats (24-hour and 12-hour with AM/PM)</item>
+        /// </list>
+        /// This array is intended for use when attempting to parse date/time values from Excel cells that may be formatted in a variety of ways.
+        /// </remarks>
         public static readonly string[] CommonDateTimeFormats = 
-        {
             // ISO 8601 formats
             "yyyy-MM-ddTHH:mm:ss",
             "yyyy-MM-ddTHH:mm:ssZ",
