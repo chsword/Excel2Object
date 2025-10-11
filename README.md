@@ -45,7 +45,7 @@ dotnet add package Chsword.Excel2Object
 
 ### 发布说明
 
-* **2025.01.XX** - v2.0.2
+* **2025.10.11** - v2.0.2
 - [x] ✨ **新增:** 全面的日期/时间格式支持（56 种格式）- 查看 [DateTimeFormats.md](DateTimeFormats.md)
   - ISO 8601 格式（支持时区和毫秒）
   - 多种日期分隔符（横线、斜线、点号）

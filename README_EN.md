@@ -43,7 +43,7 @@ dotnet add package Chsword.Excel2Object
 
 ### Release Notes
 
-* **2025.01.XX** - v2.0.2
+* **2025.10.11** - v2.0.2
 - [x] ✨ **NEW:** Comprehensive date/time format support (56 formats) - See [DateTimeFormats.md](DateTimeFormats.md)
   - ISO 8601 formats with/without timezone and milliseconds
   - Multiple date separators (dash, slash, dot)
