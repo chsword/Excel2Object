@@ -14,6 +14,8 @@ Excel 与 .NET 对象互相转换 / Excel convert to .NET Object and vice versa.
     - [发布说明和路线图](#发布说明和路线图)
     - [示例代码](#示例代码)
     - [文档](#文档)
+    - [开发和发布](#开发和发布)
+    - [贡献者](#贡献者)
     - [参考](#参考)
 
 ## 平台支持
@@ -230,6 +232,13 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 ## 文档
 
 更多信息请访问：http://www.cnblogs.com/chsword/p/excel2object.html
+
+## 开发和发布
+
+- **[自动化发布系统说明](RELEASE_AUTOMATION.md)** - 包含 Copilot 指令、版本管理和自动发布流程的完整说明
+- **[版本管理规范](.github/VERSIONING.md)** - 语义化版本规范和版本号递增规则
+- **[发布流程指南](.github/RELEASE_GUIDE.md)** - 详细的发布步骤和故障排查指南
+- **[Copilot 使用说明](.github/copilot-instructions.md)** - GitHub Copilot 开发指导和项目规范
 
 ## 贡献者
 

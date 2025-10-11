@@ -1,0 +1,261 @@
+name: Release and Publish
+
+# 触发条件：当推送 v* 格式的 tag 时触发
+# Trigger: When a tag matching v* is pushed
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # 验证版本号
+  validate-version:
+    name: Validate Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      version_without_v: ${{ steps.extract.outputs.version_without_v }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取完整历史以便版本比较
+
+    - name: Extract version from tag
+      id: extract
+      run: |
+        # 从 tag 中提取版本号（去掉 v 前缀）
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        VERSION=${TAG_NAME#v}
+        echo "version=$TAG_NAME" >> $GITHUB_OUTPUT
+        echo "version_without_v=$VERSION" >> $GITHUB_OUTPUT
+        echo "Tag: $TAG_NAME"
+        echo "Version: $VERSION"
+
+    - name: Validate version format
+      run: |
+        VERSION="${{ steps.extract.outputs.version_without_v }}"
+        # 验证版本号格式 (支持 SemVer: X.Y.Z 或 X.Y.Z-prerelease)
+        if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+          echo "错误：版本号格式不正确。应该为 X.Y.Z 或 X.Y.Z-prerelease 格式"
+          echo "Error: Invalid version format. Should be X.Y.Z or X.Y.Z-prerelease"
+          exit 1
+        fi
+        echo "✓ 版本号格式验证通过 / Version format validated"
+
+    - name: Extract version from csproj
+      id: csproj
+      run: |
+        CSPROJ_VERSION=$(grep -oP '(?<=<Version>)[^<]+' Chsword.Excel2Object/Chsword.Excel2Object.csproj)
+        echo "csproj_version=$CSPROJ_VERSION" >> $GITHUB_OUTPUT
+        echo "Project version: $CSPROJ_VERSION"
+
+    - name: Compare versions
+      run: |
+        TAG_VERSION="${{ steps.extract.outputs.version_without_v }}"
+        CSPROJ_VERSION="${{ steps.csproj.outputs.csproj_version }}"
+        
+        if [ "$TAG_VERSION" != "$CSPROJ_VERSION" ]; then
+          echo "⚠️  警告：Tag 版本 ($TAG_VERSION) 与 csproj 版本 ($CSPROJ_VERSION) 不一致"
+          echo "⚠️  Warning: Tag version ($TAG_VERSION) does not match csproj version ($CSPROJ_VERSION)"
+          echo ""
+          echo "建议：请确保 Tag 版本与项目文件中的版本号一致"
+          echo "Recommendation: Please ensure tag version matches the version in project file"
+          exit 1
+        fi
+        echo "✓ 版本号一致性验证通过 / Version consistency validated"
+
+  # 构建和测试
+  build-and-test:
+    name: Build and Test
+    needs: validate-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          6.0.x
+          8.0.x
+          9.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.os }}
+        path: "**/test-results.trx"
+
+  # 打包 NuGet 包
+  pack-nuget:
+    name: Pack NuGet Package
+    needs: [validate-version, build-and-test]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          6.0.x
+          8.0.x
+          9.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Pack NuGet package
+      run: dotnet pack --configuration Release --no-build --output ./artifacts
+
+    - name: Upload NuGet package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-package
+        path: ./artifacts/*.nupkg
+        retention-days: 90
+
+  # 发布到 NuGet.org
+  publish-nuget:
+    name: Publish to NuGet
+    needs: pack-nuget
+    runs-on: ubuntu-latest
+    environment:
+      name: nuget-production
+      url: https://www.nuget.org/packages/Chsword.Excel2Object/
+
+    steps:
+    - name: Download NuGet package
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-package
+        path: ./artifacts
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Publish to NuGet.org
+      run: |
+        dotnet nuget push ./artifacts/*.nupkg \
+          --api-key ${{ secrets.NUGET_API_KEY }} \
+          --source https://api.nuget.org/v3/index.json \
+          --skip-duplicate
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+  # 创建 GitHub Release
+  create-release:
+    name: Create GitHub Release
+    needs: [validate-version, build-and-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Download NuGet package
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-package
+        path: ./artifacts
+
+    - name: Extract release notes
+      id: release_notes
+      run: |
+        VERSION="${{ needs.validate-version.outputs.version_without_v }}"
+        
+        # 从 README.md 提取当前版本的发布说明
+        # Extract release notes for current version from README.md
+        if grep -q "v$VERSION" README.md; then
+          # 提取版本号对应的部分
+          NOTES=$(awk "/\*\*.*v$VERSION/,/^\* \*\*[0-9]/" README.md | head -n -1)
+          
+          # 保存到文件
+          echo "$NOTES" > release_notes.md
+          echo "找到版本 $VERSION 的发布说明"
+          echo "Found release notes for version $VERSION"
+        else
+          # 如果没有找到，使用默认说明
+          echo "## Release $VERSION" > release_notes.md
+          echo "" >> release_notes.md
+          echo "详细的变更说明请查看 [README.md](https://github.com/chsword/Excel2Object/blob/main/README.md)。" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "For detailed changes, please see [README.md](https://github.com/chsword/Excel2Object/blob/main/README.md)." >> release_notes.md
+          echo "未找到版本 $VERSION 的发布说明，使用默认说明"
+          echo "Release notes not found for version $VERSION, using default"
+        fi
+        
+        cat release_notes.md
+
+    - name: Determine if pre-release
+      id: prerelease
+      run: |
+        VERSION="${{ needs.validate-version.outputs.version_without_v }}"
+        # 检查版本号是否包含预发布标识符（如 alpha, beta, rc）
+        if [[ $VERSION =~ - ]]; then
+          echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          echo "这是一个预发布版本 / This is a pre-release"
+        else
+          echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          echo "这是一个正式版本 / This is a stable release"
+        fi
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ needs.validate-version.outputs.version }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+        files: |
+          ./artifacts/*.nupkg
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  # 发布成功通知
+  notify-success:
+    name: Notify Success
+    needs: [validate-version, publish-nuget, create-release]
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+    - name: Display success message
+      run: |
+        echo "🎉 发布成功！/ Release successful!"
+        echo ""
+        echo "版本 / Version: ${{ needs.validate-version.outputs.version }}"
+        echo ""
+        echo "📦 NuGet: https://www.nuget.org/packages/Chsword.Excel2Object/${{ needs.validate-version.outputs.version_without_v }}"
+        echo "🏷️  GitHub Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate-version.outputs.version }}"
+        echo ""
+        echo "✓ NuGet 包已发布"
+        echo "✓ GitHub Release 已创建"
