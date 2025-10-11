@@ -309,6 +309,8 @@ public class ExcelImporter
     private static DateTime? GetDateTimeFromString(string str)
     {
         DateTime dt;
+        
+        // Handle Chinese date formats (年月日)
         if (str.EndsWith(ExcelConstants.DateFormats.YearSuffix))
         {
             if (DateTime.TryParse((str + ExcelConstants.DateFormats.DefaultYearMonthSuffix).Replace(ExcelConstants.DateFormats.YearSuffix, ""), out dt))
@@ -321,8 +323,33 @@ public class ExcelImporter
         }
         else if (!str.Contains(ExcelConstants.DateFormats.YearSuffix) && !str.Contains(ExcelConstants.DateFormats.MonthSuffix) && !str.Contains(ExcelConstants.DateFormats.DaySuffix))
         {
+            // Try standard parsing first
             if (DateTime.TryParse(str, out dt))
                 return dt;
+            
+            // Try parsing with specific formats
+            if (DateTime.TryParseExact(str, ExcelConstants.DateFormats.CommonDateTimeFormats, 
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out dt))
+                return dt;
+            
+            // Try parsing with current culture
+            if (DateTime.TryParseExact(str, ExcelConstants.DateFormats.CommonDateTimeFormats, 
+                CultureInfo.CurrentCulture, DateTimeStyles.None, out dt))
+                return dt;
+            
+            // Handle time-only formats - combine with today's date
+            if (DateTime.TryParseExact(str, ExcelConstants.DateFormats.CommonDateTimeFormats, 
+                CultureInfo.InvariantCulture, DateTimeStyles.NoCurrentDateDefault, out dt))
+            {
+                // If only time is provided, combine with today's date
+                if (dt.Date == DateTime.MinValue.Date)
+                {
+                    return DateTime.Today.Add(dt.TimeOfDay);
+                }
+                return dt;
+            }
+            
+            // Fallback for partial dates
             if (DateTime.TryParse((str + ExcelConstants.DateFormats.DefaultYearMonthSuffix).Replace(ExcelConstants.DateFormats.YearSuffix, "").Replace(ExcelConstants.DateFormats.MonthSuffix, ""), out dt))
                 return dt;
         }
