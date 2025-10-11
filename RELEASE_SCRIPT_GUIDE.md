@@ -10,8 +10,14 @@
 ### Quick Start
 
 ```powershell
-# Release a new version
+# Auto-increment version and release
+.\release.ps1
+
+# Or release a specific version
 .\release.ps1 -Version 2.0.4
+
+# Get help
+.\release.ps1 -Help
 ```
 
 The script will:
@@ -22,6 +28,18 @@ The script will:
 5. ✓ Push to remote repository
 
 ### Usage Examples
+
+#### Auto-Increment Release (New!)
+```powershell
+.\release.ps1
+```
+Automatically increments the patch version (e.g., 2.0.4 → 2.0.5) and releases.
+
+#### Show Help (New!)
+```powershell
+.\release.ps1 -Help
+```
+Displays usage information and examples.
 
 #### Basic Release
 ```powershell
@@ -51,9 +69,10 @@ Creates local commit/tag without pushing, no confirmations.
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `-Version` | Yes | Version number in format: `Major.Minor.Patch` (e.g., `2.0.4`) |
+| `-Version` | No | Version number in format: `Major.Minor.Patch` (e.g., `2.0.4`). If not specified, auto-increments the patch version |
 | `-SkipPush` | No | Create local commits and tags only, don't push to remote |
 | `-Force` | No | Skip all confirmation prompts |
+| `-Help` | No | Display help information |
 
 ### Troubleshooting
 
@@ -90,8 +109,14 @@ Get-Help .\release.ps1 -Detailed
 ### 快速开始
 
 ```powershell
-# 发布新版本
+# 自动递增版本并发布
+.\release.ps1
+
+# 或发布指定版本
 .\release.ps1 -Version 2.0.4
+
+# 获取帮助
+.\release.ps1 -Help
 ```
 
 脚本将执行：
@@ -102,6 +127,18 @@ Get-Help .\release.ps1 -Detailed
 5. ✓ 推送到远程仓库
 
 ### 使用示例
+
+#### 自动递增发布（新功能！）
+```powershell
+.\release.ps1
+```
+自动递增修订号（例如：2.0.4 → 2.0.5）并发布。
+
+#### 显示帮助（新功能！）
+```powershell
+.\release.ps1 -Help
+```
+显示使用说明和示例。
 
 #### 基本发布
 ```powershell
@@ -131,9 +168,10 @@ Get-Help .\release.ps1 -Detailed
 
 | 参数 | 必需 | 说明 |
 |------|------|------|
-| `-Version` | 是 | 版本号格式：`主版本.次版本.修订版`（例如：`2.0.4`）|
+| `-Version` | 否 | 版本号格式：`主版本.次版本.修订版`（例如：`2.0.4`）。如果不指定，则自动递增修订号 |
 | `-SkipPush` | 否 | 仅创建本地提交和标签，不推送到远程 |
 | `-Force` | 否 | 跳过所有确认提示 |
+| `-Help` | 否 | 显示帮助信息 |
 
 ### 故障排除
 
