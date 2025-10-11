@@ -12,6 +12,8 @@ Excel convert to .NET Object / .NET Object convert to Excel.
     - [Release notes and roadmap](#release-notes-and-roadmap)
     - [Demo code](#demo-code)
     - [Document](#document)
+    - [Development and Release](#development-and-release)
+    - [Contributors](#contributors)
     - [Reference](#reference)
 
 ## Platform Support
@@ -227,6 +229,13 @@ In ASP.NET MVC models, the `DisplayAttribute` can be supported like `ExcelTitleA
 ## Document
 
 For more information, please visit: http://www.cnblogs.com/chsword/p/excel2object.html
+
+## Development and Release
+
+- **[Automated Release System Documentation](RELEASE_AUTOMATION.md)** - Complete guide including Copilot instructions, version management, and automated release workflow
+- **[Versioning Guidelines](.github/VERSIONING.md)** - Semantic versioning specification and version increment rules
+- **[Release Process Guide](.github/RELEASE_GUIDE.md)** - Detailed release steps and troubleshooting guide
+- **[Copilot Instructions](.github/copilot-instructions.md)** - GitHub Copilot development guidelines and project conventions
 
 ## Contributors
 
