@@ -101,6 +101,32 @@ graph TD
 
 ### 发布新版本 / Releasing a New Version
 
+#### 方法一：使用自动化脚本（推荐）/ Method 1: Using Automation Script (Recommended)
+
+**一键发布 / One-Click Release**:
+
+```powershell
+# Windows
+.\release.ps1 -Version 2.0.4
+
+# Linux/macOS (需要 PowerShell Core)
+pwsh ./release.ps1 -Version 2.0.4
+```
+
+该脚本会自动完成以下所有步骤 / This script automatically completes all the following steps:
+- ✓ 更新 csproj 版本号 / Update csproj version
+- ✓ 提交代码 / Commit changes
+- ✓ 创建 Tag / Create tag
+- ✓ 推送到远程仓库 / Push to remote
+
+详细参数和用法请参阅 [工具和脚本](#工具和脚本--tools-and-scripts) 章节。
+
+See [Tools and Scripts](#工具和脚本--tools-and-scripts) section for detailed parameters and usage.
+
+---
+
+#### 方法二：手动发布 / Method 2: Manual Release
+
 **步骤 / Steps**:
 
 1. **更新版本号** / Update Version Number
@@ -228,6 +254,67 @@ GitHub 仓库 → Settings → Environments → New environment
 ---
 
 ## 🛠️ 工具和脚本 / Tools and Scripts
+
+### 自动化发布脚本 / Automated Release Script
+
+**脚本位置 / Script Location**: `release.ps1`
+
+这是一个 PowerShell 脚本，可以一键完成版本更新、代码提交和 Tag 创建的全部流程。
+
+This is a PowerShell script that automates the entire process of version update, code commit, and tag creation.
+
+**基本用法 / Basic Usage**:
+
+```powershell
+# Windows
+.\release.ps1 -Version 2.0.4
+
+# Linux/macOS (需要安装 PowerShell Core)
+pwsh ./release.ps1 -Version 2.0.4
+```
+
+**参数说明 / Parameters**:
+
+| 参数 | 必需 | 说明 |
+|------|------|------|
+| `-Version` | 是 | 新版本号，格式：主版本.次版本.修订版 (例如: 2.0.3) |
+| `-SkipPush` | 否 | 仅创建本地提交和标签，不推送到远程仓库 |
+| `-Force` | 否 | 强制执行，跳过所有确认提示 |
+
+**使用示例 / Examples**:
+
+```powershell
+# 发布新版本 2.0.4（会提示确认）
+.\release.ps1 -Version 2.0.4
+
+# 仅本地提交，不推送到远程
+.\release.ps1 -Version 2.1.0 -SkipPush
+
+# 强制执行，跳过确认提示
+.\release.ps1 -Version 3.0.0 -Force
+
+# 组合参数使用
+.\release.ps1 -Version 2.0.5 -SkipPush -Force
+```
+
+**脚本执行流程 / Script Workflow**:
+
+1. ✓ 验证版本号格式（必须符合语义化版本）
+2. ✓ 检查 Git 仓库状态
+3. ✓ 检查 Tag 是否已存在
+4. ✓ 更新 `Chsword.Excel2Object.csproj` 中的版本号
+5. ✓ 提交代码：`git commit -m "chore: bump version to X.Y.Z"`
+6. ✓ 创建 Git Tag：`git tag vX.Y.Z`
+7. ✓ 推送到远程仓库（除非使用 `-SkipPush`）
+
+**注意事项 / Notes**:
+
+- 脚本会自动检查工作目录是否有未提交的更改
+- 如果 Tag 已存在，脚本会报错并提示如何删除
+- 推送后会自动触发 GitHub Actions 的发布流程
+- Windows 用户可能需要设置 PowerShell 执行策略：`Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+---
 
 ### 本地测试 NuGet 包构建 / Test NuGet Package Build Locally
 
