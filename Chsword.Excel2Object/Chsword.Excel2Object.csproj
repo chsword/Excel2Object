@@ -1,4 +1,4 @@
-Ôªø<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<LangVersion>12.0</LangVersion>
@@ -9,12 +9,12 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Product>Chsword.Excel2Object Library</Product>
 		<Authors>Zou Jian</Authors>
-		<Version>2.0.2</Version>
-		<Copyright>Copyright ¬© 2014-2025</Copyright>
+		<Version>2.0.4</Version>
+		<Copyright>Copyright ? 2014-2025</Copyright>
 		<PackageProjectUrl>https://github.com/chsword/Excel2Object/</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>excel,.net,netcore</PackageTags>
-		<Description>Convert excel and .NET object , Excel ‰∏é .NET ÂØπË±°‰∫íÁõ∏ËΩ¨Êç¢ÁöÑÁ±ªÂ∫ì</Description>
+		<Description>Convert excel and .NET object , Excel ”Î .NET ∂‘œÛª•œ‡◊™ªªµƒ¿‡ø‚</Description>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<DefineConstants>DEBUG;TRACE</DefineConstants>
