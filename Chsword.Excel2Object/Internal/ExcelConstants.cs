@@ -43,6 +43,7 @@ internal static class ExcelConstants
         /// This array is intended for use when attempting to parse date/time values from Excel cells that may be formatted in a variety of ways.
         /// </remarks>
         public static readonly string[] CommonDateTimeFormats = 
+        [
             // ISO 8601 formats
             "yyyy-MM-ddTHH:mm:ss",
             "yyyy-MM-ddTHH:mm:ssZ",
@@ -99,6 +100,6 @@ internal static class ExcelConstants
             "hh:mm tt",
             "h:mm:ss tt",
             "h:mm tt"
-        };
+        ];
     }
 }
