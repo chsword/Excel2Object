@@ -2,7 +2,7 @@
 
 [![install from nuget](http://img.shields.io/nuget/v/Chsword.Excel2Object.svg?style=flat-square)](https://www.nuget.org/packages/Chsword.Excel2Object)
 [![release](https://img.shields.io/github/release/chsword/Excel2Object.svg?style=flat-square)](https://github.com/chsword/Excel2Object/releases)
-[![Build status](https://ci.appveyor.com/api/projects/status/4po2h27j7yg4bph5/branch/master?svg=true)](https://ci.appveyor.com/project/chsword/excel2object)
+[![Build status](https://github.com/chsword/Excel2Object/actions/workflows/dotnet-core.yml/badge.svg)](https://github.com/chsword/Excel2Object/actions/workflows/dotnet-core.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/chsword/excel2object/badge)](https://www.codefactor.io/repository/github/chsword/excel2object)
 
 Excel convert to .NET Object / .NET Object convert to Excel.
