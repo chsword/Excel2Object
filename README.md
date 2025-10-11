@@ -235,10 +235,25 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 
 ## 开发和发布
 
+- **[自动化发布脚本 `release.ps1`](release.ps1)** - 一键完成版本更新、提交和 Tag 创建的 PowerShell 脚本
 - **[自动化发布系统说明](RELEASE_AUTOMATION.md)** - 包含 Copilot 指令、版本管理和自动发布流程的完整说明
 - **[版本管理规范](.github/VERSIONING.md)** - 语义化版本规范和版本号递增规则
 - **[发布流程指南](.github/RELEASE_GUIDE.md)** - 详细的发布步骤和故障排查指南
 - **[Copilot 使用说明](.github/copilot-instructions.md)** - GitHub Copilot 开发指导和项目规范
+
+### 快速发布新版本
+
+使用自动化脚本一键发布：
+
+```powershell
+# Windows
+.\release.ps1 -Version 2.0.4
+
+# Linux/macOS (需要 PowerShell Core)
+pwsh ./release.ps1 -Version 2.0.4
+```
+
+详细说明请参阅 [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md)。
 
 ## 贡献者
 

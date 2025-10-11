@@ -232,10 +232,25 @@ For more information, please visit: http://www.cnblogs.com/chsword/p/excel2objec
 
 ## Development and Release
 
+- **[Automated Release Script `release.ps1`](release.ps1)** - PowerShell script for one-click version update, commit, and tag creation
 - **[Automated Release System Documentation](RELEASE_AUTOMATION.md)** - Complete guide including Copilot instructions, version management, and automated release workflow
 - **[Versioning Guidelines](.github/VERSIONING.md)** - Semantic versioning specification and version increment rules
 - **[Release Process Guide](.github/RELEASE_GUIDE.md)** - Detailed release steps and troubleshooting guide
 - **[Copilot Instructions](.github/copilot-instructions.md)** - GitHub Copilot development guidelines and project conventions
+
+### Quick Release
+
+Use the automation script for one-click release:
+
+```powershell
+# Windows
+.\release.ps1 -Version 2.0.4
+
+# Linux/macOS (PowerShell Core required)
+pwsh ./release.ps1 -Version 2.0.4
+```
+
+See [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md) for detailed instructions.
 
 ## Contributors
 
