@@ -259,6 +259,8 @@ GitHub 仓库 → Settings → Environments → New environment
 
 **脚本位置 / Script Location**: `release.ps1`
 
+**详细指南 / Detailed Guide**: 📖 [RELEASE_SCRIPT_GUIDE.md](RELEASE_SCRIPT_GUIDE.md)
+
 这是一个 PowerShell 脚本，可以一键完成版本更新、代码提交和 Tag 创建的全部流程。
 
 This is a PowerShell script that automates the entire process of version update, code commit, and tag creation.
