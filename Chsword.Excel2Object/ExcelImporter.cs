@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Globalization;
 using System.Reflection;
 using Chsword.Excel2Object.Internal;
@@ -53,20 +52,20 @@ public class ExcelImporter
         return ExcelToObject<TModel>(bytes, options => { options.SheetTitle = sheetTitle; });
     }
 
-    private static IEnumerable<Dictionary<string, object>> InternalExcelToDictionary(IEnumerator? result)
+    private static IEnumerable<Dictionary<string, object>> InternalExcelToDictionary(IEnumerator<IRow>? result)
     {
         var list = new List<Dictionary<string, object>>();
 
         if (result == null)
             return list;
         var rows = result;
-        var titleRow = (IRow) rows.Current;
+        var titleRow = rows.Current;
         if (titleRow == null) return list;
         var columns = titleRow.Cells.ToDictionary(c => c.StringCellValue, c => c.ColumnIndex);
 
         while (rows.MoveNext())
         {
-            var row = (IRow) rows.Current;
+            var row = rows.Current;
             if (row == null || row.Cells?.Count == 0)
                 continue;
 
@@ -80,7 +79,7 @@ public class ExcelImporter
         return list;
     }
 
-    private static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator? result)
+    private static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator<IRow>? result)
         where TModel : class, new()
     {
         if (result == null)
@@ -90,7 +89,7 @@ public class ExcelImporter
 
         while (result.MoveNext())
         {
-            var row = (IRow) result.Current;
+            var row = result.Current;
 
             if (row == null || row.Cells?.Count == 0)
                 continue;
@@ -101,12 +100,12 @@ public class ExcelImporter
         }
     }
 
-    private static Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>> BuildColumnMappings<TModel>(IEnumerator result)
+    private static Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>> BuildColumnMappings<TModel>(IEnumerator<IRow> result)
         where TModel : class, new()
     {
         var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
         var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
-        var titleRow = (IRow) result.Current;
+        var titleRow = result.Current;
         
         if (titleRow != null)
             foreach (var cell in titleRow.Cells)
@@ -197,7 +196,7 @@ public class ExcelImporter
                     break;
                 case CellType.Blank:
                     break;
-                case CellType.Unknown:
+                case CellType._None:
                     break;
                 case CellType.Formula:
                     break;
@@ -252,7 +251,7 @@ public class ExcelImporter
                 //case CellType.Error:
                 //    result = row.GetCell(index).NumericCellValue.ToString();
                 //    break;
-                //case CellType.Unknown:
+                //case CellType._None:
                 //    result = row.GetCell(index).NumericCellValue.ToString();
                 //    break;
                 default:
@@ -273,7 +272,7 @@ public class ExcelImporter
         return GetCellValue(row.GetCell(index));
     }
 
-    private static IEnumerator? GetDataRows(byte[]? bytes, ExcelImporterOptions options)
+    private static IEnumerator<IRow>? GetDataRows(byte[]? bytes, ExcelImporterOptions options)
     {
         if (bytes == null || bytes.Length == 0)
             return null;
@@ -300,7 +299,7 @@ public class ExcelImporter
                 throw new Excel2ObjectException($"The specified sheet:[{options.SheetTitle}] does not exist");
         }
 
-        var rows = sheet.GetRowEnumerator();
+        var rows = sheet.GetEnumerator();
         rows.MoveNext();
         for (var i = 0; i < options.TitleSkipLine; i++) rows.MoveNext();
         return rows;
