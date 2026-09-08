@@ -13,7 +13,7 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Product>Chsword.Excel2Object Library</Product>
 		<Authors>Zou Jian</Authors>
-		<Version>2.0.5</Version>
+		<Version>2.1.0</Version>
 		<Copyright>Copyright ? 2014-2025</Copyright>
 		<PackageProjectUrl>https://github.com/chsword/Excel2Object/</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
