@@ -18,7 +18,7 @@ Excel2Object 是一个用于 Excel 与 .NET 对象互相转换的类库。该项
 
 - **主要依赖**: NPOI 2.8.0 (Excel 操作), SixLabors.ImageSharp 3.1.11 (图像处理)
 - **目标框架**: 多目标框架 (net472, netstandard2.0, netstandard2.1, net6.0, net8.0, net9.0, net10.0)
-- **测试框架**: xUnit
+- **测试框架**: MSTest
 - **CI/CD**: GitHub Actions
 
 ## 编码规范
@@ -63,13 +63,13 @@ public class MyModel
 ### 添加新功能
 
 1. **保持兼容性**: 确保新功能在所有支持的框架版本上正常工作
-2. **编写测试**: 为新功能添加 xUnit 测试用例
+2. **编写测试**: 为新功能添加 MSTest 测试用例
 3. **更新文档**: 在 README.md 中添加功能说明和示例代码
 4. **遵循 SemVer**: 根据语义化版本规范更新版本号
 
 ### 测试要求
 
-1. **单元测试**: 使用 xUnit 编写测试
+1. **单元测试**: 使用 MSTest 编写测试
 2. **测试命名**: 使用描述性的测试方法名，例如 `Should_ExportCorrectly_When_ModelHasNullValues`
 3. **测试覆盖**: 确保核心功能和边界情况都有测试覆盖
 4. **测试数据**: 测试用例应包含中文字符测试，确保 Unicode 支持
