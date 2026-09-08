@@ -17,9 +17,21 @@ internal class ExpressionConvert
     };
 
     public ExpressionConvert(string[] columns, int rowIndex)
+        : this(columns, rowIndex, null)
+    {
+    }
+
+    /// <param name="columns">Column titles of the sheet the formula is written to, in column order.</param>
+    /// <param name="rowIndex">0-based row index of the formula cell.</param>
+    /// <param name="sheetColumnsResolver">
+    ///     Returns the column titles of another sheet in the workbook by sheet title, or null if the
+    ///     sheet's layout is unknown. Used to translate <see cref="ColumnCellDictionary.Sheet" /> references.
+    /// </param>
+    public ExpressionConvert(string[] columns, int rowIndex, Func<string, string[]?>? sheetColumnsResolver)
     {
         Columns = columns;
         RowIndex = rowIndex;
+        SheetColumnsResolver = sheetColumnsResolver;
     }
 
     private static Dictionary<ExpressionType, string> BinarySymbolDictionary { get; } =
@@ -40,6 +52,7 @@ internal class ExpressionConvert
 
     private string[] Columns { get; }
     private int RowIndex { get; }
+    private Func<string, string[]?>? SheetColumnsResolver { get; }
 
     public string Convert(Expression? expression)
     {
@@ -80,6 +93,13 @@ internal class ExpressionConvert
             exp.Method.Name == nameof(ColumnCellDictionary.Matrix))
             return
                 $"{GetColumn(exp.Arguments[0])}{exp.Arguments[1]}:{GetColumn(exp.Arguments[2])}{exp.Arguments[3]}";
+
+        if (exp.Object.Type == typeof(ColumnCellDictionary) &&
+            exp.Method.Name == nameof(ColumnCellDictionary.Columns))
+            return $"{GetColumn(exp.Arguments[0])}:{GetColumn(exp.Arguments[1])}";
+
+        if (exp.Object.Type == typeof(SheetCellDictionary))
+            return ConvertSheetCall(exp);
 
         if (exp.Method.DeclaringType == typeof(DateTime))
         {
@@ -124,12 +144,90 @@ internal class ExpressionConvert
         return $"{symbol}{InternalConvert(unary.Operand)}";
     }
 
+    /// <summary>
+    ///     Translates a call on <see cref="SheetCellDictionary" />; <paramref name="exp" />.Object is the
+    ///     <see cref="ColumnCellDictionary.Sheet" /> call that names the sheet.
+    /// </summary>
+    private string ConvertSheetCall(MethodCallExpression exp)
+    {
+        if (exp.Object is not MethodCallExpression sheetCall ||
+            sheetCall.Method.Name != nameof(ColumnCellDictionary.Sheet) ||
+            GetConstantValue(sheetCall.Arguments[0])?.ToString() is not { } sheetTitle)
+            return "ERROR sheet reference must be c.Sheet(\"title\")";
+
+        var prefix = QuoteSheetTitle(sheetTitle) + "!";
+        var args = exp.Arguments;
+        switch (exp.Method.Name)
+        {
+            case "get_Item":
+                return args.Count == 2
+                    ? $"{prefix}{GetColumn(args[0], sheetTitle)}{InternalConvert(args[1])}"
+                    : $"{prefix}{GetColumn(args[0], sheetTitle)}{RowIndex + 1}";
+            case nameof(SheetCellDictionary.Matrix):
+                return
+                    $"{prefix}{GetColumn(args[0], sheetTitle)}{args[1]}:{GetColumn(args[2], sheetTitle)}{args[3]}";
+            case nameof(SheetCellDictionary.Columns):
+                return $"{prefix}{GetColumn(args[0], sheetTitle)}:{GetColumn(args[1], sheetTitle)}";
+            default:
+                return $"unspport call type={exp.Method.DeclaringType} name={exp.Method.Name}";
+        }
+    }
+
+    /// <summary>
+    ///     Excel only requires quoting for titles with spaces or punctuation, but quoting is always valid,
+    ///     so every title is quoted and embedded apostrophes are doubled.
+    /// </summary>
+    private static string QuoteSheetTitle(string title)
+    {
+        return "'" + title.Replace("'", "''") + "'";
+    }
+
+    /// <summary>
+    ///     Reads the value of a literal, or of a local variable captured by the lambda (which the compiler
+    ///     emits as a field access on a closure constant).
+    /// </summary>
+    private static object? GetConstantValue(Expression exp)
+    {
+        switch (exp)
+        {
+            case ConstantExpression constant:
+                return constant.Value;
+            case MemberExpression { Expression: ConstantExpression closure, Member: System.Reflection.FieldInfo field }:
+                return field.GetValue(closure.Value);
+            default:
+                return null;
+        }
+    }
+
     private string GetColumn(Expression exp)
     {
         if (exp is not ConstantExpression constant) return "null";
         var key = constant.Value?.ToString();
         var columnIndex = Array.IndexOf(Columns, key);
-        return columnIndex == -1 ? $"ERROR key:{key}" : ExcelColumnNameParser.Parse(columnIndex);
+        if (columnIndex == -1)
+            throw new Excel2ObjectException($"refers to column [{key}], which is not a column of this sheet.");
+        return ExcelColumnNameParser.Parse(columnIndex);
+    }
+
+    /// <summary>
+    ///     Resolves a column on another sheet. When the sheet's titles are unknown, or the key is not one
+    ///     of them, a key that already looks like a column letter (A, BC, ...) is used verbatim so sheets
+    ///     the exporter did not write can still be referenced; anything else is rejected.
+    /// </summary>
+    private string GetColumn(Expression exp, string sheetTitle)
+    {
+        if (GetConstantValue(exp)?.ToString() is not { } key) return "null";
+        var columns = SheetColumnsResolver?.Invoke(sheetTitle);
+        var columnIndex = columns == null ? -1 : Array.IndexOf(columns, key);
+        if (columnIndex != -1) return ExcelColumnNameParser.Parse(columnIndex);
+        if (IsColumnLetters(key)) return key;
+        throw new Excel2ObjectException(
+            $"refers to column [{key}], which is neither a column title on sheet [{sheetTitle}] nor a column letter.");
+    }
+
+    private static bool IsColumnLetters(string key)
+    {
+        return key.Length is >= 1 and <= 3 && key.All(ch => ch is >= 'A' and <= 'Z');
     }
 
     private string InternalConvert(params Expression?[] expressions)

@@ -6,6 +6,7 @@ using Chsword.Excel2Object.Internal;
 using Chsword.Excel2Object.Options;
 using Chsword.Excel2Object.Styles;
 using NPOI.HSSF.UserModel;
+using NPOI.SS.Formula;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using HorizontalAlignment = Chsword.Excel2Object.Styles.HorizontalAlignment;
@@ -130,6 +131,7 @@ public class ExcelExporter
                 }
 
                 var columnTitles = columns.Select(c => c.Title).ToArray();
+                var sheetColumnsResolver = BuildSheetColumnsResolver(workbook, sheet, columnTitles!);
                 var rowNumber = ExcelConstants.DefaultDataStartRowIndex;
                 var data = excelSheet.Rows;
                 foreach (var item in data)
@@ -142,7 +144,7 @@ public class ExcelExporter
                         var val = column.Title != null && item.TryGetValue(column.Title, out var value)
                             ? (value ?? "").ToString()
                             : "";
-                        SetCellValue(excelType, column, cell, val!, columnTitles);
+                        SetCellValue(excelType, column, cell, val!, columnTitles, sheetColumnsResolver);
                     }
                 }
             }
@@ -287,8 +289,46 @@ public class ExcelExporter
         return string.Join("|", arr);
     }
 
+    /// <summary>
+    ///     Lets formulas on <paramref name="currentSheet" /> refer to other sheets by title. Sheets already in
+    ///     the workbook (e.g. from <see cref="AppendObjectToExcelBytes{TModel}" />'s source bytes) have their
+    ///     header row read as column titles; the current sheet resolves against its own titles.
+    /// </summary>
+    private static Func<string, string[]?> BuildSheetColumnsResolver(IWorkbook workbook, ISheet currentSheet,
+        string[] currentColumnTitles)
+    {
+        var cache = new Dictionary<string, string[]?>(StringComparer.Ordinal);
+        return sheetTitle =>
+        {
+            if (cache.TryGetValue(sheetTitle, out var cached)) return cached;
+
+            string[]? titles = null;
+            if (sheetTitle == currentSheet.SheetName)
+            {
+                titles = currentColumnTitles;
+            }
+            else
+            {
+                // NPOI happily writes a formula against a sheet that does not exist (Excel then shows
+                // #REF!), so fail here instead, where the sheet title is still known.
+                var other = workbook.GetSheet(sheetTitle) ?? throw new Excel2ObjectException(
+                    $"refers to sheet [{sheetTitle}], which is not in the workbook. " +
+                    "Write that sheet first, e.g. via AppendObjectToExcelBytes.");
+                var header = other.GetRow(ExcelConstants.DefaultHeaderRowIndex);
+                if (header != null)
+                    // GetCell(i) rather than Cells: the latter skips blank cells and would shift indexes.
+                    titles = Enumerable.Range(0, header.LastCellNum)
+                        .Select(i => header.GetCell(i)?.ToString() ?? string.Empty)
+                        .ToArray();
+            }
+
+            cache[sheetTitle] = titles;
+            return titles;
+        };
+    }
+
     private void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, string val,
-        string[] columnTitles)
+        string[] columnTitles, Func<string, string[]?> sheetColumnsResolver)
     {
         if (column.Type == typeof(Uri))
         {
@@ -306,7 +346,7 @@ public class ExcelExporter
         }
         else if (column.Type == typeof(Expression))
         {
-            var convert = new ExpressionConvert(columnTitles, cell.RowIndex);
+            var convert = new ExpressionConvert(columnTitles, cell.RowIndex, sheetColumnsResolver);
 
             if (column.CellStyle?.Format != null &&
                 !HSSFDataFormat.GetBuiltinFormats().Contains(column.CellStyle.Format))
@@ -324,8 +364,21 @@ public class ExcelExporter
                 return;
             }
 
-            var formula = convert.Convert(column.Formula);
-            cell.SetCellFormula(formula);
+            string formula;
+            try
+            {
+                formula = convert.Convert(column.Formula);
+                cell.SetCellFormula(formula);
+            }
+            catch (Excel2ObjectException e)
+            {
+                throw new Excel2ObjectException($"Formula column [{column.Title}] {e.Message}", e);
+            }
+            catch (FormulaParseException e)
+            {
+                throw new Excel2ObjectException(
+                    $"Formula column [{column.Title}] produced an invalid formula: {e.Message}", e);
+            }
             if (column.ResultType != null)
                 if (column.ResultType == typeof(DateTime))
                     cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.DateTime, cell, column.CellStyle);

@@ -21,6 +21,25 @@ var bytes = new ExcelExporter().ObjectToExcelBytes(list, options =>
 |A4 | ```  c => c["One"] ```| Cell in current row|
 |A2 | ```  c => c["One",2] ```| Specify any Cell|
 |A2:B4 | ```  c => c.Matrix("One",2,"Two",4) ```|
+|A:D | ```  c => c.Columns("One","Four") ```| Whole columns|
+
+### Other sheets
+
+`c.Sheet("title")` refers to another sheet of the same workbook. Its column titles are read from that sheet's
+header row, so columns are named the same way as on the current sheet. The sheet must already be in the workbook
+when the formula column is written, e.g. write it first and append the formula sheet with `AppendObjectToExcelBytes`
+(or `options.SourceExcelBytes`); otherwise an `Excel2ObjectException` is thrown.
+
+|Function|Syntax |Description|
+|---|:---|:----|
+|'Products'!B4 | ```  c => c.Sheet("Products")["Price"] ```| Cell in current row|
+|'Products'!B2 | ```  c => c.Sheet("Products")["Price",2] ```| Specify any Cell|
+|'Products'!A2:B20 | ```  c => c.Sheet("Products").Matrix("Name",2,"Price",20) ```|
+|'Products'!A:B | ```  c => c.Sheet("Products").Columns("Name","Price") ```| Whole columns|
+|VLOOKUP(A4,'Products'!A:B,2,FALSE) | ```  c => ExcelFunctions.Reference.VLookup(c["Product"], c.Sheet("Products").Columns("Name","Price"), 2, false) ```|
+
+Sheet titles are always quoted, so titles with spaces or apostrophes work. If a title cannot be found on the other
+sheet, a plain column letter (`"A"`, `"BC"`) is used as-is; any other unknown title throws `Excel2ObjectException`.
 
 
 ### Math Functions

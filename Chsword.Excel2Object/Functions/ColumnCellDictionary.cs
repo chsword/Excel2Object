@@ -25,4 +25,24 @@ public class ColumnCellDictionary : Dictionary<string, ColumnValue>
     {
         throw new NotImplementedException();
     }
+
+    /// <summary>
+    /// Gets a whole-column range between two columns, e.g. <c>A:F</c>.
+    /// </summary>
+    /// <param name="keyA">The first column title.</param>
+    /// <param name="keyB">The last column title.</param>
+    public ColumnMatrix Columns(string keyA, string keyB)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Refers to another sheet of the same workbook so its cells can be used in this formula.
+    /// The sheet must already exist in the workbook when the formula is written.
+    /// </summary>
+    /// <param name="sheetTitle">The title of the other sheet.</param>
+    public SheetCellDictionary Sheet(string sheetTitle)
+    {
+        throw new NotImplementedException();
+    }
 }
