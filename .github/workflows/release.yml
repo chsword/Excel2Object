@@ -173,7 +173,7 @@ jobs:
   # 创建 GitHub Release
   create-release:
     name: Create GitHub Release
-    needs: [validate-version, build-and-test]
+    needs: [validate-version, build-and-test, pack-nuget]
     runs-on: ubuntu-latest
     permissions:
       contents: write
