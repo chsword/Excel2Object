@@ -16,7 +16,7 @@ Excel2Object 是一个用于 Excel 与 .NET 对象互相转换的类库。该项
 
 ## 技术栈
 
-- **主要依赖**: NPOI 2.8.0 (Excel 操作), SixLabors.ImageSharp 3.1.11 (图像处理)
+- **主要依赖**: NPOI 2.8.0 (Excel 操作)
 - **目标框架**: 多目标框架 (net472, netstandard2.0, netstandard2.1, net6.0, net8.0, net9.0, net10.0)
 - **测试框架**: MSTest
 - **CI/CD**: GitHub Actions

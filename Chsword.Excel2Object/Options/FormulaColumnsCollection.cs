@@ -37,7 +37,7 @@ public class FormulaColumnsCollection : ICollection<FormulaColumn>
 
     public void CopyTo(FormulaColumn[] array, int arrayIndex)
     {
-        throw new NotImplementedException();
+        FormulaColumns.CopyTo(array, arrayIndex);
     }
 
     public IEnumerator<FormulaColumn> GetEnumerator()

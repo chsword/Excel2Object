@@ -46,6 +46,5 @@
 		<PackageReference Include="NPOI" Version="2.8.0" />
 		<!-- Pinned above NPOI's transitive 8.0.2, which carries three High severity advisories. -->
 		<PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.4" />
-		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" PrivateAssets="all" IncludeAssets="runtime" />
 	</ItemGroup>
 </Project>

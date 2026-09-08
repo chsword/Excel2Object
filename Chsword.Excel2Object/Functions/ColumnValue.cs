@@ -1,5 +1,7 @@
 ﻿// ReSharper disable UnusedParameter.Global
 
+using System.Runtime.CompilerServices;
+
 namespace Chsword.Excel2Object.Functions;
 
 // this type only used in the Expression
@@ -95,13 +97,15 @@ public class ColumnValue
         throw new NotImplementedException();
     }
 
+    // The == / != operators above exist only to be captured in expression trees,
+    // so equality here falls back to reference identity rather than throwing.
     public override bool Equals(object? obj)
     {
-        throw new NotImplementedException();
+        return ReferenceEquals(this, obj);
     }
 
     public override int GetHashCode()
     {
-        throw new NotImplementedException();
+        return RuntimeHelpers.GetHashCode(this);
     }
 }
