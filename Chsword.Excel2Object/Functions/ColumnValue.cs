@@ -67,6 +67,26 @@ public class ColumnValue
         throw new NotImplementedException();
     }
 
+    public static implicit operator ColumnValue(long operand)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static implicit operator ColumnValue(decimal operand)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static implicit operator ColumnValue(bool operand)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static implicit operator ColumnValue(DateTime operand)
+    {
+        throw new NotImplementedException();
+    }
+
     public static ColumnValue operator !=(ColumnValue a, ColumnValue b)
     {
         throw new NotImplementedException();

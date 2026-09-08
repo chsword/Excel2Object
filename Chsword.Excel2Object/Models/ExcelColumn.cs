@@ -8,7 +8,7 @@ internal class ExcelColumn
 {
     public IExcelCellStyle? CellStyle { get; set; }
 
-    public Expression<Func<ColumnCellDictionary, object>>? Formula { get; set; }
+    public LambdaExpression? Formula { get; set; }
 
     public IExcelHeaderStyle? HeaderStyle { get; set; }
     public int Order { get; set; }

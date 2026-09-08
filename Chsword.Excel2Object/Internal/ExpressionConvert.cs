@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using System.Reflection;
 using Chsword.Excel2Object.Functions;
 
 namespace Chsword.Excel2Object.Internal;
@@ -54,12 +55,26 @@ internal class ExpressionConvert
     private int RowIndex { get; }
     private Func<string, string[]?>? SheetColumnsResolver { get; }
 
+    /// <summary>
+    ///     The lambda parameter that stands for the exported model when the formula was added through
+    ///     <c>FormulaColumnsCollection.Add&lt;TModel&gt;</c>; null for title-only formulas.
+    /// </summary>
+    private ParameterExpression? ModelParameter { get; set; }
+
+    /// <summary>Column title of each exported property of the model, by property name.</summary>
+    private Dictionary<string, string> ModelPropertyTitles { get; set; } = new();
+
     public string Convert(Expression? expression)
     {
-        if (expression == null) return string.Empty;
-        return expression.NodeType == ExpressionType.Lambda
-            ? InternalConvert((expression as LambdaExpression)?.Body)
-            : string.Empty;
+        if (expression is not LambdaExpression lambda) return string.Empty;
+        if (lambda.Parameters.Count >= 2)
+        {
+            ModelParameter = lambda.Parameters[1];
+            ModelPropertyTitles = ExcelUtil.GetPropertiesAttributesDict(ModelParameter.Type)
+                .ToDictionary(c => c.Key.Name, c => c.Value.Title!);
+        }
+
+        return InternalConvert(lambda.Body);
     }
 
     private static string ConvertConstant(Expression expression)
@@ -71,10 +86,53 @@ internal class ExpressionConvert
     private string ConvertBinaryExpression(Expression expression)
     {
         if (!(expression is BinaryExpression binary)) return "null";
-        var symbol = $"unsupported binary symbol:{binary.NodeType}";
-        if (BinarySymbolDictionary.TryGetValue(binary.NodeType, out var value)) symbol = value;
+        var symbol = BinarySymbol(binary);
+        var precedence = Precedence(binary);
+        var left = InternalConvert(binary.Left);
+        var right = InternalConvert(binary.Right);
+        // Excel formulas are plain text, so the tree's grouping has to be restored with parentheses
+        // wherever an operand binds less tightly than its parent (or equally tightly on the right of
+        // a non-associative operator, as in a-(b-c)).
+        if (Precedence(binary.Left) < precedence) left = $"({left})";
+        var rightPrecedence = Precedence(binary.Right);
+        if (rightPrecedence < precedence ||
+            (rightPrecedence == precedence && binary.NodeType is ExpressionType.Subtract or ExpressionType.Divide))
+            right = $"({right})";
 
-        return $"{InternalConvert(binary.Left)}{symbol}{InternalConvert(binary.Right)}";
+        return $"{left}{symbol}{right}";
+    }
+
+    private static string BinarySymbol(BinaryExpression binary)
+    {
+        // string concatenation compiles to Add with String.Concat; Excel spells it &
+        if (binary.NodeType == ExpressionType.Add && binary.Method?.DeclaringType == typeof(string)) return "&";
+        return BinarySymbolDictionary.TryGetValue(binary.NodeType, out var value)
+            ? value
+            : $"unsupported binary symbol:{binary.NodeType}";
+    }
+
+    /// <summary>
+    ///     Excel operator precedence of the operator an expression will be rendered with; atoms (cells,
+    ///     constants, function calls) rank highest so they never get parenthesized.
+    /// </summary>
+    private static int Precedence(Expression expression)
+    {
+        while (expression is UnaryExpression { NodeType: ExpressionType.Convert } convert)
+            expression = convert.Operand;
+        if (expression is not BinaryExpression binary) return int.MaxValue;
+        switch (BinarySymbol(binary))
+        {
+            case "*":
+            case "/":
+                return 4;
+            case "+":
+            case "-":
+                return 3;
+            case "&":
+                return 2;
+            default:
+                return 1; // comparisons
+        }
     }
 
     private string ConvertCall(Expression expression)
@@ -120,6 +178,11 @@ internal class ExpressionConvert
         var exp = expression as MemberExpression;
         var member = exp?.Member;
         if (member == null) return string.Empty;
+        if (ModelParameter != null && exp!.Expression == ModelParameter)
+            return ConvertModelProperty(member);
+        // m.Price.Value on a nullable property refers to the same cell
+        if (member.Name == "Value" && Nullable.GetUnderlyingType(member.DeclaringType!) != null)
+            return InternalConvert(exp!.Expression);
         if (member.DeclaringType != typeof(DateTime))
             return $"unspport member access type={member.DeclaringType} name={member.Name}";
         switch (member.Name)
@@ -137,11 +200,24 @@ internal class ExpressionConvert
         }
     }
 
+    /// <summary>
+    ///     Translates <c>m.Property</c> to the cell of that property's column on the current row.
+    /// </summary>
+    private string ConvertModelProperty(MemberInfo property)
+    {
+        if (!ModelPropertyTitles.TryGetValue(property.Name, out var title))
+            throw new Excel2ObjectException(
+                $"refers to property [{property.Name}] of {ModelParameter!.Type.Name}, which is not an exported column (no [ExcelTitle] or [Display] attribute).");
+        return $"{GetColumnByTitle(title)}{RowIndex + 1}";
+    }
+
     private string ConvertUnaryExpression(Expression expression)
     {
         if (!(expression is UnaryExpression unary)) return "null";
         var symbol = unary.NodeType == ExpressionType.Negate ? "-" : "unsupported unary symbol";
-        return $"{symbol}{InternalConvert(unary.Operand)}";
+        var operand = InternalConvert(unary.Operand);
+        if (Precedence(unary.Operand) != int.MaxValue) operand = $"({operand})";
+        return $"{symbol}{operand}";
     }
 
     /// <summary>
@@ -202,10 +278,14 @@ internal class ExpressionConvert
     private string GetColumn(Expression exp)
     {
         if (exp is not ConstantExpression constant) return "null";
-        var key = constant.Value?.ToString();
-        var columnIndex = Array.IndexOf(Columns, key);
+        return GetColumnByTitle(constant.Value?.ToString());
+    }
+
+    private string GetColumnByTitle(string? title)
+    {
+        var columnIndex = Array.IndexOf(Columns, title);
         if (columnIndex == -1)
-            throw new Excel2ObjectException($"refers to column [{key}], which is not a column of this sheet.");
+            throw new Excel2ObjectException($"refers to column [{title}], which is not a column of this sheet.");
         return ExcelColumnNameParser.Parse(columnIndex);
     }
 

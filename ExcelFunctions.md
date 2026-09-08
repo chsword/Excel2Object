@@ -23,6 +23,35 @@ var bytes = new ExcelExporter().ObjectToExcelBytes(list, options =>
 |A2:B4 | ```  c => c.Matrix("One",2,"Two",4) ```|
 |A:D | ```  c => c.Columns("One","Four") ```| Whole columns|
 
+### Refer to columns by model property
+
+When exporting a typed model, `FormulaColumns.Add<TModel>` passes the model as a second lambda parameter so
+columns can be referenced by property instead of by title string. The compiler checks the property names,
+and each property is mapped to its column through its `[ExcelTitle]` / `[Display]` attribute. Properties
+without one of those attributes are not exported and throw `Excel2ObjectException` when referenced.
+
+``` csharp
+public class OrderLine
+{
+    [ExcelTitle("Product")] public string Product { get; set; }
+    [ExcelTitle("Price")] public decimal Price { get; set; }
+    [ExcelTitle("Qty")] public int Qty { get; set; }
+}
+
+var bytes = new ExcelExporter().ObjectToExcelBytes(lines, options =>
+{
+    options.FormulaColumns.Add<OrderLine>("Total", (c, m) => m.Price * m.Qty);          // =B2*C2
+    options.FormulaColumns.Add<OrderLine>("Label", (c, m) => m.Product + "-" + m.Qty);  // =A2&"-"&C2
+    options.FormulaColumns.Add<OrderLine>("Level",
+        (c, m) => ExcelFunctions.Condition.If(m.Qty > 5, "bulk", "single"));            // =IF(C2>5,"bulk","single")
+});
+```
+
+`m.Property` always means the cell of that column on the current row; use the first parameter for anything
+else (`c["Price", 2]`, `c.Matrix(...)`, `c.Sheet(...)`), and mix the two freely. String `+` is written as `&`,
+`DateTime` members (`m.Ordered.Year`) and `.Value` on nullable properties are supported, and parentheses
+follow Excel operator precedence.
+
 ### Other sheets
 
 `c.Sheet("title")` refers to another sheet of the same workbook. Its column titles are read from that sheet's

@@ -123,7 +123,7 @@ internal static class TypeConvert
                     Title = formulaColumn.Title,
                     Order = 0,
                     Type = typeof(Expression),
-                    Formula = formulaColumn.Formula,
+                    Formula = formulaColumn.ModelFormula ?? formulaColumn.Formula,
                     ResultType = formulaColumn.FormulaResultType
                 };
                 if (string.IsNullOrWhiteSpace(formulaColumn.AfterColumnTitle))
@@ -143,7 +143,7 @@ internal static class TypeConvert
             else
             {
                 excelColumn.Type = typeof(Expression);
-                excelColumn.Formula = formulaColumn.Formula;
+                excelColumn.Formula = formulaColumn.ModelFormula ?? formulaColumn.Formula;
                 excelColumn.ResultType = formulaColumn.FormulaResultType;
             }
         }

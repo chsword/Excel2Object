@@ -141,16 +141,25 @@ public class ExcelExporter
                     {
                         var column = columns[i];
                         var cell = row.CreateCell(i);
-                        var val = column.Title != null && item.TryGetValue(column.Title, out var value)
-                            ? (value ?? "").ToString()
-                            : "";
-                        SetCellValue(excelType, column, cell, val!, columnTitles, sheetColumnsResolver);
+                        var raw = column.Title != null && item.TryGetValue(column.Title, out var value)
+                            ? value
+                            : null;
+                        if (raw is DBNull) raw = null;
+                        var val = raw?.ToString() ?? "";
+                        SetCellValue(excelType, column, cell, raw, val, columnTitles, sheetColumnsResolver);
                     }
                 }
             }
 
         return ToBytes(workbook);
-    }    private static void SetHeaderStyle(ICell cell, IExcelHeaderStyle? style)
+    }    private static bool IsNumeric(Type type)
+    {
+        return type == typeof(int) || type == typeof(long) || type == typeof(double) || type == typeof(decimal) ||
+               type == typeof(float) || type == typeof(short) || type == typeof(byte) || type == typeof(uint) ||
+               type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte);
+    }
+
+    private static void SetHeaderStyle(ICell cell, IExcelHeaderStyle? style)
     {
         if (style == null)
             return;
@@ -327,9 +336,37 @@ public class ExcelExporter
         };
     }
 
-    private void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, string val,
+    private void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, object? raw, string val,
         string[] columnTitles, Func<string, string[]?> sheetColumnsResolver)
     {
+        var valueType = column.Type == null ? null : Nullable.GetUnderlyingType(column.Type) ?? column.Type;
+        if (valueType != null && valueType != typeof(Expression) && valueType != typeof(string) && val.Length == 0)
+        {
+            // null / missing values stay blank so formulas treat them as 0 instead of failing on ""
+            cell.SetBlank();
+            return;
+        }
+
+        if (valueType != null && IsNumeric(valueType))
+        {
+            // typed numbers become numeric cells (Excel would otherwise flag "number stored as text")
+            var number = raw != null && IsNumeric(raw.GetType())
+                ? Convert.ToDouble(raw, CultureInfo.InvariantCulture)
+                : double.TryParse(val, NumberStyles.Any, CultureInfo.CurrentCulture, out var parsed)
+                    ? parsed
+                    : double.NaN;
+            if (!double.IsNaN(number))
+            {
+                cell.SetCellValue(number);
+                return;
+            }
+        }
+        else if (valueType == typeof(bool) && bool.TryParse(val, out var flag))
+        {
+            cell.SetCellValue(flag);
+            return;
+        }
+
         if (column.Type == typeof(Uri))
         {
             cell.Hyperlink = Switch<IHyperlink>(

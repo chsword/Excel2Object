@@ -24,9 +24,19 @@ internal static class ExcelUtil
     /// <returns></returns>
     public static Dictionary<PropertyInfo, ExcelTitleAttribute> GetPropertiesAttributesDict<T>()
     {
+        return GetPropertiesAttributesDict(typeof(T));
+    }
+
+    /// <summary>
+    ///     Get the ExcelTitleAttribute on properties
+    /// </summary>
+    /// <param name="type">The model type</param>
+    /// <returns></returns>
+    public static Dictionary<PropertyInfo, ExcelTitleAttribute> GetPropertiesAttributesDict(Type type)
+    {
         var dict = new Dictionary<PropertyInfo, ExcelTitleAttribute>();
         var defaultOrder = 10000;
-        var props = typeof(T).GetTypeInfo().GetRuntimeProperties();
+        var props = type.GetTypeInfo().GetRuntimeProperties();
         foreach (var propertyInfo in props)
         {
             var attrs = propertyInfo.GetCustomAttributes(true);

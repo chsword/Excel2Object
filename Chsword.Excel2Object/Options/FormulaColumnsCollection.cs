@@ -57,10 +57,27 @@ public class FormulaColumnsCollection : ICollection<FormulaColumn>
 
     public void Add(string columnTitle, Expression<Func<ColumnCellDictionary, object>> func)
     {
-        FormulaColumns.Add(new FormulaColumn
+        Add(new FormulaColumn
         {
             Title = columnTitle,
             Formula = func
+        });
+    }
+
+    /// <summary>
+    ///     Adds a formula column whose formula refers to columns through the exported model's properties,
+    ///     e.g. <c>options.FormulaColumns.Add&lt;Order&gt;("Total", (c, m) => m.Price * m.Qty)</c>.
+    ///     Each property is mapped to its column by the title in its [ExcelTitle] / [Display] attribute;
+    ///     <paramref name="func" />'s first parameter still gives access to <see cref="ColumnCellDictionary" />
+    ///     for titles, matrices and other sheets.
+    /// </summary>
+    /// <typeparam name="TModel">The model type being exported.</typeparam>
+    public void Add<TModel>(string columnTitle, Expression<Func<ColumnCellDictionary, TModel, object>> func)
+    {
+        Add(new FormulaColumn
+        {
+            Title = columnTitle,
+            ModelFormula = func
         });
     }
 }
