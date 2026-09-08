@@ -40,12 +40,30 @@ dotnet add package Chsword.Excel2Object
 ### Features Not Yet Supported
 
 - [ ] CLI tool
-- [x] Support auto width column ✅ **New in v2.0.1**
-- [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.2** - See [DateTimeFormats.md](DateTimeFormats.md)
+- [x] Support auto width column ✅ **New in v2.0.4**
+- [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4** - See [DateTimeFormats.md](DateTimeFormats.md)
+- [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)
 
 ### Release Notes
 
-* **2025.10.11** - v2.0.2
+* **2026.09.08** - v2.1.0
+- [x] ✨ **NEW:** Cross-sheet references in formula columns: `c.Sheet("Products")["Price", 2]`, `.Matrix(...)`, `.Columns(...)`, usable directly in `VLOOKUP` etc.; plus whole-column ranges on the current sheet via `c.Columns("A", "D")` - See [ExcelFunctions.md](ExcelFunctions.md)
+- [x] ✨ **Improved:** Referencing an unknown column or sheet in a formula now throws `Excel2ObjectException` (naming the formula column) instead of emitting an invalid formula
+- [x] ✨ **Updated:** NPOI to 2.8.0 (NPOI 2.8+ ships with the OSMF EULA, which this library accepts in its csproj; the source remains Apache-2.0)
+- [x] 🔒 Fixed vulnerable transitive dependency System.Security.Cryptography.Xml (pinned to 8.0.4)
+- [x] 🧹 Removed the unused SixLabors.ImageSharp dependency; implemented `FormulaColumnsCollection.CopyTo`; `ColumnValue.Equals/GetHashCode` no longer throw
+- [x] 🔧 CI and tests moved to .NET 10; fixed the release workflow failing to create GitHub Releases
+
+* **2025.10.11** - v2.0.5
+- [x] 🔧 `release.ps1` auto-increments the patch version and supports `-Help` (no library changes)
+
+* **2025.10.11** - v2.0.4
+- [x] ℹ️ First 2.0.x version published to NuGet since 2.0.0.211 (v2.0.1–v2.0.3 were never published); includes all of the following:
+- [x] ✨ **NEW:** Auto column width adjustment based on content
+  - Automatically calculates optimal column widths
+  - Supports minimum and maximum width constraints
+  - Handles Chinese/Unicode characters properly
+  - Configurable through `ExcelExporterOptions`
 - [x] ✨ **NEW:** Comprehensive date/time format support (56 formats) - See [DateTimeFormats.md](DateTimeFormats.md)
   - ISO 8601 formats with/without timezone and milliseconds
   - Multiple date separators (dash, slash, dot)
@@ -55,13 +73,7 @@ dotnet add package Chsword.Excel2Object
   - Backward compatible with existing Chinese date formats (年月日)
 - [x] ✨ **Updated:** NPOI to 2.7.5
 - [x] ✨ **Updated:** SixLabors.ImageSharp to 3.1.11 (Fixed security vulnerability)
-
-* **2025.07.23** - v2.0.1
-- [x] ✨ **NEW:** Auto column width adjustment based on content
-  - Automatically calculates optimal column widths
-  - Supports minimum and maximum width constraints
-  - Handles Chinese/Unicode characters properly
-  - Configurable through `ExcelExporterOptions`
+- [x] 🔧 GitHub Actions CI replaces AppVeyor; tag-triggered release workflow and `release.ps1` one-command release script
 
 * **2024.10.21**
 - [x] Updated SixLabors.ImageSharp to 2.1.9

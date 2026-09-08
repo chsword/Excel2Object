@@ -197,10 +197,10 @@ jobs:
         
         # 从 README.md 提取当前版本的发布说明
         # Extract release notes for current version from README.md
-        if grep -q "v$VERSION" README.md; then
-          # 提取版本号对应的部分
-          NOTES=$(awk "/\*\*.*v$VERSION/,/^\* \*\*[0-9]/" README.md | head -n -1)
-          
+        # 提取以 "* **日期** - v版本" 开头的条目，直到下一个 "* **" 条目为止
+        # Extract the entry headed "* **date** - vVERSION" up to the next "* **" entry
+        NOTES=$(awk -v v="$VERSION" '/^\* \*\*/ { if (found) exit; t=$0; sub(/^\* \*\*[^*]*\*\* - /, "", t); if (t == "v" v) found=1 } found' README.md)
+        if [ -n "$NOTES" ]; then
           # 保存到文件
           echo "$NOTES" > release_notes.md
           echo "找到版本 $VERSION 的发布说明"

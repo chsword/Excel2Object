@@ -42,12 +42,30 @@ dotnet add package Chsword.Excel2Object
 ### 暂不支持的特性
 
 - [ ] CLI 工具
-- [x] 支持自动列宽 ✅ **v2.0.1 新增**
-- [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.2 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
+- [x] 支持自动列宽 ✅ **v2.0.4 新增**
+- [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
+- [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 
 ### 发布说明
 
-* **2025.10.11** - v2.0.2
+* **2026.09.08** - v2.1.0
+- [x] ✨ **新增:** 公式列支持跨 sheet 引用：`c.Sheet("Products")["Price", 2]`、`.Matrix(...)`、`.Columns(...)`，可直接用于 `VLOOKUP` 等函数；另新增当前 sheet 的整列引用 `c.Columns("A列", "D列")` - 查看 [ExcelFunctions.md](ExcelFunctions.md)
+- [x] ✨ **改进:** 公式中引用不存在的列或 sheet 时抛出 `Excel2ObjectException`（附公式列名），不再生成无效公式
+- [x] ✨ **更新:** NPOI 到 2.8.0（NPOI 2.8 起附带 OSMF EULA，本库已在 csproj 中声明接受；源代码仍为 Apache-2.0）
+- [x] 🔒 修复传递依赖 System.Security.Cryptography.Xml 的安全漏洞（钉到 8.0.4）
+- [x] 🧹 移除未使用的 SixLabors.ImageSharp 依赖；补全 `FormulaColumnsCollection.CopyTo`；`ColumnValue.Equals/GetHashCode` 不再抛异常
+- [x] 🔧 CI 与测试迁移到 .NET 10；修复发布流程中 GitHub Release 创建失败的问题
+
+* **2025.10.11** - v2.0.5
+- [x] 🔧 `release.ps1` 支持自动递增补丁版本号与 `-Help`（库代码无变更）
+
+* **2025.10.11** - v2.0.4
+- [x] ℹ️ 自 2.0.0.211 之后首个发布到 NuGet 的 2.0.x 版本（v2.0.1–v2.0.3 未曾发布），包含以下全部改动：
+- [x] ✨ **新增:** 基于内容的自动列宽调整
+  - 自动计算最优列宽
+  - 支持最小和最大宽度限制
+  - 正确处理中文/Unicode 字符
+  - 可通过 `ExcelExporterOptions` 配置
 - [x] ✨ **新增:** 全面的日期/时间格式支持（56 种格式）- 查看 [DateTimeFormats.md](DateTimeFormats.md)
   - ISO 8601 格式（支持时区和毫秒）
   - 多种日期分隔符（横线、斜线、点号）
@@ -57,13 +75,7 @@ dotnet add package Chsword.Excel2Object
   - 向后兼容现有的中文日期格式（年月日）
 - [x] ✨ **更新:** NPOI 到 2.7.5
 - [x] ✨ **更新:** SixLabors.ImageSharp 到 3.1.11（修复安全漏洞）
-
-* **2025.07.23** - v2.0.1
-- [x] ✨ **新增:** 基于内容的自动列宽调整
-  - 自动计算最优列宽
-  - 支持最小和最大宽度限制
-  - 正确处理中文/Unicode 字符
-  - 可通过 `ExcelExporterOptions` 配置
+- [x] 🔧 GitHub Actions CI 取代 AppVeyor；新增 tag 触发的自动发布流程与 `release.ps1` 一键发布脚本
 
 * **2024.10.21**
 - [x] 更新 SixLabors.ImageSharp 到 2.1.9
