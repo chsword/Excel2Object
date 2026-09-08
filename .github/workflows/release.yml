@@ -18,7 +18,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0  # 获取完整历史以便版本比较
 
@@ -78,10 +78,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: |
           6.0.x
@@ -100,7 +100,7 @@ jobs:
 
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: test-results-${{ matrix.os }}
         path: "**/test-results.trx"
@@ -113,10 +113,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: |
           6.0.x
@@ -134,7 +134,7 @@ jobs:
       run: dotnet pack --configuration Release --no-build --output ./artifacts
 
     - name: Upload NuGet package artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: nuget-package
         path: ./artifacts/*.nupkg
@@ -151,13 +151,13 @@ jobs:
 
     steps:
     - name: Download NuGet package
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: nuget-package
         path: ./artifacts
 
     - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.0.x
 
@@ -180,12 +180,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
     - name: Download NuGet package
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: nuget-package
         path: ./artifacts
@@ -232,7 +232,7 @@ jobs:
         fi
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       with:
         name: Release ${{ needs.validate-version.outputs.version }}
         body_path: release_notes.md
