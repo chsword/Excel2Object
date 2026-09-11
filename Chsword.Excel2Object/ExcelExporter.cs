@@ -252,7 +252,7 @@ public class ExcelExporter
 
         var font = StyleToFont(cell, style);
 
-        if (key == "text")
+        if (key == ExcelConstants.CellTypes.Text)
         {
             var s1 = cell.Sheet.Workbook.CreateCellStyle();
             if (font != null)
@@ -262,7 +262,7 @@ public class ExcelExporter
             return s1;
         }
 
-        if (key == "datatime")
+        if (key == ExcelConstants.CellTypes.DateTime)
         {
             var s1 = cell.Sheet.Workbook.CreateCellStyle();
             if (font != null) s1.SetFont(font);
