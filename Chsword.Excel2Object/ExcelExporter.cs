@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Data;
+﻿using System.Data;
 using System.Globalization;
 using System.Linq.Expressions;
 using Chsword.Excel2Object.Internal;
@@ -15,8 +14,6 @@ namespace Chsword.Excel2Object;
 
 public class ExcelExporter
 {
-    private readonly ConcurrentDictionary<string, ICellStyle> _cellStyleDict = new();
-
     public byte[]? AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data,
         string sheetTitle)
     {
@@ -89,9 +86,7 @@ public class ExcelExporter
             }
 
         if (options.MappingColumnAction == null) options.MappingColumnAction = (s, _) => s;
-        
-        // Clear style cache for each new workbook
-        _cellStyleDict.Clear();
+        var cellStyleDict = new Dictionary<string, ICellStyle>();
         
         if (excel.Sheets != null)
             foreach (var excelSheet in excel.Sheets)
@@ -145,7 +140,7 @@ public class ExcelExporter
                             : null;
                         if (raw is DBNull) raw = null;
                         var val = raw?.ToString() ?? "";
-                        SetCellValue(excelType, column, cell, raw, val, columnTitles, sheetColumnsResolver);
+                        SetCellValue(excelType, column, cell, raw, val, columnTitles, sheetColumnsResolver, cellStyleDict);
                     }
                 }
             }
@@ -261,10 +256,11 @@ public class ExcelExporter
     ///     <see cref="ICellStyle" /> - a workbook can only hold a limited number of them.
     /// </summary>
     /// <remarks>
-    ///     The cache holds styles belonging to the workbook being written and is cleared when an export
-    ///     starts, so one <see cref="ExcelExporter" /> cannot run two exports at the same time.
+    ///     The cache is local to each export run, so styles are only reused within the workbook currently
+    ///     being written.
     /// </remarks>
-    private ICellStyle? CreateStyle(string type, ICell cell, IExcelCellStyle? style)
+    private ICellStyle? CreateStyle(string type, ICell cell, IExcelCellStyle? style,
+        IDictionary<string, ICellStyle> cellStyleDict)
     {
         string? format;
         if (type == ExcelConstants.CellTypes.Text)
@@ -284,7 +280,7 @@ public class ExcelExporter
             return null;
 
         var key = GetKey(type, style);
-        if (_cellStyleDict.TryGetValue(key, out var cached)) return cached;
+        if (cellStyleDict.TryGetValue(key, out var cached)) return cached;
 
         var workbook = cell.Sheet.Workbook;
         var cellStyle = workbook.CreateCellStyle();
@@ -296,13 +292,14 @@ public class ExcelExporter
         if (style != null && style.CellAlignment != HorizontalAlignment.General)
             cellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.CellAlignment;
 
-        _cellStyleDict.AddOrUpdate(key, cellStyle, (_, _) => cellStyle);
+        cellStyleDict[key] = cellStyle;
         return cellStyle;
     }
 
-    private void ApplyStyle(ICell cell, string type, IExcelCellStyle? style)
+    private void ApplyStyle(ICell cell, string type, IExcelCellStyle? style,
+        IDictionary<string, ICellStyle> cellStyleDict)
     {
-        var cellStyle = CreateStyle(type, cell, style);
+        var cellStyle = CreateStyle(type, cell, style, cellStyleDict);
         if (cellStyle != null)
             cell.CellStyle = cellStyle;
     }
@@ -310,16 +307,17 @@ public class ExcelExporter
     private string GetKey(string type, IExcelCellStyle? style)
     {
         if (style == null) return type;
-        var arr = new[]
+        var arr = new List<string?>
         {
             type, style.CellFontFamily, style.CellAlignment.ToString(),
             style.CellBold.ToString(), style.CellFontColor.ToString(),
             style.CellFontHeight.ToString(CultureInfo.InvariantCulture),
             style.CellItalic.ToString(),
             style.CellStrikeout.ToString(),
-            style.CellUnderline.ToString(),
-            style.Format
+            style.CellUnderline.ToString()
         };
+        if (type == ExcelConstants.CellTypes.DateTime)
+            arr.Add(style.Format);
         return string.Join("|", arr);
     }
 
@@ -362,7 +360,8 @@ public class ExcelExporter
     }
 
     private void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, object? raw, string val,
-        string[] columnTitles, Func<string, string[]?> sheetColumnsResolver)
+        string[] columnTitles, Func<string, string[]?> sheetColumnsResolver,
+        IDictionary<string, ICellStyle> cellStyleDict)
     {
         var valueType = column.Type == null ? null : Nullable.GetUnderlyingType(column.Type) ?? column.Type;
         if (valueType != null && valueType != typeof(Expression) && valueType != typeof(string) && val.Length == 0)
@@ -383,14 +382,14 @@ public class ExcelExporter
             if (!double.IsNaN(number))
             {
                 cell.SetCellValue(number);
-                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle);
+                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
                 return;
             }
         }
         else if (valueType == typeof(bool) && bool.TryParse(val, out var flag))
         {
             cell.SetCellValue(flag);
-            ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle);
+            ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
             return;
         }
 
@@ -411,7 +410,7 @@ public class ExcelExporter
             // for one. Unlike a plain string column there is nothing to protect here (no leading zeros
             // to keep), so styling every link would only change the format of existing exports.
             if (DeclaresAppearance(column.CellStyle))
-                ApplyStyle(cell, ExcelConstants.CellTypes.Text, column.CellStyle);
+                ApplyStyle(cell, ExcelConstants.CellTypes.Text, column.CellStyle, cellStyleDict);
         }
         else if (column.Type == typeof(Expression))
         {
@@ -431,7 +430,7 @@ public class ExcelExporter
                 }
 
                 // the Format went into the text, but the column's font and alignment still apply
-                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle);
+                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
                 return;
             }
 
@@ -452,14 +451,15 @@ public class ExcelExporter
             }
             if (column.ResultType != null)
                 if (column.ResultType == typeof(DateTime))
-                    cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.DateTime, cell, column.CellStyle);
+                    cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.DateTime, cell, column.CellStyle,
+                        cellStyleDict);
 
             return;
         }
         else if (column.Type == typeof(string))
         {
             cell.SetCellType(CellType.String);
-            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle);
+            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle, cellStyleDict);
         }
         else if (column.Type == typeof(DateTime) || column.Type == typeof(DateTime?))
         {
@@ -477,12 +477,12 @@ public class ExcelExporter
                 }
 
                 // the Format went into the text, but the column's font and alignment still apply
-                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle);
+                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
                 return;
             }
 
             cell.SetCellType(CellType.String);
-            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle);
+            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle, cellStyleDict);
         }
 
         cell.SetCellValue(val);
