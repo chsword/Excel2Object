@@ -391,6 +391,11 @@ public class ExcelExporter
                     Address = val
                 }
             );
+            // A hyperlink cell holds text, so it takes the text style - but only when the column asked
+            // for one. Unlike a plain string column there is nothing to protect here (no leading zeros
+            // to keep), so styling every link would only change the format of existing exports.
+            if (column.CellStyle != null)
+                ApplyStyle(cell, ExcelConstants.CellTypes.Text, column.CellStyle);
         }
         else if (column.Type == typeof(Expression))
         {

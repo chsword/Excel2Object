@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Chsword.Excel2Object.Styles;
@@ -39,6 +40,12 @@ public class CellStyleTest : BaseExcelTest
         public bool Done { get; set; } = true;
 
         [ExcelTitle("PlainQty")] public int PlainQty { get; set; } = 9;
+
+        [ExcelColumn("Link", CellBold = true, CellFontColor = ExcelStyleColor.Red,
+            CellAlignment = Alignment.Right)]
+        public Uri Link { get; set; } = new("https://github.com/chsword/Excel2Object");
+
+        [ExcelTitle("PlainLink")] public Uri PlainLink { get; set; } = new("https://example.com/");
     }
 
     private static ISheet Export(ExcelType excelType, out IWorkbook workbook)
@@ -133,9 +140,44 @@ public class CellStyleTest : BaseExcelTest
     [TestMethod]
     public void NumberColumnWithoutAStyleKeepsTheWorkbookDefault()
     {
-        var cell = Export(ExcelType.Xlsx, out _).GetRow(1).GetCell(6);
-        Assert.AreEqual(CellType.Numeric, cell.CellType);
-        Assert.AreEqual(0, cell.CellStyle.Index);
+        foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
+        {
+            var sheet = Export(excelType, out var workbook);
+            var cell = sheet.GetRow(1).GetCell(6);
+            Assert.AreEqual(CellType.Numeric, cell.CellType, excelType.ToString());
+            // .xlsx and .xls number their default style differently, so assert the style is untouched
+            // rather than that it sits at a particular index
+            Assert.AreEqual(0, cell.CellStyle.DataFormat, $"{excelType} format");
+            Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.General, cell.CellStyle.Alignment,
+                excelType.ToString());
+            Assert.IsFalse(cell.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
+        }
+    }
+
+    /// <summary>
+    ///     A Uri column becomes a hyperlink cell on a branch of its own, which also has to carry the
+    ///     column's style - while a link nobody styled keeps the workbook default.
+    /// </summary>
+    [TestMethod]
+    public void HyperlinkCellsAreStyledToo()
+    {
+        foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
+        {
+            var row = Export(excelType, out var workbook).GetRow(1);
+
+            var link = row.GetCell(7);
+            Assert.IsNotNull(link.Hyperlink, excelType.ToString());
+            Assert.AreEqual("https://github.com/chsword/Excel2Object", link.Hyperlink.Address);
+            Assert.IsTrue(link.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
+            Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.Right, link.CellStyle.Alignment);
+
+            // the default style index differs between .xlsx and .xls, so compare against another
+            // column that declared no style rather than against a literal
+            var plain = row.GetCell(8);
+            Assert.IsNotNull(plain.Hyperlink, excelType.ToString());
+            Assert.AreEqual(row.GetCell(6).CellStyle.Index, plain.CellStyle.Index,
+                $"{excelType} unstyled link");
+        }
     }
 
     [TestMethod]
