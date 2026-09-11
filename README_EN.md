@@ -51,12 +51,15 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 ### Features Not Yet Supported
 
-- [x] CLI tool ✅ **New in v2.2.0** - `dotnet tool install -g Chsword.Excel2Object.Cli`, see [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
+- [x] CLI tool ✅ **New in v2.2.1** - `dotnet tool install -g Chsword.Excel2Object.Cli`, see [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
 - [x] Support auto width column ✅ **New in v2.0.4**
 - [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4** - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)
 
 ### Release Notes
+
+* **2026.09.11** - v2.2.1
+- [x] 🔧 Fixed the command-line tool package exceeding NuGet's 250 MB limit, which kept 2.2.0 of the CLI from being published: net8.0 only and native `.pdb` files dropped (no library changes)
 
 * **2026.09.11** - v2.2.0
 - [x] ✨ **NEW:** Command-line tool `excel2obj` (`dotnet tool install -g Chsword.Excel2Object.Cli`): Excel ↔ JSON conversion, batch conversion, and model class generation with `[ExcelTitle]` from the header row - See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md) (#9)

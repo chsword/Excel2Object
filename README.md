@@ -53,12 +53,15 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 
 ### 暂不支持的特性
 
-- [x] CLI 工具 ✅ **v2.2.0 新增** - `dotnet tool install -g Chsword.Excel2Object.Cli`，查看 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
+- [x] CLI 工具 ✅ **v2.2.1 新增** - `dotnet tool install -g Chsword.Excel2Object.Cli`，查看 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
 - [x] 支持自动列宽 ✅ **v2.0.4 新增**
 - [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 
 ### 发布说明
+
+* **2026.09.11** - v2.2.1
+- [x] 🔧 修复命令行工具包体超过 NuGet 250 MB 上限导致 2.2.0 未能发布的问题：CLI 仅保留 net8.0 并剔除原生 `.pdb`（库代码无变更）
 
 * **2026.09.11** - v2.2.0
 - [x] ✨ **新增:** 命令行工具 `excel2obj`（`dotnet tool install -g Chsword.Excel2Object.Cli`）：Excel ↔ JSON 转换、批量转换、由表头生成带 `[ExcelTitle]` 的模型类 - 查看 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)（#9）
