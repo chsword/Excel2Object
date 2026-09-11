@@ -88,7 +88,6 @@ public class ExcelExporter
                 return null;
             }
 
-        CheckExcelModel(excel);
         if (options.MappingColumnAction == null) options.MappingColumnAction = (s, _) => s;
         
         // Clear style cache for each new workbook
@@ -174,7 +173,6 @@ public class ExcelExporter
 
         if (style.HeaderFontColor > 0)
             font.Color = (short) style.HeaderFontColor;
-        //NPOI.SS.UserModel.FontColor.Red
         if (style.HeaderBold)
             font.IsBold = true;
         if (style.HeaderItalic)
@@ -244,12 +242,6 @@ public class ExcelExporter
         };
 
         return workbook;
-    }
-
-    // ReSharper disable once UnusedParameter.Local
-    private void CheckExcelModel(ExcelModel excel)
-    {
-        //todo validate
     }
 
     private ICellStyle? CreateStyle(string type, ICell cell, IExcelCellStyle? style)

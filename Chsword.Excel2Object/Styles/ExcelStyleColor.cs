@@ -2,7 +2,6 @@
 
 public enum ExcelStyleColor : short
 {
-    //ColorNormal = 32767,
     Black = 8,
     Brown = 60,
     OliveGreen = 59,

@@ -9,7 +9,9 @@ public interface IMathFunction
     /// </summary>
     int Even(object val);
 
-    //阶fact
+    /// <summary>
+    ///     阶乘 / Factorial
+    /// </summary>
     int Fact(object val);
 
     /// <summary>

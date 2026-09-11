@@ -130,8 +130,8 @@ git push origin v2.1.0-rc.1
 - 📋 [版本管理规范](../.github/VERSIONING.md)
 - 🤖 [Copilot 指令](../.github/copilot-instructions.md)
 - 🔄 [发布自动化总览](../RELEASE_AUTOMATION.md)
-- 🏃 [CI Workflow](../..github/workflows/dotnet-ci.yml)
-- 🚀 [Release Workflow](../..github/workflows/release.yml)
+- 🏃 [CI Workflow](workflows/dotnet-ci.yml)
+- 🚀 [Release Workflow](workflows/release.yml)
 
 ## ⏱️ 预计时间 / Estimated Time
 

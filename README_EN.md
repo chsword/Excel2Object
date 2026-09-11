@@ -262,6 +262,11 @@ In ASP.NET MVC models, the `DisplayAttribute` can be supported like `ExcelTitleA
 
 ## Document
 
+- [ExcelFunctions.md](ExcelFunctions.md) - Formula columns: built-in functions, references by column title or model property, cross-sheet references
+- [DateTimeFormats.md](DateTimeFormats.md) - Supported date/time formats and parsing rules
+- [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md) - The `excel2obj` command-line tool
+- [ROADMAP.md](ROADMAP.md) - Roadmap
+
 For more information, please visit: http://www.cnblogs.com/chsword/p/excel2object.html
 
 ## Development and Release
@@ -277,11 +282,11 @@ For more information, please visit: http://www.cnblogs.com/chsword/p/excel2objec
 Use the automation script for one-click release:
 
 ```powershell
-# Windows
-.\release.ps1 -Version 2.0.4
+# Windows: without arguments it auto-increments the patch version; pass -Version 2.3.0 to pick one
+.\release.ps1
 
 # Linux/macOS (PowerShell Core required)
-pwsh ./release.ps1 -Version 2.0.4
+pwsh ./release.ps1
 ```
 
 See [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md) for detailed instructions.

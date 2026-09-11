@@ -90,7 +90,7 @@ graph TD
 **作业清单 / Jobs**:
 1. ✓ `validate-version`: 验证版本号格式和一致性
 2. ✓ `build-and-test`: 在 Ubuntu 和 Windows 上构建和测试
-3. ✓ `pack-nuget`: 打包 NuGet 包
+3. ✓ `pack-nuget`: 打包 NuGet 包（解决方案级 `dotnet pack`，产出类库和 CLI 两个包）
 4. ✓ `publish-nuget`: 发布到 NuGet.org
 5. ✓ `create-release`: 创建 GitHub Release
 6. ✓ `notify-success`: 发布成功通知
@@ -268,35 +268,39 @@ This is a PowerShell script that automates the entire process of version update,
 **基本用法 / Basic Usage**:
 
 ```powershell
-# Windows
-.\release.ps1 -Version 2.0.4
+# Windows：不带参数则自动递增修订号
+.\release.ps1
 
 # Linux/macOS (需要安装 PowerShell Core)
-pwsh ./release.ps1 -Version 2.0.4
+pwsh ./release.ps1
 ```
 
 **参数说明 / Parameters**:
 
 | 参数 | 必需 | 说明 |
 |------|------|------|
-| `-Version` | 是 | 新版本号，格式：主版本.次版本.修订版 (例如: 2.0.3) |
+| `-Version` | 否 | 新版本号，格式：主版本.次版本.修订版 (例如: 2.3.0)；不指定则在当前版本上自动递增修订号 |
 | `-SkipPush` | 否 | 仅创建本地提交和标签，不推送到远程仓库 |
 | `-Force` | 否 | 强制执行，跳过所有确认提示 |
+| `-Help` | 否 | 显示用法说明 |
 
 **使用示例 / Examples**:
 
 ```powershell
-# 发布新版本 2.0.4（会提示确认）
-.\release.ps1 -Version 2.0.4
+# 自动递增修订号并发布（会提示确认）
+.\release.ps1
+
+# 发布指定版本
+.\release.ps1 -Version 2.3.0
 
 # 仅本地提交，不推送到远程
-.\release.ps1 -Version 2.1.0 -SkipPush
+.\release.ps1 -Version 2.3.0 -SkipPush
 
 # 强制执行，跳过确认提示
-.\release.ps1 -Version 3.0.0 -Force
+.\release.ps1 -Force
 
 # 组合参数使用
-.\release.ps1 -Version 2.0.5 -SkipPush -Force
+.\release.ps1 -Version 2.3.0 -SkipPush -Force
 ```
 
 **脚本执行流程 / Script Workflow**:
@@ -359,7 +363,8 @@ echo "Project Version: $CSPROJ_VERSION"
 
 ### 项目链接 / Project Links
 - [项目主页](https://github.com/chsword/Excel2Object)
-- [NuGet 包](https://www.nuget.org/packages/Chsword.Excel2Object)
+- [NuGet 包 - 类库](https://www.nuget.org/packages/Chsword.Excel2Object)
+- [NuGet 包 - 命令行工具](https://www.nuget.org/packages/Chsword.Excel2Object.Cli)
 - [问题跟踪](https://github.com/chsword/Excel2Object/issues)
 - [发布页面](https://github.com/chsword/Excel2Object/releases)
 

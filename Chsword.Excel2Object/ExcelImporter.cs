@@ -240,21 +240,11 @@ public class ExcelImporter
                     result = string.Empty;
                     break;
                 case CellType.Formula:
-
-                    var e = WorkbookFactory.CreateFormulaEvaluator(cell.Sheet.Workbook);
-                    result = GetCellValue(e.EvaluateInCell(cell));
-                    //result = e.EvaluateInCell(row.GetCell(index)).StringCellValue;
+                    var evaluator = WorkbookFactory.CreateFormulaEvaluator(cell.Sheet.Workbook);
+                    result = GetCellValue(evaluator.EvaluateInCell(cell));
                     break;
-                //case CellType.Boolean:
-                //    result = row.GetCell(index).NumericCellValue.ToString();
-                //    break;
-                //case CellType.Error:
-                //    result = row.GetCell(index).NumericCellValue.ToString();
-                //    break;
-                //case CellType._None:
-                //    result = row.GetCell(index).NumericCellValue.ToString();
-                //    break;
                 default:
+                    // Boolean ("TRUE"/"FALSE"), Error and _None all render acceptably through ToString.
                     result = cell.ToString();
                     break;
             }
