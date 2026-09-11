@@ -7,26 +7,43 @@ on:
     branches: [ main, master ]
 
 jobs:
+  # 决定这次跑几个平台：PR 上只用 ubuntu 换取快速反馈，push 到 main 时再跑全平台
+  # Pick the platforms for this run: ubuntu alone on a pull request for fast feedback,
+  # all three on a push to main
+  matrix-setup:
+    name: Select Platforms
+    runs-on: ubuntu-latest
+    outputs:
+      os: ${{ steps.select.outputs.os }}
+    steps:
+    - name: Select platforms
+      id: select
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          echo 'os=["ubuntu-latest"]' >> $GITHUB_OUTPUT
+        else
+          echo 'os=["ubuntu-latest","windows-latest","macos-latest"]' >> $GITHUB_OUTPUT
+        fi
+
   build-and-test:
     name: Build and Test
+    needs: matrix-setup
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ fromJSON(needs.matrix-setup.outputs.os) }}
       fail-fast: false
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v7
 
+    # 10.0 的 SDK 可以编译 net472 / net6.0 / net8.0 / net9.0 的目标，测试只跑 net10.0
+    # The 10.0 SDK builds the net472 / net6.0 / net8.0 / net9.0 targets; the tests run on net10.0 only
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: |
-          6.0.x
-          8.0.x
-          9.0.x
-          10.0.x
+        dotnet-version: 10.0.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v6
@@ -65,20 +82,18 @@ jobs:
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: |
-          6.0.x
-          8.0.x
-          9.0.x
-          10.0.x
+        dotnet-version: 10.0.x
 
-    - name: Restore dependencies
-      run: dotnet restore
-
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
+    - name: Cache NuGet packages
+      uses: actions/cache@v6
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
 
     - name: Pack
-      run: dotnet pack --configuration Release --no-build --output ./artifacts
+      run: dotnet pack --configuration Release --output ./artifacts
 
     - name: Upload NuGet package
       uses: actions/upload-artifact@v7
