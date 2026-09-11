@@ -185,10 +185,10 @@ public class ExcelExporter
             cell.CellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.HeaderAlignment;
     }
 
-    private static IFont? StyleToFont(ICell cell, IExcelCellStyle? style)
+    private static IFont? StyleToFont(IWorkbook workbook, IExcelCellStyle? style)
     {
         if (style == null) return null;
-        var font = cell.Sheet.Workbook.CreateFont();
+        var font = workbook.CreateFont();
         if (!string.IsNullOrWhiteSpace(style.CellFontFamily))
             font.FontName = style.CellFontFamily;
         if (style.CellFontHeight > 0)
@@ -206,8 +206,6 @@ public class ExcelExporter
             font.IsStrikeout = true;
         if (style.CellUnderline)
             font.Underline = FontUnderlineType.Single;
-        if (style.CellAlignment != HorizontalAlignment.General)
-            cell.CellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.CellAlignment;
 
         return font;
     }
@@ -244,34 +242,35 @@ public class ExcelExporter
         return workbook;
     }
 
+    /// <summary>
+    ///     Builds (and caches per workbook) the cell style for a cell type. The cache key fingerprints the
+    ///     requested style too, so columns asking for the same look share one <see cref="ICellStyle" /> -
+    ///     a workbook can only hold a limited number of them.
+    /// </summary>
     private ICellStyle? CreateStyle(string type, ICell cell, IExcelCellStyle? style)
     {
         var key = GetKey(type, style);
-        if (_cellStyleDict.TryGetValue(key, out var val)) return val;
+        if (_cellStyleDict.TryGetValue(key, out var cached)) return cached;
 
+        string format;
+        if (type == ExcelConstants.CellTypes.Text)
+            format = "text";
+        else if (type == ExcelConstants.CellTypes.DateTime)
+            format = style?.Format ?? "m/d/yy";
+        else
+            return null;
 
-        var font = StyleToFont(cell, style);
+        var workbook = cell.Sheet.Workbook;
+        var cellStyle = workbook.CreateCellStyle();
+        var font = StyleToFont(workbook, style);
+        if (font != null)
+            cellStyle.SetFont(font);
+        cellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat(format);
+        if (style != null && style.CellAlignment != HorizontalAlignment.General)
+            cellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.CellAlignment;
 
-        if (key == ExcelConstants.CellTypes.Text)
-        {
-            var s1 = cell.Sheet.Workbook.CreateCellStyle();
-            if (font != null)
-                s1.SetFont(font);
-            s1.DataFormat = HSSFDataFormat.GetBuiltinFormat("text");
-            _cellStyleDict.AddOrUpdate(key, s1, (_, _) => s1);
-            return s1;
-        }
-
-        if (key == ExcelConstants.CellTypes.DateTime)
-        {
-            var s1 = cell.Sheet.Workbook.CreateCellStyle();
-            if (font != null) s1.SetFont(font);
-            s1.DataFormat = HSSFDataFormat.GetBuiltinFormat(style?.Format ?? "m/d/yy");
-            _cellStyleDict.AddOrUpdate(key, s1, (_, _) => s1);
-            return s1;
-        }
-
-        return null;
+        _cellStyleDict.AddOrUpdate(key, cellStyle, (_, _) => cellStyle);
+        return cellStyle;
     }
 
     private string GetKey(string type, IExcelCellStyle? style)
@@ -285,7 +284,7 @@ public class ExcelExporter
             style.CellItalic.ToString(),
             style.CellStrikeout.ToString(),
             style.CellUnderline.ToString(),
-            ((int) style.CellAlignment).ToString()
+            style.Format
         };
         return string.Join("|", arr);
     }
