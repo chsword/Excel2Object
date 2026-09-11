@@ -262,16 +262,13 @@ public class ExcelExporter
     /// </summary>
     private ICellStyle? CreateStyle(string type, ICell cell, IExcelCellStyle? style)
     {
-        var key = GetKey(type, style);
-        if (_cellStyleDict.TryGetValue(key, out var cached)) return cached;
-
         string? format;
         if (type == ExcelConstants.CellTypes.Text)
             format = "text";
         else if (type == ExcelConstants.CellTypes.DateTime)
             format = style?.Format ?? "m/d/yy";
         else if (type == ExcelConstants.CellTypes.Number)
-            format = style?.Format;
+            format = NumberFormat(style?.Format);
         else if (type == ExcelConstants.CellTypes.Appearance)
             format = null;
         else
@@ -279,10 +276,14 @@ public class ExcelExporter
 
         // Text and dates need their format either way. A number, a boolean or a cell whose value was
         // already formatted into text carries none of its own, so a column that asked for neither a
-        // look nor a format has nothing to apply and keeps the workbook default.
+        // look nor a format has nothing to apply and keeps the workbook default. Decided before the
+        // cache key is built, because this is the common case and the key costs an allocation.
         if ((type == ExcelConstants.CellTypes.Number || type == ExcelConstants.CellTypes.Appearance) &&
             format == null && !DeclaresAppearance(style))
             return null;
+
+        var key = GetKey(type, style);
+        if (_cellStyleDict.TryGetValue(key, out var cached)) return cached;
 
         var workbook = cell.Sheet.Workbook;
         var cellStyle = workbook.CreateCellStyle();
@@ -306,6 +307,21 @@ public class ExcelExporter
         if (cellStyle != null)
             cell.CellStyle = cellStyle;
     }
+
+    /// <summary>
+    ///     The Excel number format to register for a column, or null to leave the cell on General.
+    ///     <see cref="ExcelColumnAttribute.Format" /> is an Excel format code here, so it has to carry a
+    ///     digit placeholder; a .NET format string such as "N2" would otherwise be registered verbatim
+    ///     and Excel would print it literally in every cell.
+    /// </summary>
+    private static string? NumberFormat(string? format)
+    {
+        return !string.IsNullOrWhiteSpace(format) && format!.IndexOfAny(DigitPlaceholders) >= 0
+            ? format
+            : null;
+    }
+
+    private static readonly char[] DigitPlaceholders = {'0', '#', '?'};
 
     private string GetKey(string type, IExcelCellStyle? style)
     {

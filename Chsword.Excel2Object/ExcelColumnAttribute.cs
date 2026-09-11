@@ -59,7 +59,20 @@ public class ExcelColumnAttribute : ExcelTitleAttribute, IExcelHeaderStyle, IExc
     public bool CellUnderline { get; set; }
 
     /// <summary>
-    /// Gets or sets the format of the cell.
+    /// Gets or sets the format of the cell. How it is read depends on the column type:
+    /// <list type="bullet">
+    /// <item>
+    /// On a <see cref="System.DateTime"/> column it is an Excel builtin format name (for example
+    /// "m/d/yy") when Excel has one, and otherwise a .NET format string the value is rendered with
+    /// before being written as text (for example "yyyy-MM-dd HH:mm:ss").
+    /// </item>
+    /// <item>
+    /// On a numeric column it is an Excel number format code (for example "0.00" or "#,##0.000") and
+    /// must contain a digit placeholder - 0, # or ? - to be applied; anything else is ignored, since
+    /// Excel would print an unrecognised code literally.
+    /// </item>
+    /// <item>On any other column type it is ignored.</item>
+    /// </list>
     /// </summary>
     public string? Format { get; set; }
 
