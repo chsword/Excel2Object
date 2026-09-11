@@ -47,7 +47,8 @@ public class ExpressionConvertTests : BaseFunctionTest
     [TestMethod]
     public void Days()
     {
-        TestFunction(c => DateAndTime.Days(c["One"], c["Two"]), "DAYS(A4,B4)");
+        // DAYS arrived in Excel 2013, so the sheet stores it under the _xlfn. prefix.
+        TestFunction(c => DateAndTime.Days(c["One"], c["Two"]), "_xlfn.DAYS(A4,B4)");
     }
 
     [TestMethod]

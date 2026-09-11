@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -23,10 +23,13 @@ public class ModelFormulaTest : BaseExcelTest
         [ExcelTitle("Qty")] public int Qty { get; set; }
         [Display(Name = "Ordered")] public DateTime Ordered { get; set; }
         [ExcelTitle("Discount")] public decimal? Discount { get; set; }
+        [ExcelTitle("Paid")] public bool? Paid { get; set; }
+        [ExcelTitle("Code")] public int? Code { get; set; }
         public string Note { get; set; } = "";
     }
 
-    private static readonly string[] Columns = {"Product", "Price", "Qty", "Ordered", "Discount"};
+    private static readonly string[] Columns =
+        {"Product", "Price", "Qty", "Ordered", "Discount", "Paid", "Code"};
 
     private static string Convert(Expression<Func<ColumnCellDictionary, OrderLine, object>> formula)
     {
@@ -45,6 +48,17 @@ public class ModelFormulaTest : BaseExcelTest
         Test((c, m) => m.Qty, "C2");
         Test((c, m) => m.Ordered.Year, "YEAR(D2)");
         Test((c, m) => m.Price * (1 - m.Discount.Value), "B2*(1-E2)");
+    }
+
+    [TestMethod]
+    public void OperatorsOnNullablePropertiesAreNotMistakenForConcatenation()
+    {
+        // a lifted operator is typed bool?/int?, which used to fall through to & (text concatenation)
+        Test((c, m) => m.Paid & m.Paid, "AND(F2,F2)");
+        Test((c, m) => m.Paid | m.Paid, "OR(F2,F2)");
+        Test((c, m) => m.Paid ^ m.Paid, "_xlfn.XOR(F2,F2)");
+        Test((c, m) => m.Code & m.Code, "_xlfn.BITAND(G2,G2)");
+        Test((c, m) => m.Discount.HasValue, "NOT(ISBLANK(E2))");
     }
 
     [TestMethod]

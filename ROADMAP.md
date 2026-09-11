@@ -35,14 +35,18 @@ excel2obj convert input.xlsx --output data.json --typed
 excel2obj generate-model input.xlsx --output Model.cs --class Model
 ```
 
-#### 3. 增强公式支持 ✅ 部分已完成（v2.1.0 / v2.2.0）
+#### 3. 增强公式支持 ✅ 部分已完成（v2.1.0 / v2.2.0 / v2.3.0）
 **优先级：中**
 
 - [x] 跨 sheet 引用与整列引用：`c.Sheet("Products").Columns("Name", "Price")` - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 - [x] 通过模型属性引用列：`options.FormulaColumns.Add<Order>("Total", (c, m) => m.Price * m.Qty)`
 - [x] 按 Excel 运算符优先级自动补括号
-- [ ] 扩展内置函数库
+- [x] 扩展内置函数库：334 个 Excel 函数，分 10 类（数学/统计/逻辑/查找引用/日期时间/文本/信息/财务/工程/数据库），
+      Excel 2007 之后新增的函数按文件格式要求自动加 `_xlfn.` 前缀 - 查看 [ExcelFunctions.md](ExcelFunctions.md)
+- [x] 支持更复杂的 Excel 公式：`%`、`^`、`&&`/`||`/`!`、三元表达式，以及 `Math.*`、`string` 成员、
+      捕获的局部变量等普通 C# 写法直接翻译成对应的 Excel 函数
 - [ ] 支持自定义函数
+- [ ] 支持公式的动态计算
 
 #### 4. 支持 Excel 图表导入导出
 **优先级：低**
@@ -134,14 +138,19 @@ excel2obj convert input.xlsx --output data.json --typed
 excel2obj generate-model input.xlsx --output Model.cs --class Model
 ```
 
-#### 3. Enhanced Formula Support ✅ Partly done (v2.1.0 / v2.2.0)
+#### 3. Enhanced Formula Support ✅ Partly done (v2.1.0 / v2.2.0 / v2.3.0)
 **Priority: Medium**
 
 - [x] Cross-sheet and whole-column references: `c.Sheet("Products").Columns("Name", "Price")` - See [ExcelFunctions.md](ExcelFunctions.md)
 - [x] Referring to columns through model properties: `options.FormulaColumns.Add<Order>("Total", (c, m) => m.Price * m.Qty)`
 - [x] Parentheses inserted automatically to follow Excel operator precedence
-- [ ] Extend the built-in function library
+- [x] Extended built-in function library: 334 Excel functions in 10 categories (math, statistical, logical,
+      lookup, date and time, text, information, financial, engineering, database); functions Excel gained
+      after 2007 get the `_xlfn.` prefix the file format requires - see [ExcelFunctions.md](ExcelFunctions.md)
+- [x] More complex Excel formulas: `%`, `^`, `&&` / `||` / `!`, the conditional operator, plus plain C#
+      (`Math.*`, `string` members, captured variables) translated to the Excel function that does the same
 - [ ] Support custom functions
+- [ ] Support dynamic formula calculation
 
 #### 4. Support Excel Chart Import/Export
 **Priority: Low**
