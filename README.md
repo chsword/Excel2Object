@@ -265,6 +265,11 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 
 ## 文档
 
+- [ExcelFunctions.md](ExcelFunctions.md) - 公式列：内置函数、按列标题/模型属性引用、跨 sheet 引用
+- [DateTimeFormats.md](DateTimeFormats.md) - 支持的日期时间格式与解析规则
+- [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md) - 命令行工具 `excel2obj` 用法
+- [ROADMAP.md](ROADMAP.md) - 路线图
+
 更多信息请访问：http://www.cnblogs.com/chsword/p/excel2object.html
 
 ## 开发和发布
@@ -280,11 +285,11 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 使用自动化脚本一键发布：
 
 ```powershell
-# Windows
-.\release.ps1 -Version 2.0.4
+# Windows：不带参数则自动递增修订号，也可用 -Version 2.3.0 指定
+.\release.ps1
 
 # Linux/macOS (需要 PowerShell Core)
-pwsh ./release.ps1 -Version 2.0.4
+pwsh ./release.ps1
 ```
 
 详细说明请参阅 [RELEASE_AUTOMATION.md](RELEASE_AUTOMATION.md)。

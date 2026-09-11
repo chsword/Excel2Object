@@ -96,12 +96,7 @@ Excel2Object 项目遵循 [语义化版本 2.0.0](https://semver.org/lang/zh-CN/
 
 ### 版本历史参考
 
-项目版本演进历史：
-
-- **v2.0.2** (2025.10.11) - 全面的日期/时间格式支持
-- **v2.0.1** (2025.07.23) - 基于内容的自动列宽调整
-- **v2.0.0** - 重大架构更新
-- **v1.x.x** - 早期版本
+完整的版本历史见 [README 的发布说明](../README.md#发布说明和路线图)，那里同时也是发布工作流提取 GitHub Release 说明的数据来源。
 
 ### 预发布版本
 
@@ -111,7 +106,7 @@ Excel2Object 项目遵循 [语义化版本 2.0.0](https://semver.org/lang/zh-CN/
 - Beta: `2.1.0-beta.1`
 - RC: `2.1.0-rc.1`
 
-预发布版本不会自动发布到 NuGet.org，需要手动发布。
+预发布版本与正式版本走同一条发布流水线：推送 `v*` tag 后同样会被推送到 NuGet.org，只是在 GitHub Release 上标记为 Pre-release。
 
 ### 自动化版本检查
 
@@ -215,12 +210,7 @@ Version format: `MAJOR.MINOR.PATCH` (e.g., `2.0.2`)
 
 ### Version History Reference
 
-Project version evolution:
-
-- **v2.0.2** (2025.10.11) - Comprehensive date/time format support
-- **v2.0.1** (2025.07.23) - Auto column width based on content
-- **v2.0.0** - Major architecture update
-- **v1.x.x** - Early versions
+See the [release notes in the README](../README_EN.md#release-notes-and-roadmap) for the full version history; that section is also where the release workflow reads the GitHub Release body from.
 
 ### Pre-release Versions
 
@@ -230,12 +220,13 @@ For pre-release versions (Alpha, Beta, RC), use the following format:
 - Beta: `2.1.0-beta.1`
 - RC: `2.1.0-rc.1`
 
-Pre-release versions are not automatically published to NuGet.org and require manual publishing.
+Pre-release versions go through the same pipeline as stable ones: pushing a `v*` tag publishes them to NuGet.org too, they are merely marked as a Pre-release on GitHub.
 
 ### Automated Version Checks
 
 The project uses GitHub Actions for automated version checks:
 
-1. **Version format validation**: Ensures version follows SemVer format
-2. **Version consistency**: Checks csproj version matches tag version
-3. **Version increment**: Ensures new version is greater than latest version
+1. **Version format validation**: Ensures version follows SemVer format (`X.Y.Z` or `X.Y.Z-prerelease`)
+2. **Version consistency**: Checks csproj version matches tag version, and aborts the release when they differ
+
+The workflow does not check that the new version is greater than the published one — that is up to the releaser; duplicate versions are skipped by `dotnet nuget push --skip-duplicate`.

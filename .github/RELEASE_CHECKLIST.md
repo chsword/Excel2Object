@@ -16,7 +16,7 @@ Use this checklist to ensure every step of the release process is completed.
 - [ ] 代码符合项目编码规范
 
 ### 版本管理 / Version Management
-- [ ] 确定新版本号（根据 [VERSIONING.md](.github/VERSIONING.md) 规范）
+- [ ] 确定新版本号（根据 [VERSIONING.md](VERSIONING.md) 规范）
   - [ ] Bug 修复 → Patch +1
   - [ ] 新功能 → Minor +1
   - [ ] 破坏性变更 → Major +1
@@ -62,6 +62,8 @@ Use this checklist to ensure every step of the release process is completed.
   ```
 - [ ] 包大小合理（不包含不必要的文件）
 - [ ] 所有目标框架的 DLL 都包含在包中
+- [ ] 两个包都已生成：`Chsword.Excel2Object` 和 `Chsword.Excel2Object.Cli`
+- [ ] CLI 包小于 NuGet 的 250 MB 上限（NPOI 会带入各平台 SkiaSharp 原生库）
 
 ---
 
@@ -113,7 +115,8 @@ Use this checklist to ensure every step of the release process is completed.
 
 ### NuGet.org 验证 / NuGet.org Verification
 - [ ] 访问 NuGet.org 搜索包
-  - URL: https://www.nuget.org/packages/Chsword.Excel2Object/
+  - 类库 / Library: https://www.nuget.org/packages/Chsword.Excel2Object/
+  - 命令行工具 / CLI: https://www.nuget.org/packages/Chsword.Excel2Object.Cli/
 - [ ] 确认新版本已列出
 - [ ] 检查包版本号正确
 - [ ] 检查包元数据（作者、描述、标签等）

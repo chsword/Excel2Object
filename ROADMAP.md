@@ -12,13 +12,14 @@ This document lists potential features and improvements for the Excel2Object pro
 
 ### 未来开发任务清单
 
-#### 1. 支持更多 Excel 日期时间格式
+#### 1. 支持更多 Excel 日期时间格式 ✅ 大部分已完成（v2.0.4）
 **优先级：高**
 
-- 完善日期、日期时间、时间类型在 Excel 中的导入导出支持
-- 支持更多自定义日期时间格式
-- 处理不同地区的日期格式差异
-- 支持时区转换
+- [x] 完善日期、日期时间、时间类型在 Excel 中的导入导出支持 - 查看 [DateTimeFormats.md](DateTimeFormats.md)
+- [x] 支持更多自定义日期时间格式（含中文"年月日"格式）
+- [x] 处理不同地区的日期格式差异（同时用 `InvariantCulture` 和 `CurrentCulture` 解析）
+- [ ] 支持时区转换
+- [ ] 导出时把 `DateTime` 列写成真正的日期单元格（目前仍写为文本）
 
 #### 2. 开发 CLI 命令行工具 ✅ 已完成（#9）
 **优先级：中**
@@ -34,13 +35,14 @@ excel2obj convert input.xlsx --output data.json --typed
 excel2obj generate-model input.xlsx --output Model.cs --class Model
 ```
 
-#### 3. 增强公式支持
+#### 3. 增强公式支持 ✅ 部分已完成（v2.1.0 / v2.2.0）
 **优先级：中**
 
-- 支持更复杂的 Excel 公式
-- 扩展内置函数库
-- 支持自定义函数
-- 支持公式的动态计算
+- [x] 跨 sheet 引用与整列引用：`c.Sheet("Products").Columns("Name", "Price")` - 查看 [ExcelFunctions.md](ExcelFunctions.md)
+- [x] 通过模型属性引用列：`options.FormulaColumns.Add<Order>("Total", (c, m) => m.Price * m.Qty)`
+- [x] 按 Excel 运算符优先级自动补括号
+- [ ] 扩展内置函数库
+- [ ] 支持自定义函数
 
 #### 4. 支持 Excel 图表导入导出
 **优先级：低**
@@ -109,13 +111,14 @@ excel2obj generate-model input.xlsx --output Model.cs --class Model
 
 ### Future Development Task List
 
-#### 1. Support More Excel Date/Time Formats
+#### 1. Support More Excel Date/Time Formats ✅ Mostly done (v2.0.4)
 **Priority: High**
 
-- Enhance import/export support for date, datetime, and time types in Excel
-- Support more custom date/time formats
-- Handle regional date format differences
-- Support timezone conversion
+- [x] Import/export support for date, datetime, and time types in Excel - See [DateTimeFormats.md](DateTimeFormats.md)
+- [x] More custom date/time formats (including the Chinese 年月日 forms)
+- [x] Regional date format differences (parsed with both `InvariantCulture` and `CurrentCulture`)
+- [ ] Timezone conversion
+- [ ] Export `DateTime` columns as real date cells (they are still written as text)
 
 #### 2. Develop CLI Command-Line Tool ✅ Done (#9)
 **Priority: Medium**
@@ -131,13 +134,14 @@ excel2obj convert input.xlsx --output data.json --typed
 excel2obj generate-model input.xlsx --output Model.cs --class Model
 ```
 
-#### 3. Enhanced Formula Support
+#### 3. Enhanced Formula Support ✅ Partly done (v2.1.0 / v2.2.0)
 **Priority: Medium**
 
-- Support more complex Excel formulas
-- Extend built-in function library
-- Support custom functions
-- Support dynamic formula calculation
+- [x] Cross-sheet and whole-column references: `c.Sheet("Products").Columns("Name", "Price")` - See [ExcelFunctions.md](ExcelFunctions.md)
+- [x] Referring to columns through model properties: `options.FormulaColumns.Add<Order>("Total", (c, m) => m.Price * m.Qty)`
+- [x] Parentheses inserted automatically to follow Excel operator precedence
+- [ ] Extend the built-in function library
+- [ ] Support custom functions
 
 #### 4. Support Excel Chart Import/Export
 **Priority: Low**

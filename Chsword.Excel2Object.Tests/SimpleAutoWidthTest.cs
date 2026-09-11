@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Chsword.Excel2Object.Tests.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NPOI.SS.UserModel;
 
 namespace Chsword.Excel2Object.Tests;
 
@@ -64,38 +65,46 @@ public class SimpleAutoWidthTest
         Console.WriteLine($"固定列宽文件大小: {bytesFixed.Length} bytes");
     }
 
+    /// <summary>
+    ///     Auto width is the header width or the widest cell, clamped to Min/MaxColumnWidth. A character
+    ///     counts as 1, an upper case or wide letter as 1.2 and a full width character as 2, plus 2 for
+    ///     padding; an empty string counts as 1 with no padding. NPOI stores the width in 1/256 of a
+    ///     character. The header here is a single narrow character so the content decides the width.
+    /// </summary>
     [TestMethod]
     public void TestColumnWidthCalculation()
     {
-        // 测试列宽计算逻辑
-        var testCases = new[]
+        var cases = new[]
         {
-            new { Text = "A", ExpectedMin = 3 },           // 最小宽度 (1字符 + 2填充)
-            new { Text = "Hello", ExpectedMin = 7 },       // 5字符 + 2填充
-            new { Text = "中文", ExpectedMin = 6 },         // 2个中文字符(4) + 2填充
-            new { Text = "Mixed中文", ExpectedMin = 11 },   // Mixed(5) + 中文(4) + 2填充
-            new { Text = "", ExpectedMin = 1 }             // 空字符串最小为1
+            new {Text = "A", Expected = 4}, // A counts 1.2, rounded up to 2, plus 2 padding
+            new {Text = "Hello", Expected = 8}, // H(1.2) + ello(4) = 5.2 -> 6, plus 2
+            new {Text = "中文", Expected = 6}, // two full width characters = 4, plus 2
+            new {Text = "Mixed中文", Expected = 12}, // Mixed(5.2) + 中文(4) = 9.2 -> 10, plus 2
+            new {Text = "", Expected = 3} // empty counts 1, so the header "x" (1 + 2) wins
         };
 
-        foreach (var testCase in testCases)
-        {
-            // 这里我们无法直接测试私有方法，但可以通过导出验证
-            var data = new List<Dictionary<string, object>>
-            {
-                new() { ["TestColumn"] = testCase.Text }
-            };
+        foreach (var testCase in cases)
+            Assert.AreEqual(testCase.Expected * 256d, WidthOf(testCase.Text, 1, 100),
+                $"width of [{testCase.Text}]");
 
-            var bytes = ExcelHelper.ObjectToExcelBytes(data, options =>
+        // and the calculated width is clamped on both ends
+        Assert.AreEqual(20 * 256d, WidthOf("Hello", 20, 100), "MinColumnWidth");
+        Assert.AreEqual(5 * 256d, WidthOf("Mixed中文", 1, 5), "MaxColumnWidth");
+    }
+
+    private static double WidthOf(string text, int min, int max)
+    {
+        var bytes = ExcelHelper.ObjectToExcelBytes(
+            new List<Dictionary<string, object>> {new() {["x"] = text}},
+            options =>
             {
                 options.ExcelType = ExcelType.Xlsx;
                 options.AutoColumnWidth = true;
-                options.MinColumnWidth = 1;  // 允许最小宽度
-                options.MaxColumnWidth = 100; // 允许最大宽度
+                options.MinColumnWidth = min;
+                options.MaxColumnWidth = max;
             });
-
-            Assert.IsNotNull(bytes, $"列宽计算测试失败: {testCase.Text}");
-        }
-
-        Console.WriteLine("✅ 列宽计算逻辑测试通过");
+        Assert.IsNotNull(bytes);
+        using var stream = new MemoryStream(bytes);
+        return WorkbookFactory.Create(stream).GetSheetAt(0).GetColumnWidth(0);
     }
 }

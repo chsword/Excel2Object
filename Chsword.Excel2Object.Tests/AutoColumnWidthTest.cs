@@ -1,9 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Chsword.Excel2Object.Tests.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using NPOI.SS.UserModel;
 
 namespace Chsword.Excel2Object.Tests;
 
@@ -49,7 +51,22 @@ public class AutoColumnWidthTest : BaseExcelTest
         
         Assert.IsNotNull(bytes);
         Assert.IsTrue(bytes.Length > 0);
-        
+
+        // Without auto width every column takes DefaultColumnWidth, whatever it holds
+        var sheet = SheetOf(bytes);
+        for (var i = 0; i < 4; i++)
+            Assert.AreEqual(20 * 256d, sheet.GetColumnWidth(i), $"column {i}");
+
+        // and that is the option talking, not the content: measured, 姓名 comes out far narrower
+        var measured = ExcelHelper.ObjectToExcelBytes(models, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.AutoColumnWidth = true;
+            options.MinColumnWidth = 1;
+            options.MaxColumnWidth = 100;
+        });
+        Assert.AreEqual(6 * 256d, SheetOf(measured!).GetColumnWidth(0), "姓名 measured");
+
         // Verify the export can be imported back
         var importer = new ExcelImporter();
         var result = importer.ExcelToObject<TestModelPerson>(bytes).ToList();
@@ -72,11 +89,32 @@ public class AutoColumnWidthTest : BaseExcelTest
         
         Assert.IsNotNull(bytes);
         Assert.IsTrue(bytes.Length > 0);
-        
+
+        // The names are far longer than 50 characters, so their column has to stop at MaxColumnWidth
+        // (NPOI stores a width in 1/256 of a character), while a column that fits keeps its own width.
+        var sheet = SheetOf(bytes);
+        Assert.AreEqual(50 * 256d, sheet.GetColumnWidth(0), "姓名 is capped at MaxColumnWidth");
+        Assert.AreEqual(10 * 256d, sheet.GetColumnWidth(2), "出生日期 is only as wide as its header");
+
+        // and the cap is what held it back: lifting it lets the same content grow past 50
+        var uncapped = ExcelHelper.ObjectToExcelBytes(models, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.AutoColumnWidth = true;
+            options.MinColumnWidth = 5;
+            options.MaxColumnWidth = 200;
+        });
+        Assert.IsTrue(SheetOf(uncapped!).GetColumnWidth(0) > 50 * 256d, "without the cap 姓名 is wider");
+
         // Verify the export works
         var importer = new ExcelImporter();
         var result = importer.ExcelToObject<TestModelPerson>(bytes).ToList();
         Assert.AreEqual(2, result.Count);
+    }
+
+    private static ISheet SheetOf(byte[] bytes)
+    {
+        return WorkbookFactory.Create(new MemoryStream(bytes)).GetSheetAt(0);
     }
 
     [TestMethod]

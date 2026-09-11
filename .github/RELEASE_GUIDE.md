@@ -12,7 +12,9 @@
 
 ### 自动化发布流程
 
-项目使用 GitHub Actions 实现完全自动化的发布流程。当推送符合 `v*` 格式的 Git Tag 时，会自动触发以下流程：
+项目使用 GitHub Actions 实现完全自动化的发布流程。当推送符合 `v*` 格式的 Git Tag 时，会自动触发以下流程。
+
+流水线对整个解决方案执行 `dotnet pack`，因此每次发布会产出并推送**两个包**：类库 `Chsword.Excel2Object` 和命令行工具 `Chsword.Excel2Object.Cli`，两者共用类库 csproj 中的版本号。
 
 ```
 推送 Tag (v2.0.3)
@@ -236,7 +238,9 @@ This document details the automated release process for the Excel2Object project
 
 ### Automated Release Workflow
 
-The project uses GitHub Actions for a fully automated release process. When a Git Tag matching the `v*` format is pushed, the following workflow is triggered:
+The project uses GitHub Actions for a fully automated release process. When a Git Tag matching the `v*` format is pushed, the following workflow is triggered automatically.
+
+The pipeline runs `dotnet pack` over the whole solution, so every release produces and pushes **two packages**: the library `Chsword.Excel2Object` and the command-line tool `Chsword.Excel2Object.Cli`, both carrying the version from the library csproj.
 
 ```
 Push Tag (v2.0.3)

@@ -14,7 +14,7 @@
 .\release.ps1
 
 # Or release a specific version
-.\release.ps1 -Version 2.0.4
+.\release.ps1 -Version 2.3.0
 
 # Get help
 .\release.ps1 -Help
@@ -29,13 +29,13 @@ The script will:
 
 ### Usage Examples
 
-#### Auto-Increment Release (New!)
+#### Auto-Increment Release
 ```powershell
 .\release.ps1
 ```
-Automatically increments the patch version (e.g., 2.0.4 → 2.0.5) and releases.
+Automatically increments the patch version (e.g., 2.2.1 → 2.2.2) and releases.
 
-#### Show Help (New!)
+#### Show Help
 ```powershell
 .\release.ps1 -Help
 ```
@@ -43,25 +43,25 @@ Displays usage information and examples.
 
 #### Basic Release
 ```powershell
-.\release.ps1 -Version 2.0.4
+.\release.ps1 -Version 2.3.0
 ```
 This will prompt for confirmation before each major step.
 
 #### Local-Only Release
 ```powershell
-.\release.ps1 -Version 2.0.4 -SkipPush
+.\release.ps1 -Version 2.3.0 -SkipPush
 ```
 Creates commit and tag locally, but doesn't push to remote.
 
 #### Force Release (No Confirmations)
 ```powershell
-.\release.ps1 -Version 2.0.4 -Force
+.\release.ps1 -Version 2.3.0 -Force
 ```
 Skips all confirmation prompts.
 
 #### Combined Flags
 ```powershell
-.\release.ps1 -Version 2.0.4 -SkipPush -Force
+.\release.ps1 -Version 2.3.0 -SkipPush -Force
 ```
 Creates local commit/tag without pushing, no confirmations.
 
@@ -69,7 +69,7 @@ Creates local commit/tag without pushing, no confirmations.
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `-Version` | No | Version number in format: `Major.Minor.Patch` (e.g., `2.0.4`). If not specified, auto-increments the patch version |
+| `-Version` | No | Version number in format: `Major.Minor.Patch` (e.g., `2.3.0`). If not specified, auto-increments the patch version |
 | `-SkipPush` | No | Create local commits and tags only, don't push to remote |
 | `-Force` | No | Skip all confirmation prompts |
 | `-Help` | No | Display help information |
@@ -79,11 +79,11 @@ Creates local commit/tag without pushing, no confirmations.
 #### Error: "Tag already exists"
 ```powershell
 # Delete local and remote tag
-git tag -d v2.0.4
-git push origin :refs/tags/v2.0.4
+git tag -d v2.3.0
+git push origin :refs/tags/v2.3.0
 
 # Then run the script again
-.\release.ps1 -Version 2.0.4
+.\release.ps1 -Version 2.3.0
 ```
 
 #### Error: "Execution policy"
@@ -113,7 +113,7 @@ Get-Help .\release.ps1 -Detailed
 .\release.ps1
 
 # 或发布指定版本
-.\release.ps1 -Version 2.0.4
+.\release.ps1 -Version 2.3.0
 
 # 获取帮助
 .\release.ps1 -Help
@@ -128,13 +128,13 @@ Get-Help .\release.ps1 -Detailed
 
 ### 使用示例
 
-#### 自动递增发布（新功能！）
+#### 自动递增发布
 ```powershell
 .\release.ps1
 ```
-自动递增修订号（例如：2.0.4 → 2.0.5）并发布。
+自动递增修订号（例如：2.2.1 → 2.2.2）并发布。
 
-#### 显示帮助（新功能！）
+#### 显示帮助
 ```powershell
 .\release.ps1 -Help
 ```
@@ -142,25 +142,25 @@ Get-Help .\release.ps1 -Detailed
 
 #### 基本发布
 ```powershell
-.\release.ps1 -Version 2.0.4
+.\release.ps1 -Version 2.3.0
 ```
 在每个主要步骤前会提示确认。
 
 #### 仅本地发布
 ```powershell
-.\release.ps1 -Version 2.0.4 -SkipPush
+.\release.ps1 -Version 2.3.0 -SkipPush
 ```
 在本地创建提交和标签，但不推送到远程。
 
 #### 强制发布（无确认）
 ```powershell
-.\release.ps1 -Version 2.0.4 -Force
+.\release.ps1 -Version 2.3.0 -Force
 ```
 跳过所有确认提示。
 
 #### 组合参数
 ```powershell
-.\release.ps1 -Version 2.0.4 -SkipPush -Force
+.\release.ps1 -Version 2.3.0 -SkipPush -Force
 ```
 创建本地提交/标签但不推送，无确认提示。
 
@@ -168,7 +168,7 @@ Get-Help .\release.ps1 -Detailed
 
 | 参数 | 必需 | 说明 |
 |------|------|------|
-| `-Version` | 否 | 版本号格式：`主版本.次版本.修订版`（例如：`2.0.4`）。如果不指定，则自动递增修订号 |
+| `-Version` | 否 | 版本号格式：`主版本.次版本.修订版`（例如：`2.3.0`）。如果不指定，则自动递增修订号 |
 | `-SkipPush` | 否 | 仅创建本地提交和标签，不推送到远程 |
 | `-Force` | 否 | 跳过所有确认提示 |
 | `-Help` | 否 | 显示帮助信息 |
@@ -178,11 +178,11 @@ Get-Help .\release.ps1 -Detailed
 #### 错误："Tag 已存在"
 ```powershell
 # 删除本地和远程标签
-git tag -d v2.0.4
-git push origin :refs/tags/v2.0.4
+git tag -d v2.3.0
+git push origin :refs/tags/v2.3.0
 
 # 然后重新运行脚本
-.\release.ps1 -Version 2.0.4
+.\release.ps1 -Version 2.3.0
 ```
 
 #### 错误："执行策略"
