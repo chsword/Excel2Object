@@ -185,9 +185,22 @@ public class ExcelExporter
             cell.CellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.HeaderAlignment;
     }
 
+    /// <summary>
+    ///     Whether the column asked for anything that changes how a cell looks. [ExcelColumn] is handed
+    ///     to the column as its CellStyle even when it only carries a title or header settings, so a
+    ///     null check is not enough to tell "styled" from "not styled".
+    /// </summary>
+    private static bool DeclaresAppearance(IExcelCellStyle? style)
+    {
+        return style != null &&
+               (!string.IsNullOrWhiteSpace(style.CellFontFamily) || style.CellFontHeight > 0 ||
+                style.CellFontColor > 0 || style.CellBold || style.CellItalic || style.CellStrikeout ||
+                style.CellUnderline || style.CellAlignment != HorizontalAlignment.General);
+    }
+
     private static IFont? StyleToFont(IWorkbook workbook, IExcelCellStyle? style)
     {
-        if (style == null) return null;
+        if (style == null || !DeclaresAppearance(style)) return null;
         var font = workbook.CreateFont();
         if (!string.IsNullOrWhiteSpace(style.CellFontFamily))
             font.FontName = style.CellFontFamily;
@@ -257,17 +270,18 @@ public class ExcelExporter
             format = "text";
         else if (type == ExcelConstants.CellTypes.DateTime)
             format = style?.Format ?? "m/d/yy";
-        else if (type == ExcelConstants.CellTypes.Number || type == ExcelConstants.CellTypes.Boolean)
-        {
-            // Numbers and booleans carry no format of their own, so a column that declared no style has
-            // nothing to apply and keeps the workbook default rather than gaining an empty style.
-            if (style == null) return null;
-            format = type == ExcelConstants.CellTypes.Number && style.Format != null &&
-                     HSSFDataFormat.GetBuiltinFormats().Contains(style.Format)
-                ? style.Format
-                : null;
-        }
+        else if (type == ExcelConstants.CellTypes.Number)
+            format = style?.Format;
+        else if (type == ExcelConstants.CellTypes.Boolean)
+            format = null;
         else
+            return null;
+
+        // Text and dates need their format either way. A number or boolean carries none of its own, so
+        // a column that asked for neither a look nor a format has nothing to apply and keeps the
+        // workbook default instead of gaining a style that says nothing.
+        if ((type == ExcelConstants.CellTypes.Number || type == ExcelConstants.CellTypes.Boolean) &&
+            format == null && !DeclaresAppearance(style))
             return null;
 
         var workbook = cell.Sheet.Workbook;
@@ -275,8 +289,10 @@ public class ExcelExporter
         var font = StyleToFont(workbook, style);
         if (font != null)
             cellStyle.SetFont(font);
+        // CreateDataFormat registers a custom format and returns the builtin index for a builtin one,
+        // so "#,##0.000" works as well as "0.00"
         if (format != null)
-            cellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat(format);
+            cellStyle.DataFormat = workbook.CreateDataFormat().GetFormat(format);
         if (style != null && style.CellAlignment != HorizontalAlignment.General)
             cellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.CellAlignment;
 
@@ -394,7 +410,7 @@ public class ExcelExporter
             // A hyperlink cell holds text, so it takes the text style - but only when the column asked
             // for one. Unlike a plain string column there is nothing to protect here (no leading zeros
             // to keep), so styling every link would only change the format of existing exports.
-            if (column.CellStyle != null)
+            if (DeclaresAppearance(column.CellStyle))
                 ApplyStyle(cell, ExcelConstants.CellTypes.Text, column.CellStyle);
         }
         else if (column.Type == typeof(Expression))

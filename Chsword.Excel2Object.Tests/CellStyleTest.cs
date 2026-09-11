@@ -46,6 +46,13 @@ public class CellStyleTest : BaseExcelTest
         public Uri Link { get; set; } = new("https://github.com/chsword/Excel2Object");
 
         [ExcelTitle("PlainLink")] public Uri PlainLink { get; set; } = new("https://example.com/");
+
+        [ExcelColumn("BareQty")] public int BareQty { get; set; } = 11;
+
+        [ExcelColumn("Money", Format = "#,##0.000")]
+        public decimal Money { get; set; } = 1.5m;
+
+        [ExcelColumn("BareLink")] public Uri BareLink { get; set; } = new("https://example.org/");
     }
 
     private static ISheet Export(ExcelType excelType, out IWorkbook workbook)
@@ -137,20 +144,29 @@ public class CellStyleTest : BaseExcelTest
     ///     A number column that declared no style keeps the workbook default instead of gaining an empty
     ///     style of its own, so existing exports are unchanged.
     /// </summary>
+    /// <summary>
+    ///     [ExcelColumn] is handed to the column as its CellStyle even when it only carries a title, so
+    ///     "did this column ask for a style" cannot be a null check - a bare [ExcelColumn] number column
+    ///     must stay on the workbook default just like an [ExcelTitle] one.
+    /// </summary>
     [TestMethod]
     public void NumberColumnWithoutAStyleKeepsTheWorkbookDefault()
     {
         foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
         {
-            var sheet = Export(excelType, out var workbook);
-            var cell = sheet.GetRow(1).GetCell(6);
-            Assert.AreEqual(CellType.Numeric, cell.CellType, excelType.ToString());
-            // .xlsx and .xls number their default style differently, so assert the style is untouched
-            // rather than that it sits at a particular index
-            Assert.AreEqual(0, cell.CellStyle.DataFormat, $"{excelType} format");
-            Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.General, cell.CellStyle.Alignment,
+            var row = Export(excelType, out var workbook).GetRow(1);
+            var byTitle = row.GetCell(6); // PlainQty: [ExcelTitle], never had a style
+            var bareAttribute = row.GetCell(9); // BareQty: [ExcelColumn] carrying nothing but a title
+
+            Assert.AreEqual(CellType.Numeric, bareAttribute.CellType, excelType.ToString());
+            // the same style object, not merely one that happens to look the same: a bare [ExcelColumn]
+            // must not allocate a style of its own (.xlsx and .xls number their default differently, so
+            // compare the two cells instead of using a literal index)
+            Assert.AreEqual(byTitle.CellStyle.Index, bareAttribute.CellStyle.Index, excelType.ToString());
+            Assert.AreEqual(0, bareAttribute.CellStyle.DataFormat, $"{excelType} format");
+            Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.General, bareAttribute.CellStyle.Alignment,
                 excelType.ToString());
-            Assert.IsFalse(cell.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
+            Assert.IsFalse(bareAttribute.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
         }
     }
 
@@ -173,10 +189,30 @@ public class CellStyleTest : BaseExcelTest
 
             // the default style index differs between .xlsx and .xls, so compare against another
             // column that declared no style rather than against a literal
-            var plain = row.GetCell(8);
-            Assert.IsNotNull(plain.Hyperlink, excelType.ToString());
-            Assert.AreEqual(row.GetCell(6).CellStyle.Index, plain.CellStyle.Index,
-                $"{excelType} unstyled link");
+            // a link nobody styled keeps the workbook default - including one whose [ExcelColumn]
+            // carries nothing but a title, which is not distinguishable by a null check
+            var defaultStyle = row.GetCell(6).CellStyle.Index;
+            foreach (var index in new[] {8, 11})
+            {
+                var plain = row.GetCell(index);
+                Assert.IsNotNull(plain.Hyperlink, $"{excelType} column {index}");
+                Assert.AreEqual(defaultStyle, plain.CellStyle.Index, $"{excelType} column {index}");
+            }
+        }
+    }
+
+    /// <summary>
+    ///     A number format Excel has no builtin for has to be registered on the workbook, not dropped.
+    /// </summary>
+    [TestMethod]
+    public void ACustomNumberFormatReachesTheCell()
+    {
+        foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
+        {
+            var cell = Export(excelType, out _).GetRow(1).GetCell(10);
+            Assert.AreEqual(CellType.Numeric, cell.CellType, excelType.ToString());
+            Assert.AreEqual(1.5d, cell.NumericCellValue, excelType.ToString());
+            Assert.AreEqual("#,##0.000", cell.CellStyle.GetDataFormatString(), excelType.ToString());
         }
     }
 
