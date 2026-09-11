@@ -53,11 +53,19 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 - [x] CLI tool ✅ **New in v2.2.1** - `dotnet tool install -g Chsword.Excel2Object.Cli`, see [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
 - [x] Support auto width column ✅ **New in v2.0.4**
-- [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4** - See [DateTimeFormats.md](DateTimeFormats.md)
+- [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4**, exported as real date cells ✅ **New in v2.4.0** - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)
 - [x] Built-in formula function library ✅ **New in v2.3.0** - 334 Excel functions in 10 categories - See [ExcelFunctions.md](ExcelFunctions.md)
 
 ### Release Notes
+
+* **2026.09.11** - v2.4.0
+- [x] ✨ **NEW:** `DateTime` / `DateTime?` columns are exported as real date cells (a serial number with a date format), so Excel can sort, filter and calculate with them; `null` becomes a blank cell. `DateTime` values in `Dictionary<string, object>` and `DataTable` exports get the same treatment - See [DateTimeFormats.md](DateTimeFormats.md)
+- [x] ✨ **NEW:** The .NET date format string of `[ExcelColumn(Format = ...)]` is translated into the Excel number format that shows the same thing (`yyyy-MM-dd HH:mm:ss` → `yyyy-mm-dd hh:mm:ss`, `yyyy年MM月dd日` → `yyyy"年"mm"月"dd"日"`); without one the column shows `yyyy-mm-dd hh:mm:ss`. A format already in Excel's spelling (`m/d/yy`, `[$-409]d-mmm-yy`, `yyyy/m/d;@`) is taken as is
+- [x] ✨ **NEW:** `ExcelExporterOptions.DateTimeAsText` restores the text export of v2.3 and earlier; `DataTable` exports gained an options overload, `ObjectToExcelBytes(DataTable, Action<ExcelExporterOptions>)`
+- [x] 🐛 Fixed a formula column taking over a `DateTime` column with a custom `Format` dropping the formula and writing the model's own value as text; the formula is kept and the date format applied (declare `FormulaResultType` when the formula yields a number rather than a date)
+- [x] 🐛 Fixed date cells read into a `string` property or a `Dictionary<string, object>` coming out as the serial number Excel stores (`46276.6`): they are rendered as `yyyy-MM-dd`, `HH:mm:ss` or both, whichever the cell's format displays, while elapsed time such as `[h]:mm` stays a number. Numeric properties (`double`, `decimal`, ...) always receive the number the cell stores
+- [x] ⚠️ **BEHAVIOR CHANGE:** Excel's calendar does not reach before 1900 (before 1904 in a workbook on the 1904 date system), so such dates - `default(DateTime)` above all - are still written as text rendered with the `Format`; and `hh` without `tt` shows the 24-hour clock, Excel having no 12-hour clock without an AM/PM marker
 
 * **2026.09.11** - v2.3.0
 - [x] ✨ **NEW:** The built-in formula function library grew from 34 to **334** Excel functions in 10 categories: math and trigonometry (73), statistical (80), logical (11), lookup and reference (33), date and time (25), text (39), information (20), financial (21), engineering (20) and database (12). Information, financial, engineering and database are new categories, reached through `ExcelFunctions.Information`, `.Financial`, `.Engineering` and `.Database` - See [ExcelFunctions.md](ExcelFunctions.md)

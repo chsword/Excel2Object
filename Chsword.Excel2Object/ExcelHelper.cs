@@ -91,6 +91,12 @@ public static class ExcelHelper
         return excelExporter.ObjectToExcelBytes(dt, excelType, sheetTitle);
     }
 
+    public static byte[]? ObjectToExcelBytes(DataTable dt, Action<ExcelExporterOptions> optionsAction)
+    {
+        var excelExporter = new ExcelExporter();
+        return excelExporter.ObjectToExcelBytes(dt, optionsAction);
+    }
+
     public static byte[]? ObjectToExcelBytes<TModel>(IEnumerable<TModel> data,
         Action<ExcelExporterOptions> optionsAction)
     {

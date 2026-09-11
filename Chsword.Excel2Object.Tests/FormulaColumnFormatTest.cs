@@ -9,14 +9,9 @@ namespace Chsword.Excel2Object.Tests;
 
 /// <summary>
 ///     A formula column may take over a column that already exists on the model (they are matched by
-///     title), and then inherits that column's [ExcelColumn] style. When that style carries a Format
-///     Excel has no builtin number format for, the exporter cannot express it as a cell format, so it
-///     falls back to writing the model's own value as text and drops the formula.
-///     <para>
-///         These tests record that fallback, they do not endorse it: asking for a formula and silently
-///         getting a static value instead is a known defect. They exist so the behaviour cannot change
-///         unnoticed, and so a future fix has to update them deliberately.
-///     </para>
+///     title), and then inherits that column's [ExcelColumn] style - Format included. Up to v2.3 a
+///     Format Excel had no builtin for made the exporter drop the formula and write the model's own
+///     value as text instead; now the Format becomes the cell's number format and the formula is kept.
 /// </summary>
 [TestClass]
 public class FormulaColumnFormatTest : BaseExcelTest
@@ -34,7 +29,7 @@ public class FormulaColumnFormatTest : BaseExcelTest
         [ExcelColumn("备注", Format = CustomFormat)]
         public string Note { get; set; } = "";
 
-        [ExcelTitle("年份")] public int Year { get; set; }
+        [ExcelColumn("年份", CellBold = true)] public int Year { get; set; }
     }
 
     private static IRow Export()
@@ -54,32 +49,62 @@ public class FormulaColumnFormatTest : BaseExcelTest
         return WorkbookFactory.Create(new MemoryStream(bytes)).GetSheetAt(0).GetRow(1);
     }
 
+    /// <summary>
+    ///     The formula is written, and the date column it took over lends it its date format - the
+    ///     property being a DateTime is enough, no FormulaResultType needed.
+    /// </summary>
     [TestMethod]
-    public void CustomFormatOnADateColumnSilentlyReplacesTheFormula()
+    public void CustomFormatOnADateColumnBecomesTheFormulaCellsFormat()
     {
-        // known defect: the requested formula is dropped, the model's own value is written instead
         var cell = Export().GetCell(1);
-        Assert.AreEqual(CellType.String, cell.CellType);
-        Assert.AreEqual(Birthday.ToString(CustomFormat), cell.StringCellValue);
+        Assert.AreEqual(CellType.Formula, cell.CellType);
+        Assert.AreEqual("A2", cell.CellFormula);
+        Assert.AreEqual("yyyy-mm-dd hh:mm:ss", cell.CellStyle.GetDataFormatString());
     }
 
     /// <summary>
-    ///     The formula may be lost on this path, but the column's font and alignment must not be.
+    ///     The column's font and alignment reach the formula cell too - for a date column on the same
+    ///     style as its format, for any other column on a style of its own.
     /// </summary>
     [TestMethod]
-    public void TheColumnsLookSurvivesThatFallback()
+    public void TheColumnsLookReachesTheFormulaCell()
     {
-        var cell = Export().GetCell(1);
-        Assert.IsTrue(cell.CellStyle.GetFont(cell.Sheet.Workbook).IsBold);
+        var row = Export();
+        Assert.IsTrue(row.GetCell(1).CellStyle.GetFont(row.Sheet.Workbook).IsBold);
+        Assert.IsTrue(row.GetCell(3).CellStyle.GetFont(row.Sheet.Workbook).IsBold);
     }
 
+    /// <summary>
+    ///     Format means nothing on a string column, so a formula taking one over gets no date format.
+    /// </summary>
     [TestMethod]
-    public void CustomFormatOnAValueThatIsNotADateWritesItVerbatim()
+    public void FormatOnAStringColumnIsIgnoredAndTheFormulaIsWritten()
     {
-        // same defect, for a value that does not parse as a date
         var cell = Export().GetCell(2);
-        Assert.AreEqual(CellType.String, cell.CellType);
-        Assert.AreEqual("n/a", cell.StringCellValue);
+        Assert.AreEqual(CellType.Formula, cell.CellType);
+        Assert.AreEqual("A2", cell.CellFormula);
+        Assert.AreEqual(0, cell.CellStyle.DataFormat);
+    }
+
+    /// <summary>A nullable FormulaResultType says the same thing as its underlying type.</summary>
+    [TestMethod]
+    public void ANullableFormulaResultTypeStillGetsTheDateFormat()
+    {
+        var bytes = new ExcelExporter().ObjectToExcelBytes(new List<Model> {new()}, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.FormulaColumns.Add(new FormulaColumn
+            {
+                Title = "创建",
+                Formula = c => c["姓名"],
+                FormulaResultType = typeof(DateTime?)
+            });
+        });
+        Assert.IsNotNull(bytes);
+
+        var cell = WorkbookFactory.Create(new MemoryStream(bytes)).GetSheetAt(0).GetRow(1).GetCell(4);
+        Assert.AreEqual(CellType.Formula, cell.CellType);
+        Assert.AreEqual("yyyy-mm-dd hh:mm:ss", cell.CellStyle.GetDataFormatString());
     }
 
     [TestMethod]

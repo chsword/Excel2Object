@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Reflection;
 using Chsword.Excel2Object.Internal;
@@ -71,7 +72,8 @@ public class ExcelImporter
 
             var model = new Dictionary<string, object>();
 
-            foreach (var column in columns) model[column.Key] = GetCellValue(row, column.Value);
+            foreach (var column in columns)
+                model[column.Key] = GetCellValue(row.GetCell(column.Value), datesAsText: true);
 
             list.Add(model);
         }
@@ -142,7 +144,9 @@ public class ExcelImporter
             return SpecialConvertDict[type](row, columnIndex);
         }
 
-        var cellValue = GetCellValue(row, columnIndex);
+        // a date cell reads as the date it shows into a string, and as the serial number Excel stores
+        // into anything numeric
+        var cellValue = GetCellValue(row.GetCell(columnIndex), datesAsText: type == typeof(string));
         if (string.IsNullOrEmpty(cellValue)
             && propType != typeof(string)
             && propType.IsGenericType
@@ -222,7 +226,12 @@ public class ExcelImporter
         return string.IsNullOrEmpty(cellValue) ? null : new Uri(cellValue);
     }
 
-    private static string GetCellValue(ICell? cell)
+    /// <param name="cell">The cell to read.</param>
+    /// <param name="datesAsText">
+    ///     Whether a date cell reads as the date it shows rather than as the serial number Excel stores;
+    ///     what a string property or a dictionary wants, and what a numeric property cannot parse.
+    /// </param>
+    private static string GetCellValue(ICell? cell, bool datesAsText = false)
     {
         var result = string.Empty;
         if (cell == null) return result;
@@ -231,7 +240,8 @@ public class ExcelImporter
             switch (cell.CellType)
             {
                 case CellType.Numeric:
-                    result = cell.NumericCellValue.ToString(CultureInfo.InvariantCulture);
+                    result = (datesAsText ? DateCellText(cell) : null)
+                             ?? cell.NumericCellValue.ToString(CultureInfo.InvariantCulture);
                     break;
                 case CellType.String:
                     result = cell.StringCellValue;
@@ -241,7 +251,7 @@ public class ExcelImporter
                     break;
                 case CellType.Formula:
                     var evaluator = WorkbookFactory.CreateFormulaEvaluator(cell.Sheet.Workbook);
-                    result = GetCellValue(evaluator.EvaluateInCell(cell));
+                    result = GetCellValue(evaluator.EvaluateInCell(cell), datesAsText);
                     break;
                 default:
                     // Boolean ("TRUE"/"FALSE"), Error and _None all render acceptably through ToString.
@@ -260,6 +270,43 @@ public class ExcelImporter
     private static string GetCellValue(IRow row, int index)
     {
         return GetCellValue(row.GetCell(index));
+    }
+
+    /// <summary>
+    ///     What each number format seen so far displays, so NPOI's format parsing runs once per format
+    ///     rather than once per cell. <see cref="ExcelDateFormat.Parts.None" /> marks a format that is no
+    ///     date at all.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, ExcelDateFormat.Parts> FormatParts = new();
+
+    /// <summary>
+    ///     A date cell is a number with a date format. Read as text - into a string property or a
+    ///     dictionary - it comes out as the date it shows, not as the serial number Excel stores: an ISO
+    ///     date, a time of day or both, whichever its format displays. Null when the cell is no date;
+    ///     elapsed time (<c>[h]:mm</c>) counts as none, the number being the best that can be offered then.
+    /// </summary>
+    private static string? DateCellText(ICell cell)
+    {
+        var style = cell.CellStyle;
+        var format = style?.GetDataFormatString();
+        if (format == null) return null;
+
+        if (!FormatParts.TryGetValue(format, out var parts))
+        {
+            parts = DateUtil.IsADateFormat(style!.DataFormat, format)
+                ? ExcelDateFormat.PartsShown(format)
+                : ExcelDateFormat.Parts.None;
+            FormatParts[format] = parts;
+        }
+
+        if (parts == ExcelDateFormat.Parts.None || !DateUtil.IsValidExcelDate(cell.NumericCellValue))
+            return null;
+        var date = cell.DateCellValue;
+        if (date == null) return null;
+
+        var pattern = parts == ExcelDateFormat.Parts.Date ? ExcelDateFormat.IsoDate :
+            parts == ExcelDateFormat.Parts.Time ? ExcelDateFormat.IsoTime : ExcelDateFormat.IsoDateTime;
+        return date.Value.ToString(pattern, CultureInfo.InvariantCulture);
     }
 
     private static IEnumerator<IRow>? GetDataRows(byte[]? bytes, ExcelImporterOptions options)
