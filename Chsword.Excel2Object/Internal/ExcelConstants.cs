@@ -1,4 +1,4 @@
-namespace Chsword.Excel2Object.Internal;
+﻿namespace Chsword.Excel2Object.Internal;
 
 internal static class ExcelConstants
 {
@@ -12,6 +12,7 @@ internal static class ExcelConstants
         public const string Text = "text";
         public const string DateTime = "datetime";
         public const string Number = "number";
+        public const string Boolean = "boolean";
     }
     
     public static class BooleanValues

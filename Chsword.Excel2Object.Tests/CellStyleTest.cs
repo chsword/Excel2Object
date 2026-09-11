@@ -29,6 +29,16 @@ public class CellStyleTest : BaseExcelTest
         [ExcelColumn("SameAsStyled", CellBold = true, CellFontColor = ExcelStyleColor.Red,
             CellAlignment = Alignment.Right)]
         public string SameAsStyled { get; set; } = "x";
+
+        [ExcelColumn("Qty", CellBold = true, CellFontColor = ExcelStyleColor.Red,
+            CellAlignment = Alignment.Right, Format = "0.00")]
+        public int Qty { get; set; } = 7;
+
+        [ExcelColumn("Done", CellBold = true, CellFontColor = ExcelStyleColor.Red,
+            CellAlignment = Alignment.Right)]
+        public bool Done { get; set; } = true;
+
+        [ExcelTitle("PlainQty")] public int PlainQty { get; set; } = 9;
     }
 
     private static ISheet Export(ExcelType excelType, out IWorkbook workbook)
@@ -89,6 +99,45 @@ public class CellStyleTest : BaseExcelTest
             styled.CellStyle.GetFont(workbook).FontHeightInPoints);
     }
 
+    /// <summary>
+    ///     Numeric and boolean cells take a different path through the exporter than text, so they need
+    ///     their own check that the style survives - and that they stay numeric/boolean cells.
+    /// </summary>
+    [TestMethod]
+    public void NumberAndBooleanCellsAreStyledToo()
+    {
+        foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
+        {
+            var row = Export(excelType, out var workbook).GetRow(1);
+
+            var qty = row.GetCell(4);
+            Assert.AreEqual(CellType.Numeric, qty.CellType, excelType.ToString());
+            Assert.AreEqual(7d, qty.NumericCellValue, excelType.ToString());
+            Assert.IsTrue(qty.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
+            Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.Right, qty.CellStyle.Alignment);
+            Assert.AreEqual(NPOI.HSSF.UserModel.HSSFDataFormat.GetBuiltinFormat("0.00"),
+                qty.CellStyle.DataFormat, $"{excelType} number format");
+
+            var done = row.GetCell(5);
+            Assert.AreEqual(CellType.Boolean, done.CellType, excelType.ToString());
+            Assert.IsTrue(done.BooleanCellValue, excelType.ToString());
+            Assert.IsTrue(done.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
+            Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.Right, done.CellStyle.Alignment);
+        }
+    }
+
+    /// <summary>
+    ///     A number column that declared no style keeps the workbook default instead of gaining an empty
+    ///     style of its own, so existing exports are unchanged.
+    /// </summary>
+    [TestMethod]
+    public void NumberColumnWithoutAStyleKeepsTheWorkbookDefault()
+    {
+        var cell = Export(ExcelType.Xlsx, out _).GetRow(1).GetCell(6);
+        Assert.AreEqual(CellType.Numeric, cell.CellType);
+        Assert.AreEqual(0, cell.CellStyle.Index);
+    }
+
     [TestMethod]
     public void ColumnsAskingForTheSameLookShareOneCellStyle()
     {
@@ -101,7 +150,8 @@ public class CellStyleTest : BaseExcelTest
     {
         var row = Export(ExcelType.Xlsx, out _).GetRow(1);
         var text = NPOI.HSSF.UserModel.HSSFDataFormat.GetBuiltinFormat("text");
-        Assert.IsTrue(row.Cells.All(c => c.CellStyle.DataFormat == text),
-            string.Join(",", row.Cells.Select(c => c.CellStyle.DataFormat)));
+        var stringCells = new[] {0, 1, 2, 3}.Select(row.GetCell).ToList();
+        Assert.IsTrue(stringCells.All(c => c.CellStyle.DataFormat == text),
+            string.Join(",", stringCells.Select(c => c.CellStyle.DataFormat)));
     }
 }

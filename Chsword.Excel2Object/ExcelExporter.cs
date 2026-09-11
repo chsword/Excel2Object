@@ -252,11 +252,21 @@ public class ExcelExporter
         var key = GetKey(type, style);
         if (_cellStyleDict.TryGetValue(key, out var cached)) return cached;
 
-        string format;
+        string? format;
         if (type == ExcelConstants.CellTypes.Text)
             format = "text";
         else if (type == ExcelConstants.CellTypes.DateTime)
             format = style?.Format ?? "m/d/yy";
+        else if (type == ExcelConstants.CellTypes.Number || type == ExcelConstants.CellTypes.Boolean)
+        {
+            // Numbers and booleans carry no format of their own, so a column that declared no style has
+            // nothing to apply and keeps the workbook default rather than gaining an empty style.
+            if (style == null) return null;
+            format = type == ExcelConstants.CellTypes.Number && style.Format != null &&
+                     HSSFDataFormat.GetBuiltinFormats().Contains(style.Format)
+                ? style.Format
+                : null;
+        }
         else
             return null;
 
@@ -265,12 +275,20 @@ public class ExcelExporter
         var font = StyleToFont(workbook, style);
         if (font != null)
             cellStyle.SetFont(font);
-        cellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat(format);
+        if (format != null)
+            cellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat(format);
         if (style != null && style.CellAlignment != HorizontalAlignment.General)
             cellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.CellAlignment;
 
         _cellStyleDict.AddOrUpdate(key, cellStyle, (_, _) => cellStyle);
         return cellStyle;
+    }
+
+    private void ApplyStyle(ICell cell, string type, IExcelCellStyle? style)
+    {
+        var cellStyle = CreateStyle(type, cell, style);
+        if (cellStyle != null)
+            cell.CellStyle = cellStyle;
     }
 
     private string GetKey(string type, IExcelCellStyle? style)
@@ -349,12 +367,14 @@ public class ExcelExporter
             if (!double.IsNaN(number))
             {
                 cell.SetCellValue(number);
+                ApplyStyle(cell, ExcelConstants.CellTypes.Number, column.CellStyle);
                 return;
             }
         }
         else if (valueType == typeof(bool) && bool.TryParse(val, out var flag))
         {
             cell.SetCellValue(flag);
+            ApplyStyle(cell, ExcelConstants.CellTypes.Boolean, column.CellStyle);
             return;
         }
 
