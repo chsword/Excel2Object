@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- One TFM only: NPOI drags SkiaSharp natives for every RID into the tool package, and NuGet caps packages at 250 MB. -->
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RollForward>Major</RollForward>
@@ -28,5 +29,13 @@
     <ProjectReference Include="..\Chsword.Excel2Object\Chsword.Excel2Object.csproj" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
+
+  <!-- SkiaSharp's Windows native symbols alone are ~240 MB; the tool does not need any debug symbols. -->
+  <Target Name="DropNativeSymbolsFromToolPackage" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <_NativeSymbol Include="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
+      <ResolvedFileToPublish Remove="@(_NativeSymbol)" />
+    </ItemGroup>
+  </Target>
 
 </Project>
