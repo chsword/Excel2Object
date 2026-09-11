@@ -65,11 +65,4 @@ public class ExportDateFormatTest : BaseExcelTest
                 excelType.ToString());
         }
     }
-
-    [TestMethod]
-    public void MyTestMethod()
-    {
-        var list = HSSFDataFormat.GetBuiltinFormats();
-        foreach (var item in list) Console.WriteLine(item);
-    }
 }
