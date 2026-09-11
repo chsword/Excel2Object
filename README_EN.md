@@ -55,8 +55,21 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 - [x] Support auto width column ✅ **New in v2.0.4**
 - [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4** - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)
+- [x] Built-in formula function library ✅ **New in v2.3.0** - 334 Excel functions in 10 categories - See [ExcelFunctions.md](ExcelFunctions.md)
 
 ### Release Notes
+
+* **2026.09.11** - v2.3.0
+- [x] ✨ **NEW:** The built-in formula function library grew from 34 to **334** Excel functions in 10 categories: math and trigonometry (73), statistical (80), logical (11), lookup and reference (33), date and time (25), text (39), information (20), financial (21), engineering (20) and database (12). Information, financial, engineering and database are new categories, reached through `ExcelFunctions.Information`, `.Financial`, `.Engineering` and `.Database` - See [ExcelFunctions.md](ExcelFunctions.md)
+- [x] 🐛 Fixed functions Excel gained after 2007 showing `#NAME?` once the workbook was opened: xlsx stores them under a prefix (`_xlfn.IFS`, `_xlfn.STDEV.P`, and `_xlfn._xlws.` for `SORT` / `FILTER`), which is now added automatically; the already supported `DAYS` was affected
+- [x] 🐛 Fixed numbers in formulas being formatted with the current culture, so that `1.5` became `1,5` under `de-DE` and the formula no longer parsed; the invariant culture is used now
+- [x] 🐛 Fixed double quotes inside text literals not being escaped the way Excel wants them (`"` written as `""`)
+- [x] ✨ **NEW:** More plain C# can be written straight into a formula: `%` (MOD), `^` (power), `&&` / `||` / `!` (AND / OR / NOT), the conditional operator (IF), `Math.*`, `string` members (`ToUpper`, `Substring`, `Length`, `Contains`, ...; members whose Excel counterpart computes something else, such as `Math.Round` and `string.Trim`, are left unsupported - call the `ExcelFunctions` function explicitly instead), `DateTime` members and `AddDays` / `AddMonths` / `AddYears`, and `.HasValue` on nullable properties
+- [x] ✨ **NEW:** Formulas can use local variables the lambda captured and constant expressions such as `new DateTime(...)`; they are evaluated and written as literals instead of producing an invalid formula
+- [x] ✨ **IMPROVED:** Ranges (`c.Matrix(...)`, `c.Columns(...)`) convert implicitly wherever a single value is expected, so `SUM` and friends take cells and ranges in one call
+- [x] 🐛 Fixed cell styles from `[ExcelColumn]` being silently ignored: the style cache key never matched the branch that reads it, so `CellBold` / `CellFontColor` / `CellAlignment` and friends never reached the cell. Also fixed one column's `CellAlignment` being written to the workbook's default style, which dragged unrelated columns along with it (#47)
+- [x] 🐛 Fixed formula columns with `FormulaResultType = typeof(DateTime)` getting no date format, so Excel showed a serial number such as `46282.6` (#47)
+- [x] ⚠️ **BREAKING:** `IStatisticsFunction.Sum` takes `params ColumnValue[]` instead of `params ColumnMatrix[]`, and several `IMathFunction` members return `ColumnValue` instead of `int` / `double`. Source compatible - existing formulas still compile - but binary breaking, so recompile after upgrading
 
 * **2026.09.11** - v2.2.1
 - [x] 🔧 Fixed the command-line tool package exceeding NuGet's 250 MB limit, which kept 2.2.0 of the CLI from being published: net8.0 only and native `.pdb` files dropped (no library changes)

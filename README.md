@@ -57,8 +57,21 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 - [x] 支持自动列宽 ✅ **v2.0.4 新增**
 - [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)
+- [x] 公式内置函数库 ✅ **v2.3.0 新增** - 334 个 Excel 函数，10 个类别 - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 
 ### 发布说明
+
+* **2026.09.11** - v2.3.0
+- [x] ✨ **新增:** 公式内置函数库从 34 个扩充到 **334 个** Excel 函数，分 10 类：数学与三角（73）、统计（80）、逻辑（11）、查找与引用（33）、日期时间（25）、文本（39）、信息（20）、财务（21）、工程（20）、数据库（12）。信息 / 财务 / 工程 / 数据库为全新分类，入口为 `ExcelFunctions.Information`、`.Financial`、`.Engineering`、`.Database` - 查看 [ExcelFunctions.md](ExcelFunctions.md)
+- [x] 🐛 修复 Excel 2007 之后新增的函数写入后打开显示 `#NAME?` 的问题：xlsx 格式要求这类函数存成 `_xlfn.IFS`、`_xlfn.STDEV.P`（`SORT`/`FILTER` 为 `_xlfn._xlws.`），现已自动加前缀；此前已有的 `DAYS` 即受此影响
+- [x] 🐛 修复公式中的数字按当前区域性格式化的问题：`de-DE` 等区域下 `1.5` 会写成 `1,5` 导致公式无法解析，现统一使用不变区域性
+- [x] 🐛 修复文本字面量中的双引号未按 Excel 规则转义（`"` 需写成 `""`）的问题
+- [x] ✨ **新增:** 公式中可直接书写更多普通 C#：`%`（MOD）、`^`（乘幂）、`&&` / `||` / `!`（AND / OR / NOT）、三元表达式（IF）、`Math.*`、`string` 成员（`ToUpper`、`Substring`、`Length`、`Contains` 等；语义与 Excel 不完全一致的 `Math.Round`、`string.Trim` 等不翻译，需显式调用对应的 `ExcelFunctions` 函数）、`DateTime` 成员与 `AddDays` / `AddMonths` / `AddYears`、可空属性的 `.HasValue`
+- [x] ✨ **新增:** 公式中可引用 lambda 捕获的局部变量与 `new DateTime(...)` 等常量表达式，自动求值后写成字面量（此前会生成无效公式）
+- [x] ✨ **改进:** 区间（`c.Matrix(...)`、`c.Columns(...)`）可隐式用于接受单值的参数位置，`SUM` 等函数可混合传入单元格与区间
+- [x] 🐛 修复 `[ExcelColumn]` 的单元格样式被静默忽略的问题：样式缓存键与分支判断不匹配，`CellBold` / `CellFontColor` / `CellAlignment` 等此前完全没有写进单元格；另修复一列声明 `CellAlignment` 会改到工作簿默认样式、导致其他列跟着变的外溢问题（#47）
+- [x] 🐛 修复 `FormulaResultType = typeof(DateTime)` 的公式列没有日期格式、在 Excel 里显示成 `46282.6` 这类序列号的问题（#47）
+- [x] ⚠️ **不兼容变更:** `IStatisticsFunction.Sum` 由 `params ColumnMatrix[]` 改为 `params ColumnValue[]`，`IMathFunction` 多个方法的返回值由 `int` / `double` 统一为 `ColumnValue`。源码级兼容（现有公式无需修改即可编译），但二进制不兼容，升级后需重新编译
 
 * **2026.09.11** - v2.2.1
 - [x] 🔧 修复命令行工具包体超过 NuGet 250 MB 上限导致 2.2.0 未能发布的问题：CLI 仅保留 net8.0 并剔除原生 `.pdb`（库代码无变更）
