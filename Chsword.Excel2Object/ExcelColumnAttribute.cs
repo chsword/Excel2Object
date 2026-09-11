@@ -59,23 +59,22 @@ public class ExcelColumnAttribute : ExcelTitleAttribute, IExcelHeaderStyle, IExc
     public bool CellUnderline { get; set; }
 
     /// <summary>
-    /// Gets or sets the format of the cell. It only has an effect on <see cref="System.DateTime"/>
-    /// columns, where it is a .NET format string the value is rendered with before being written as
-    /// text - for example "yyyy-MM-dd HH:mm:ss" turns the cell into the text "2026-09-11 14:30:45".
+    /// Gets or sets the display format of a <see cref="System.DateTime"/> column. The column is written
+    /// as real date cells, and this .NET format string is translated into the Excel number format that
+    /// shows the same thing - "yyyy-MM-dd HH:mm:ss" becomes the cell format <c>yyyy-mm-dd hh:mm:ss</c>,
+    /// "yyyy年MM月dd日" becomes <c>yyyy"年"mm"月"dd"日"</c>. Without it the column shows
+    /// <c>yyyy-mm-dd hh:mm:ss</c>. An Excel format such as "m/d/yy", "[$-409]d-mmm-yy" or "yyyy/m/d;@" is
+    /// taken as is.
     /// <para>
-    /// Two things to know, both long-standing:
+    /// Parts Excel cannot show - time zone offsets (<c>zzz</c>, <c>K</c>) and eras (<c>g</c>) - are
+    /// dropped, and <c>hh</c> without <c>tt</c> shows the 24-hour clock, Excel having no 12-hour clock
+    /// without an AM/PM marker. A date before 1900, which Excel's calendar does not reach, is written as
+    /// text rendered with this format instead; so is every date when
+    /// <see cref="Options.ExcelExporterOptions.DateTimeAsText"/> is set.
     /// </para>
-    /// <list type="bullet">
-    /// <item>
-    /// A format that happens to be one of Excel's builtin format names, such as "m/d/yy", is silently
-    /// ignored - the cell comes out exactly as if no format had been given.
-    /// </item>
-    /// <item>
-    /// When a formula column takes over such a column (they are matched by title), the value is
-    /// written with this format and the formula is dropped.
-    /// </item>
-    /// </list>
-    /// On every other column type - string, numeric, boolean, Uri - it is ignored.
+    /// A formula column that takes over such a column (they are matched by title) keeps the format,
+    /// unless its <see cref="Options.FormulaColumn.FormulaResultType"/> says the formula yields something
+    /// other than a date. On every other column type - string, numeric, boolean, Uri - it is ignored.
     /// </summary>
     public string? Format { get; set; }
 

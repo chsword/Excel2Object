@@ -12,14 +12,14 @@ This document lists potential features and improvements for the Excel2Object pro
 
 ### 未来开发任务清单
 
-#### 1. 支持更多 Excel 日期时间格式 ✅ 大部分已完成（v2.0.4）
+#### 1. 支持更多 Excel 日期时间格式 ✅ 大部分已完成（v2.0.4 / v2.4.0）
 **优先级：高**
 
 - [x] 完善日期、日期时间、时间类型在 Excel 中的导入导出支持 - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 支持更多自定义日期时间格式（含中文"年月日"格式）
 - [x] 处理不同地区的日期格式差异（同时用 `InvariantCulture` 和 `CurrentCulture` 解析）
 - [ ] 支持时区转换
-- [ ] 导出时把 `DateTime` 列写成真正的日期单元格（目前仍写为文本）
+- [x] 导出时把 `DateTime` 列写成真正的日期单元格，`Format` 自动翻译为 Excel 数字格式（v2.4.0）
 
 #### 2. 开发 CLI 命令行工具 ✅ 已完成（#9）
 **优先级：中**
@@ -115,14 +115,14 @@ excel2obj generate-model input.xlsx --output Model.cs --class Model
 
 ### Future Development Task List
 
-#### 1. Support More Excel Date/Time Formats ✅ Mostly done (v2.0.4)
+#### 1. Support More Excel Date/Time Formats ✅ Mostly done (v2.0.4 / v2.4.0)
 **Priority: High**
 
 - [x] Import/export support for date, datetime, and time types in Excel - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] More custom date/time formats (including the Chinese 年月日 forms)
 - [x] Regional date format differences (parsed with both `InvariantCulture` and `CurrentCulture`)
 - [ ] Timezone conversion
-- [ ] Export `DateTime` columns as real date cells (they are still written as text)
+- [x] Export `DateTime` columns as real date cells, with `Format` translated into an Excel number format (v2.4.0)
 
 #### 2. Develop CLI Command-Line Tool ✅ Done (#9)
 **Priority: Medium**

@@ -224,30 +224,31 @@ public class CellStyleTest : BaseExcelTest
     }
 
     /// <summary>
-    ///     A Format Excel has no builtin for is applied by writing the value as text, which used to mean
-    ///     the column's font and alignment were dropped along the way. The format itself stays in the
-    ///     text, so such a cell gets no data format of its own and one that asked for no look at all is
-    ///     left untouched.
+    ///     A date column is written as real date cells whose number format is the Excel spelling of the
+    ///     column's Format, and the column's font and alignment ride along on the same style. A column
+    ///     that only set Format still needs a style of its own, for the format.
     /// </summary>
     [TestMethod]
-    public void ACustomDateFormatStillCarriesTheColumnsLook()
+    public void ADateColumnIsAFormattedDateCellThatCarriesTheColumnsLook()
     {
         foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
         {
             var row = Export(excelType, out var workbook).GetRow(1);
 
             var styled = row.GetCell(12);
-            Assert.AreEqual(CellType.String, styled.CellType, excelType.ToString());
-            Assert.AreEqual("2026-09-11 14:30:45", styled.StringCellValue, excelType.ToString());
+            Assert.AreEqual(CellType.Numeric, styled.CellType, excelType.ToString());
+            Assert.AreEqual(new DateTime(2026, 9, 11, 14, 30, 45), styled.DateCellValue, excelType.ToString());
+            Assert.AreEqual("yyyy-mm-dd hh:mm:ss", styled.CellStyle.GetDataFormatString(), excelType.ToString());
             Assert.IsTrue(styled.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
             Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.Right, styled.CellStyle.Alignment,
                 excelType.ToString());
-            Assert.AreEqual(0, styled.CellStyle.DataFormat, $"{excelType} keeps the General format");
 
-            // a column that only set Format asked for no look, so its cells are untouched
             var bare = row.GetCell(13);
-            Assert.AreEqual("2026-09-11 14:30:45", bare.StringCellValue, excelType.ToString());
-            Assert.AreEqual(row.GetCell(6).CellStyle.Index, bare.CellStyle.Index, excelType.ToString());
+            Assert.AreEqual(CellType.Numeric, bare.CellType, excelType.ToString());
+            Assert.AreEqual("yyyy-mm-dd hh:mm:ss", bare.CellStyle.GetDataFormatString(), excelType.ToString());
+            Assert.IsFalse(bare.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
+            Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.General, bare.CellStyle.Alignment,
+                excelType.ToString());
         }
     }
 

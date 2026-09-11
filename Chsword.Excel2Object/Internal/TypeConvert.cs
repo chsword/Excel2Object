@@ -142,9 +142,12 @@ internal static class TypeConvert
             }
             else
             {
+                // a formula taking over a model column yields that column's type unless told otherwise,
+                // so a DateTime property keeps its date format
+                excelColumn.ResultType = formulaColumn.FormulaResultType ??
+                                         (excelColumn.Type == null ? null : TypeUtil.GetUnNullableType(excelColumn.Type));
                 excelColumn.Type = typeof(Expression);
                 excelColumn.Formula = formulaColumn.ModelFormula ?? formulaColumn.Formula;
-                excelColumn.ResultType = formulaColumn.FormulaResultType;
             }
         }
 

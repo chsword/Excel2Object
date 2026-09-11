@@ -140,7 +140,7 @@ public class ExcelExporter
                             : null;
                         if (raw is DBNull) raw = null;
                         var val = raw?.ToString() ?? "";
-                        SetCellValue(excelType, column, cell, raw, val, columnTitles, sheetColumnsResolver, cellStyleDict);
+                        SetCellValue(options, column, cell, raw, val, columnTitles, sheetColumnsResolver, cellStyleDict);
                     }
                 }
             }
@@ -262,14 +262,8 @@ public class ExcelExporter
     private ICellStyle? CreateStyle(string type, ICell cell, IExcelCellStyle? style,
         IDictionary<string, ICellStyle> cellStyleDict)
     {
-        string? format;
-        if (type == ExcelConstants.CellTypes.Text)
-            format = "text";
-        else if (type == ExcelConstants.CellTypes.DateTime)
-            format = style?.Format ?? "m/d/yy";
-        else if (type == ExcelConstants.CellTypes.Appearance)
-            format = null;
-        else
+        if (type != ExcelConstants.CellTypes.Text && type != ExcelConstants.CellTypes.DateTime &&
+            type != ExcelConstants.CellTypes.Appearance)
             return null;
 
         // Text and dates need their format either way; an Appearance cell has none of its own, so a
@@ -282,13 +276,16 @@ public class ExcelExporter
         var key = GetKey(type, style);
         if (cellStyleDict.TryGetValue(key, out var cached)) return cached;
 
+        var format = type == ExcelConstants.CellTypes.Text ? "@" :
+            type == ExcelConstants.CellTypes.DateTime ? ExcelDateFormat.ToExcel(style?.Format) : null;
         var workbook = cell.Sheet.Workbook;
         var cellStyle = workbook.CreateCellStyle();
         var font = StyleToFont(workbook, style);
         if (font != null)
             cellStyle.SetFont(font);
         if (format != null)
-            cellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat(format);
+            // GetFormat hands back the builtin index when there is one and registers the format otherwise
+            cellStyle.DataFormat = workbook.CreateDataFormat().GetFormat(format);
         if (style != null && style.CellAlignment != HorizontalAlignment.General)
             cellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.CellAlignment;
 
@@ -359,11 +356,11 @@ public class ExcelExporter
         };
     }
 
-    private void SetCellValue(ExcelType excelType, ExcelColumn column, ICell cell, object? raw, string val,
+    private void SetCellValue(ExcelExporterOptions options, ExcelColumn column, ICell cell, object? raw, string val,
         string[] columnTitles, Func<string, string[]?> sheetColumnsResolver,
         IDictionary<string, ICellStyle> cellStyleDict)
     {
-        var valueType = column.Type == null ? null : Nullable.GetUnderlyingType(column.Type) ?? column.Type;
+        var valueType = column.Type == null ? null : TypeUtil.GetUnNullableType(column.Type);
         if (valueType != null && valueType != typeof(Expression) && valueType != typeof(string) && val.Length == 0)
         {
             // null / missing values stay blank so formulas treat them as 0 instead of failing on ""
@@ -396,7 +393,7 @@ public class ExcelExporter
         if (column.Type == typeof(Uri))
         {
             cell.Hyperlink = Switch<IHyperlink>(
-                excelType,
+                options.ExcelType,
                 () => new HSSFHyperlink(HyperlinkType.Url)
                 {
                     Address = val
@@ -416,24 +413,6 @@ public class ExcelExporter
         {
             var convert = new ExpressionConvert(columnTitles, cell.RowIndex, sheetColumnsResolver);
 
-            if (column.CellStyle?.Format != null &&
-                !HSSFDataFormat.GetBuiltinFormats().Contains(column.CellStyle.Format))
-            {
-                if (DateTime.TryParse(val, out var dt))
-                {
-                    cell.SetCellType(CellType.String);
-                    cell.SetCellValue(dt.ToString(column.CellStyle.Format));
-                }
-                else
-                {
-                    cell.SetCellValue(val);
-                }
-
-                // the Format went into the text, but the column's font and alignment still apply
-                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
-                return;
-            }
-
             string formula;
             try
             {
@@ -449,11 +428,19 @@ public class ExcelExporter
                 throw new Excel2ObjectException(
                     $"Formula column [{column.Title}] produced an invalid formula: {e.Message}", e);
             }
-            if (column.ResultType != null)
-                if (column.ResultType == typeof(DateTime))
-                    cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.DateTime, cell, column.CellStyle,
-                        cellStyleDict);
+            // a formula that yields a date needs a date format, or Excel shows the serial number
+            if (column.ResultType == typeof(DateTime))
+                cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.DateTime, cell, column.CellStyle,
+                    cellStyleDict);
+            else
+                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
 
+            return;
+        }
+        else if (raw is DateTime date)
+        {
+            // decided on the value, not the column type: a dictionary export types every column string
+            SetDateTimeCellValue(column, cell, date, val, options.DateTimeAsText, cellStyleDict);
             return;
         }
         else if (column.Type == typeof(string))
@@ -461,31 +448,43 @@ public class ExcelExporter
             cell.SetCellType(CellType.String);
             cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle, cellStyleDict);
         }
-        else if (column.Type == typeof(DateTime) || column.Type == typeof(DateTime?))
-        {
-            if (column.CellStyle?.Format != null &&
-                !HSSFDataFormat.GetBuiltinFormats().Contains(column.CellStyle.Format))
-            {
-                if (DateTime.TryParse(val, out var dt))
-                {
-                    cell.SetCellType(CellType.String);
-                    cell.SetCellValue(dt.ToString(column.CellStyle.Format));
-                }
-                else
-                {
-                    cell.SetCellValue(val);
-                }
-
-                // the Format went into the text, but the column's font and alignment still apply
-                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
-                return;
-            }
-
-            cell.SetCellType(CellType.String);
-            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle, cellStyleDict);
-        }
 
         cell.SetCellValue(val);
+    }
+
+    /// <summary>
+    ///     Dates become real date cells - a number with a date format - so Excel can sort, filter and
+    ///     calculate with them. The column's Format, a .NET format string, is translated into the Excel
+    ///     format that shows the same thing; <see cref="ExcelExporterOptions.DateTimeAsText" /> restores
+    ///     the text export of earlier versions.
+    /// </summary>
+    private void SetDateTimeCellValue(ExcelColumn column, ICell cell, DateTime date, string val, bool asText,
+        IDictionary<string, ICellStyle> cellStyleDict)
+    {
+        var format = column.CellStyle?.Format;
+
+        // Excel's calendar starts at 1900-01-01 (1904 in a workbook on the 1904 date system), so anything
+        // earlier - default(DateTime) above all - can only be kept as text
+        var workbook = cell.Sheet.Workbook;
+        if (!asText && DateUtil.IsValidExcelDate(DateUtil.GetExcelDate(date, workbook.IsDate1904())))
+        {
+            cell.SetCellValue(date);
+            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.DateTime, cell, column.CellStyle, cellStyleDict);
+            return;
+        }
+
+        cell.SetCellType(CellType.String);
+        if (format != null)
+        {
+            cell.SetCellValue(DateToText(date, format));
+            // the Format went into the text, but the column's font and alignment still apply
+            ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
+        }
+        else
+        {
+            cell.SetCellValue(val);
+            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle, cellStyleDict);
+        }
     }
 
     /// <summary>
@@ -511,7 +510,10 @@ public class ExcelExporter
                 var column = columns[i];
                 if (column.Title != null && item.TryGetValue(column.Title, out var value))
                 {
-                    var cellText = (value ?? "").ToString() ?? "";
+                    // a date cell shows its column's format, which is what the width has to fit
+                    var cellText = value is DateTime date
+                        ? DateToText(date, column.CellStyle?.Format)
+                        : (value ?? "").ToString() ?? "";
                     var textWidth = CalculateTextWidth(cellText);
                     if (textWidth > columnWidths[i])
                     {
@@ -529,6 +531,27 @@ public class ExcelExporter
         }
 
         return columnWidths;
+    }
+
+    /// <summary>
+    ///     What a date shows under its Format, as .NET renders it: the text it is written as when it cannot
+    ///     be a date cell, and what an auto-sized column is measured against. A Format already in Excel's
+    ///     spelling has no .NET rendering (.NET would read its mm as minutes), so it falls back to the ISO
+    ///     form the default format shows too.
+    /// </summary>
+    private static string DateToText(DateTime date, string? format)
+    {
+        if (format != null && !ExcelDateFormat.IsExcelSpelling(format))
+            try
+            {
+                return date.ToString(format);
+            }
+            catch (FormatException)
+            {
+                // an unbalanced quote; Excel is more forgiving of those than .NET is
+            }
+
+        return date.ToString(ExcelDateFormat.IsoDateTime, CultureInfo.InvariantCulture);
     }
 
     /// <summary>

@@ -122,6 +122,30 @@ The library handles dates stored in Excel in two ways:
 
 2. **String Cell Type**: When dates are stored as text in Excel, the library attempts to parse them using the comprehensive format list above.
 
+When a date cell is read into a `string` property or a `Dictionary<string, object>`, it comes out as the date it shows rather than as the serial number Excel stores: `yyyy-MM-dd`, `HH:mm:ss` or `yyyy-MM-dd HH:mm:ss`, depending on whether the cell's format displays a date, a time or both. An elapsed-time format such as `[h]:mm` is a number, and reads as one. A numeric property (`double`, `decimal`, ...) always receives the number the cell stores, whatever its format.
+
+## Exporting Dates
+
+`DateTime` and `DateTime?` columns are written as **real date cells** - a serial number with a date number format - so Excel can sort, filter and calculate with them. A `null` becomes a blank cell.
+
+The `Format` of `[ExcelColumn]` is a .NET date format string; it is translated into the Excel number format that displays the same thing. Without a `Format` the column shows `yyyy-mm-dd hh:mm:ss`.
+
+| `[ExcelColumn(Format = ...)]` | Excel cell format               | Displayed as          |
+|-------------------------------|---------------------------------|-----------------------|
+| *(none)*                      | `yyyy-mm-dd hh:mm:ss`           | `2026-09-11 14:30:45` |
+| `yyyy-MM-dd`                  | `yyyy-mm-dd`                    | `2026-09-11`          |
+| `yyyy年MM月dd日`               | `yyyy"年"mm"月"dd"日"`           | `2026年09月11日`       |
+| `MM/dd/yyyy hh:mm tt`         | `mm/dd/yyyy hh:mm AM/PM`        | `09/11/2026 02:30 PM` |
+| `HH:mm:ss.fff`                | `hh:mm:ss.000`                  | `14:30:45.123`        |
+| `d` (standard format)         | `m/d/yy` (Excel builtin 14)     | per Excel locale      |
+| `m/d/yy`, `[$-409]d-mmm-yy`, `yyyy/m/d;@` | unchanged - Excel formats pass through | per Excel |
+
+Time zone offsets (`zzz`, `K`) and eras (`g`) have no Excel counterpart and are dropped, and `hh` without `tt` shows the 24-hour clock - Excel has no 12-hour clock without an AM/PM marker. Dates before 1900-01-01 - `default(DateTime)` above all - are outside Excel's calendar (before 1904-01-01 in a workbook on the 1904 date system) and are written as text rendered with the `Format` instead.
+
+`DateTime` values in a `Dictionary<string, object>` or a `DataTable` export become date cells the same way.
+
+To keep the text export of versions before 2.4.0 (every date rendered with its `Format` and written as a string), set `ExcelExporterOptions.DateTimeAsText = true`. A `Format` already in Excel's spelling has no .NET rendering, so such a column is written as `yyyy-MM-dd HH:mm:ss` then.
+
 ## Regional Settings
 
 The library attempts to parse dates using both `CultureInfo.InvariantCulture` and `CultureInfo.CurrentCulture` to handle regional differences. This means:
@@ -136,7 +160,7 @@ The library attempts to parse dates using both `CultureInfo.InvariantCulture` an
 
 2. **Prefer Numeric Date Storage**: When possible, store dates in Excel as actual date values (numeric format) rather than text, as this is more reliable.
 
-3. **Specify Format for Export**: When exporting to Excel with custom date formats, use the `Format` parameter in `ExcelColumnAttribute`:
+3. **Specify Format for Export**: When exporting to Excel with custom date formats, use the `Format` parameter in `ExcelColumnAttribute` (see [Exporting Dates](#exporting-dates)):
    ```csharp
    [ExcelColumn("日期", Format = "yyyy-MM-dd HH:mm:ss")]
    public DateTime MyDate { get; set; }

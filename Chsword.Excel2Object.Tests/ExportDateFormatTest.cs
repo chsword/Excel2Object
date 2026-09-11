@@ -14,8 +14,8 @@ namespace Chsword.Excel2Object.Tests;
 public class ExportDateFormatTest : BaseExcelTest
 {
     /// <summary>
-    ///     A [ExcelColumn] Format that Excel has no builtin number format for is applied by writing the
-    ///     value as already-formatted text; an empty nullable date stays a blank cell.
+    ///     A date column, nullable or not, is written as date cells carrying the Excel spelling of the
+    ///     [ExcelColumn] Format; an empty nullable date stays a blank cell.
     /// </summary>
     [TestMethod]
     public void ExportDateTest()
@@ -38,9 +38,14 @@ public class ExportDateFormatTest : BaseExcelTest
             var firstRow = sheet.GetRow(1);
             Assert.AreEqual(CellType.Numeric, firstRow.GetCell(1).CellType);
             Assert.AreEqual(18d, firstRow.GetCell(1).NumericCellValue);
-            Assert.AreEqual(CellType.String, firstRow.GetCell(2).CellType);
-            Assert.AreEqual(birthday.ToString("yyyy-MM-dd HH:mm:ss"), firstRow.GetCell(2).StringCellValue);
-            Assert.AreEqual(birthday.ToString("yyyy-MM-dd HH:mm:ss"), firstRow.GetCell(3).StringCellValue);
+            foreach (var index in new[] {2, 3})
+            {
+                var cell = firstRow.GetCell(index);
+                Assert.AreEqual(CellType.Numeric, cell.CellType, $"column {index}");
+                Assert.IsTrue(DateUtil.IsCellDateFormatted(cell), $"column {index}");
+                Assert.AreEqual(birthday, cell.DateCellValue, $"column {index}");
+                Assert.AreEqual("yyyy-mm-dd hh:mm:ss", cell.CellStyle.GetDataFormatString(), $"column {index}");
+            }
 
             Assert.AreEqual(CellType.Blank, sheet.GetRow(2).GetCell(3).CellType);
         }
@@ -63,12 +68,11 @@ public class ExportDateFormatTest : BaseExcelTest
     }
 
     /// <summary>
-    ///     Format is applied by rendering the value into text, which only happens for a format Excel has
-    ///     no builtin of its own for. One that collides with a builtin name is silently ignored - a
-    ///     long-standing trap worth pinning, since "m/d/yy" looks like the most natural thing to write.
+    ///     A Format spelled the way Excel spells one of its builtin formats is used as that builtin (it
+    ///     used to be silently ignored), while a column without a Format shows date and time.
     /// </summary>
     [TestMethod]
-    public void ABuiltinFormatNameOnADateColumnIsIgnored()
+    public void ABuiltinFormatNameOnADateColumnIsUsedAsIs()
     {
         var when = new DateTime(2026, 9, 11, 14, 30, 45);
         var bytes = new ExcelExporter().ObjectToExcelBytes(
@@ -78,8 +82,10 @@ public class ExportDateFormatTest : BaseExcelTest
 
         using var stream = new MemoryStream(bytes);
         var row = WorkbookFactory.Create(stream).GetSheetAt(0).GetRow(1);
-        Assert.AreEqual(row.GetCell(1).StringCellValue, row.GetCell(0).StringCellValue);
-        Assert.AreEqual(row.GetCell(1).CellStyle.DataFormat, row.GetCell(0).CellStyle.DataFormat);
+        Assert.AreEqual(HSSFDataFormat.GetBuiltinFormat("m/d/yy"), row.GetCell(0).CellStyle.DataFormat);
+        Assert.AreEqual("yyyy-mm-dd hh:mm:ss", row.GetCell(1).CellStyle.GetDataFormatString());
+        Assert.AreEqual(when, row.GetCell(0).DateCellValue);
+        Assert.AreEqual(when, row.GetCell(1).DateCellValue);
     }
 
     /// <summary>
@@ -108,8 +114,7 @@ public class ExportDateFormatTest : BaseExcelTest
             using var stream = new MemoryStream(bytes);
             var cell = WorkbookFactory.Create(stream).GetSheetAt(0).GetRow(1).GetCell(1);
             Assert.AreEqual(CellType.Formula, cell.CellType, excelType.ToString());
-            Assert.AreEqual(HSSFDataFormat.GetBuiltinFormat("m/d/yy"), cell.CellStyle.DataFormat,
-                excelType.ToString());
+            Assert.AreEqual("yyyy-mm-dd hh:mm:ss", cell.CellStyle.GetDataFormatString(), excelType.ToString());
         }
     }
 }

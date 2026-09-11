@@ -40,4 +40,11 @@ public class ExcelExporterOptions
     ///     Default column width in characters when AutoColumnWidth is false (default: 16)
     /// </summary>
     public int DefaultColumnWidth { get; set; } = 16;
+
+    /// <summary>
+    ///     Write <see cref="DateTime" /> columns as text, the way versions before 2.4.0 did, instead of as
+    ///     real date cells (default: false). A text date cannot be sorted, filtered or calculated with in
+    ///     Excel, but comes out character for character as <c>[ExcelColumn(Format = ...)]</c> renders it.
+    /// </summary>
+    public bool DateTimeAsText { get; set; }
 }
