@@ -154,13 +154,13 @@ public class DateCellExportTest : BaseExcelTest
 
     /// <summary>
     ///     .NET reads an Excel-spelled Format as minutes where Excel means months; rendered as text, such a
-    ///     column gets the ISO form rather than "2026-30-11".
+    ///     column gets the ISO form rather than "2026-30-11" - at the length the format shows.
     /// </summary>
     [TestMethod]
     public void AnExcelSpelledFormatIsNotRenderedByDotNet()
     {
         var row = Export(ExcelType.Xlsx, options => options.DateTimeAsText = true);
-        Assert.AreEqual("2026-09-11 14:30:45", row.GetCell(6).StringCellValue);
+        Assert.AreEqual("2026-09-11", row.GetCell(6).StringCellValue);
     }
 
     [TestMethod]
@@ -268,6 +268,26 @@ public class DateCellExportTest : BaseExcelTest
         Assert.AreEqual(When, cell.DateCellValue);
         Assert.AreEqual("yyyy-mm-dd hh:mm:ss", cell.CellStyle.GetDataFormatString());
         Assert.AreEqual(CellType.Blank, sheet.GetRow(2).GetCell(1).CellType);
+    }
+
+    /// <summary>A DataTable export reaches the exporter options too.</summary>
+    [TestMethod]
+    public void DataTableExportTakesOptions()
+    {
+        var table = new DataTable();
+        table.Columns.Add("When", typeof(DateTime));
+        table.Rows.Add(When);
+
+        var bytes = ExcelHelper.ObjectToExcelBytes(table, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.DateTimeAsText = true;
+        });
+        Assert.IsNotNull(bytes);
+
+        var cell = FirstDataRow(bytes).GetCell(0);
+        Assert.AreEqual(CellType.String, cell.CellType);
+        Assert.AreEqual(When.ToString(), cell.StringCellValue);
     }
 
     /// <summary>A dictionary export types every column string, so the value has to decide.</summary>

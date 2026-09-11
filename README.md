@@ -64,7 +64,7 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 * **2026.09.11** - v2.4.0
 - [x] ✨ **新增:** 导出时 `DateTime` / `DateTime?` 列写成真正的日期单元格（序列号 + 日期格式），Excel 可以排序、筛选、参与计算，`null` 写成空单元格；`Dictionary<string, object>` 与 `DataTable` 导出中的 `DateTime` 值同样处理 - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] ✨ **新增:** `[ExcelColumn(Format = ...)]` 的 .NET 日期格式串自动翻译成对应的 Excel 数字格式（`yyyy-MM-dd HH:mm:ss` → `yyyy-mm-dd hh:mm:ss`，`yyyy年MM月dd日` → `yyyy"年"mm"月"dd"日"`），未指定时为 `yyyy-mm-dd hh:mm:ss`；已经是 Excel 拼写的格式（`m/d/yy`、`[$-409]d-mmm-yy`、`yyyy/m/d;@`）原样使用
-- [x] ✨ **新增:** `ExcelExporterOptions.DateTimeAsText`，恢复 v2.3 及之前把日期写成文本的导出方式
+- [x] ✨ **新增:** `ExcelExporterOptions.DateTimeAsText`，恢复 v2.3 及之前把日期写成文本的导出方式；`DataTable` 导出新增接受 options 的重载 `ObjectToExcelBytes(DataTable, Action<ExcelExporterOptions>)`
 - [x] 🐛 修复公式列接管带自定义 `Format` 的 `DateTime` 列时公式被丢弃、改写成模型值文本的问题：现在保留公式并套用日期格式（公式若返回数字而非日期，用 `FormulaResultType` 声明）
 - [x] 🐛 修复日期单元格读进 `string` 属性或 `Dictionary<string, object>` 时得到 `46276.6` 这类序列号的问题：现按单元格格式渲染成 `yyyy-MM-dd`、`HH:mm:ss` 或两者，`[h]:mm` 这类经过时间仍按数字读；数值属性（`double`、`decimal` 等）始终取原始数字
 - [x] ⚠️ **行为变更:** Excel 日历不覆盖 1900 年之前（1904 日期系统的工作簿为 1904 年之前），这类日期（尤其 `default(DateTime)`）仍按 `Format` 渲染成文本写入；`hh` 不带 `tt` 时显示 24 小时制，Excel 没有不带 AM/PM 标记的 12 小时制

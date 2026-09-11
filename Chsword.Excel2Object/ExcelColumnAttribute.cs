@@ -68,7 +68,9 @@ public class ExcelColumnAttribute : ExcelTitleAttribute, IExcelHeaderStyle, IExc
     /// <para>
     /// Parts Excel cannot show - time zone offsets (<c>zzz</c>, <c>K</c>) and eras (<c>g</c>) - are
     /// dropped, and <c>hh</c> without <c>tt</c> shows the 24-hour clock, Excel having no 12-hour clock
-    /// without an AM/PM marker. A date before 1900, which Excel's calendar does not reach, is written as
+    /// without an AM/PM marker. Excel also reads a minute as a month unless it sits next to the hour or the
+    /// seconds, so write "HH:mm" rather than "HH时mm分" - the literal in between would make Excel show the
+    /// month. A date before 1900, which Excel's calendar does not reach, is written as
     /// text rendered with this format instead; so is every date when
     /// <see cref="Options.ExcelExporterOptions.DateTimeAsText"/> is set.
     /// </para>

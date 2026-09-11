@@ -86,6 +86,27 @@ public class FormulaColumnFormatTest : BaseExcelTest
         Assert.AreEqual(0, cell.CellStyle.DataFormat);
     }
 
+    /// <summary>A nullable FormulaResultType says the same thing as its underlying type.</summary>
+    [TestMethod]
+    public void ANullableFormulaResultTypeStillGetsTheDateFormat()
+    {
+        var bytes = new ExcelExporter().ObjectToExcelBytes(new List<Model> {new()}, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.FormulaColumns.Add(new FormulaColumn
+            {
+                Title = "创建",
+                Formula = c => c["姓名"],
+                FormulaResultType = typeof(DateTime?)
+            });
+        });
+        Assert.IsNotNull(bytes);
+
+        var cell = WorkbookFactory.Create(new MemoryStream(bytes)).GetSheetAt(0).GetRow(1).GetCell(4);
+        Assert.AreEqual(CellType.Formula, cell.CellType);
+        Assert.AreEqual("yyyy-mm-dd hh:mm:ss", cell.CellStyle.GetDataFormatString());
+    }
+
     [TestMethod]
     public void WithoutACustomFormatTheFormulaIsWritten()
     {

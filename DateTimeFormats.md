@@ -140,9 +140,9 @@ The `Format` of `[ExcelColumn]` is a .NET date format string; it is translated i
 | `d` (standard format)         | `m/d/yy` (Excel builtin 14)     | per Excel locale      |
 | `m/d/yy`, `[$-409]d-mmm-yy`, `yyyy/m/d;@` | unchanged - Excel formats pass through | per Excel |
 
-Time zone offsets (`zzz`, `K`) and eras (`g`) have no Excel counterpart and are dropped, and `hh` without `tt` shows the 24-hour clock - Excel has no 12-hour clock without an AM/PM marker. Dates before 1900-01-01 - `default(DateTime)` above all - are outside Excel's calendar (before 1904-01-01 in a workbook on the 1904 date system) and are written as text rendered with the `Format` instead.
+Time zone offsets (`zzz`, `K`) and eras (`g`) have no Excel counterpart and are dropped, and `hh` without `tt` shows the 24-hour clock - Excel has no 12-hour clock without an AM/PM marker. Excel also reads a minute as a month unless it sits next to the hour or the seconds, so write `HH:mm` rather than `HH时mm分`: the literal in between would make Excel display the month. Dates before 1900-01-01 - `default(DateTime)` above all - are outside Excel's calendar (before 1904-01-01 in a workbook on the 1904 date system) and are written as text rendered with the `Format` instead.
 
-`DateTime` values in a `Dictionary<string, object>` or a `DataTable` export become date cells the same way.
+`DateTime` values in a `Dictionary<string, object>` or a `DataTable` export become date cells the same way; `ObjectToExcelBytes(DataTable, Action<ExcelExporterOptions>)` takes the same options as the generic overloads.
 
 To keep the text export of versions before 2.4.0 (every date rendered with its `Format` and written as a string), set `ExcelExporterOptions.DateTimeAsText = true`. A `Format` already in Excel's spelling has no .NET rendering, so such a column is written as `yyyy-MM-dd HH:mm:ss` then.
 

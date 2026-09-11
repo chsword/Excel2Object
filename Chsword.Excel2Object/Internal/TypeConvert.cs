@@ -124,7 +124,7 @@ internal static class TypeConvert
                     Order = 0,
                     Type = typeof(Expression),
                     Formula = formulaColumn.ModelFormula ?? formulaColumn.Formula,
-                    ResultType = formulaColumn.FormulaResultType
+                    ResultType = ResultTypeOf(formulaColumn, null)
                 };
                 if (string.IsNullOrWhiteSpace(formulaColumn.AfterColumnTitle))
                 {
@@ -144,8 +144,7 @@ internal static class TypeConvert
             {
                 // a formula taking over a model column yields that column's type unless told otherwise,
                 // so a DateTime property keeps its date format
-                excelColumn.ResultType = formulaColumn.FormulaResultType ??
-                                         (excelColumn.Type == null ? null : TypeUtil.GetUnNullableType(excelColumn.Type));
+                excelColumn.ResultType = ResultTypeOf(formulaColumn, excelColumn.Type);
                 excelColumn.Type = typeof(Expression);
                 excelColumn.Formula = formulaColumn.ModelFormula ?? formulaColumn.Formula;
             }
@@ -154,5 +153,16 @@ internal static class TypeConvert
         for (var i = 0; i < columns.Count; i++) columns[i].Order = i * 10;
 
         return columns;
+    }
+
+    /// <summary>
+    ///     What a formula column yields: what it was told, else the type of the column it takes over - so a
+    ///     DateTime property keeps its date format. Nullable either way, and the exporter compares the type
+    ///     itself, so the underlying one is what gets stored.
+    /// </summary>
+    private static Type? ResultTypeOf(FormulaColumn formulaColumn, Type? columnType)
+    {
+        var type = formulaColumn.FormulaResultType ?? columnType;
+        return type == null ? null : TypeUtil.GetUnNullableType(type);
     }
 }

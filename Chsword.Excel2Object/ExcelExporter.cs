@@ -57,11 +57,17 @@ public class ExcelExporter
 
     public byte[]? ObjectToExcelBytes(DataTable dt, ExcelType excelType, string? sheetTitle = null)
     {
-        var options = new ExcelExporterOptions
+        return ObjectToExcelBytes(dt, options =>
         {
-            ExcelType = excelType,
-            SheetTitle = sheetTitle
-        };
+            options.ExcelType = excelType;
+            options.SheetTitle = sheetTitle;
+        });
+    }
+
+    public byte[]? ObjectToExcelBytes(DataTable dt, Action<ExcelExporterOptions> optionsAction)
+    {
+        var options = new ExcelExporterOptions();
+        optionsAction(options);
         var excel = TypeConvert.ConvertDataSetToExcelModel(dt, options);
         return ObjectToExcelBytes(excel, options);
     }
@@ -551,7 +557,11 @@ public class ExcelExporter
                 // an unbalanced quote; Excel is more forgiving of those than .NET is
             }
 
-        return date.ToString(ExcelDateFormat.IsoDateTime, CultureInfo.InvariantCulture);
+        // an Excel-spelled format still says whether it shows a date, a time or both
+        var parts = ExcelDateFormat.PartsShown(ExcelDateFormat.ToExcel(format));
+        var pattern = parts == ExcelDateFormat.Parts.Date ? ExcelDateFormat.IsoDate :
+            parts == ExcelDateFormat.Parts.Time ? ExcelDateFormat.IsoTime : ExcelDateFormat.IsoDateTime;
+        return date.ToString(pattern, CultureInfo.InvariantCulture);
     }
 
     /// <summary>
