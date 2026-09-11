@@ -191,10 +191,10 @@ public class ExcelExporter
         var font = workbook.CreateFont();
         if (!string.IsNullOrWhiteSpace(style.CellFontFamily))
             font.FontName = style.CellFontFamily;
+        // Leave the height alone unless asked for one: this font is now really applied to the cell, and
+        // forcing a default here would shrink every [ExcelColumn] column that only sets a title.
         if (style.CellFontHeight > 0)
             font.FontHeightInPoints = style.CellFontHeight;
-        else
-            font.FontHeightInPoints = 10;
 
         if (style.CellFontColor > 0)
             font.Color = (short) style.CellFontColor;

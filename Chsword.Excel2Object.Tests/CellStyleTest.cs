@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Chsword.Excel2Object.Styles;
@@ -72,6 +72,21 @@ public class CellStyleTest : BaseExcelTest
                 Assert.IsFalse(cell.CellStyle.GetFont(workbook).IsBold, $"{excelType} column {index}");
             }
         }
+    }
+
+    /// <summary>
+    ///     A column that carries [ExcelColumn] only for its title must still look like any other column;
+    ///     the style machinery must not quietly impose a font size of its own.
+    /// </summary>
+    [TestMethod]
+    public void AColumnWithoutFontSettingsKeepsTheDefaultFontHeight()
+    {
+        var sheet = Export(ExcelType.Xlsx, out var workbook);
+        var styled = sheet.GetRow(1).GetCell(2); // HeaderOnly: [ExcelColumn] with header styles only
+        var plain = sheet.GetRow(1).GetCell(1); // Plain: [ExcelTitle]
+
+        Assert.AreEqual(plain.CellStyle.GetFont(workbook).FontHeightInPoints,
+            styled.CellStyle.GetFont(workbook).FontHeightInPoints);
     }
 
     [TestMethod]
