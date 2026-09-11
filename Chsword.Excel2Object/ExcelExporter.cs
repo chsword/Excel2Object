@@ -272,15 +272,15 @@ public class ExcelExporter
             format = style?.Format ?? "m/d/yy";
         else if (type == ExcelConstants.CellTypes.Number)
             format = style?.Format;
-        else if (type == ExcelConstants.CellTypes.Boolean)
+        else if (type == ExcelConstants.CellTypes.Appearance)
             format = null;
         else
             return null;
 
-        // Text and dates need their format either way. A number or boolean carries none of its own, so
-        // a column that asked for neither a look nor a format has nothing to apply and keeps the
-        // workbook default instead of gaining a style that says nothing.
-        if ((type == ExcelConstants.CellTypes.Number || type == ExcelConstants.CellTypes.Boolean) &&
+        // Text and dates need their format either way. A number, a boolean or a cell whose value was
+        // already formatted into text carries none of its own, so a column that asked for neither a
+        // look nor a format has nothing to apply and keeps the workbook default.
+        if ((type == ExcelConstants.CellTypes.Number || type == ExcelConstants.CellTypes.Appearance) &&
             format == null && !DeclaresAppearance(style))
             return null;
 
@@ -390,7 +390,7 @@ public class ExcelExporter
         else if (valueType == typeof(bool) && bool.TryParse(val, out var flag))
         {
             cell.SetCellValue(flag);
-            ApplyStyle(cell, ExcelConstants.CellTypes.Boolean, column.CellStyle);
+            ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle);
             return;
         }
 
@@ -430,6 +430,8 @@ public class ExcelExporter
                     cell.SetCellValue(val);
                 }
 
+                // the Format went into the text, but the column's font and alignment still apply
+                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle);
                 return;
             }
 
@@ -474,6 +476,8 @@ public class ExcelExporter
                     cell.SetCellValue(val);
                 }
 
+                // the Format went into the text, but the column's font and alignment still apply
+                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle);
                 return;
             }
 

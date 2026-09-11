@@ -28,7 +28,7 @@ public class FormulaColumnFormatTest : BaseExcelTest
     {
         [ExcelTitle("姓名")] public string Name { get; set; } = "";
 
-        [ExcelColumn("生日", Format = CustomFormat)]
+        [ExcelColumn("生日", Format = CustomFormat, CellBold = true)]
         public DateTime Birthday { get; set; }
 
         [ExcelColumn("备注", Format = CustomFormat)]
@@ -61,6 +61,16 @@ public class FormulaColumnFormatTest : BaseExcelTest
         var cell = Export().GetCell(1);
         Assert.AreEqual(CellType.String, cell.CellType);
         Assert.AreEqual(Birthday.ToString(CustomFormat), cell.StringCellValue);
+    }
+
+    /// <summary>
+    ///     The formula may be lost on this path, but the column's font and alignment must not be.
+    /// </summary>
+    [TestMethod]
+    public void TheColumnsLookSurvivesThatFallback()
+    {
+        var cell = Export().GetCell(1);
+        Assert.IsTrue(cell.CellStyle.GetFont(cell.Sheet.Workbook).IsBold);
     }
 
     [TestMethod]

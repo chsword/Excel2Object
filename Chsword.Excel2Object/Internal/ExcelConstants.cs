@@ -12,7 +12,9 @@ internal static class ExcelConstants
         public const string Text = "text";
         public const string DateTime = "datetime";
         public const string Number = "number";
-        public const string Boolean = "boolean";
+
+        /// <summary>Font and alignment only, for cells that carry no data format of their own.</summary>
+        public const string Appearance = "appearance";
     }
     
     public static class BooleanValues

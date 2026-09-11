@@ -53,6 +53,13 @@ public class CellStyleTest : BaseExcelTest
         public decimal Money { get; set; } = 1.5m;
 
         [ExcelColumn("BareLink")] public Uri BareLink { get; set; } = new("https://example.org/");
+
+        [ExcelColumn("When", Format = "yyyy-MM-dd HH:mm:ss", CellBold = true,
+            CellAlignment = Alignment.Right)]
+        public DateTime When { get; set; } = new(2026, 9, 11, 14, 30, 45);
+
+        [ExcelColumn("WhenBare", Format = "yyyy-MM-dd HH:mm:ss")]
+        public DateTime WhenBare { get; set; } = new(2026, 9, 11, 14, 30, 45);
     }
 
     private static ISheet Export(ExcelType excelType, out IWorkbook workbook)
@@ -213,6 +220,34 @@ public class CellStyleTest : BaseExcelTest
             Assert.AreEqual(CellType.Numeric, cell.CellType, excelType.ToString());
             Assert.AreEqual(1.5d, cell.NumericCellValue, excelType.ToString());
             Assert.AreEqual("#,##0.000", cell.CellStyle.GetDataFormatString(), excelType.ToString());
+        }
+    }
+
+    /// <summary>
+    ///     A Format Excel has no builtin for is applied by writing the value as text, which used to mean
+    ///     the column's font and alignment were dropped along the way. The format itself stays in the
+    ///     text, so such a cell gets no data format of its own and one that asked for no look at all is
+    ///     left untouched.
+    /// </summary>
+    [TestMethod]
+    public void ACustomDateFormatStillCarriesTheColumnsLook()
+    {
+        foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
+        {
+            var row = Export(excelType, out var workbook).GetRow(1);
+
+            var styled = row.GetCell(12);
+            Assert.AreEqual(CellType.String, styled.CellType, excelType.ToString());
+            Assert.AreEqual("2026-09-11 14:30:45", styled.StringCellValue, excelType.ToString());
+            Assert.IsTrue(styled.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
+            Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.Right, styled.CellStyle.Alignment,
+                excelType.ToString());
+            Assert.AreEqual(0, styled.CellStyle.DataFormat, $"{excelType} keeps the General format");
+
+            // a column that only set Format asked for no look, so its cells are untouched
+            var bare = row.GetCell(13);
+            Assert.AreEqual("2026-09-11 14:30:45", bare.StringCellValue, excelType.ToString());
+            Assert.AreEqual(row.GetCell(6).CellStyle.Index, bare.CellStyle.Index, excelType.ToString());
         }
     }
 
