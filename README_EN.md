@@ -51,12 +51,19 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 ### Features Not Yet Supported
 
-- [x] CLI tool ✅ **unreleased (main)** - `dotnet tool install -g Chsword.Excel2Object.Cli`, see [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
+- [x] CLI tool ✅ **New in v2.2.0** - `dotnet tool install -g Chsword.Excel2Object.Cli`, see [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
 - [x] Support auto width column ✅ **New in v2.0.4**
 - [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4** - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)
 
 ### Release Notes
+
+* **2026.09.11** - v2.2.0
+- [x] ✨ **NEW:** Command-line tool `excel2obj` (`dotnet tool install -g Chsword.Excel2Object.Cli`): Excel ↔ JSON conversion, batch conversion, and model class generation with `[ExcelTitle]` from the header row - See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md) (#9)
+- [x] ✨ **NEW:** Formula columns can refer to columns through model properties: `options.FormulaColumns.Add<Order>("Total", (c, m) => m.Price * m.Qty)`, checked at compile time; referring to a property that is not exported throws - See [ExcelFunctions.md](ExcelFunctions.md) (#22)
+- [x] ✨ **Improved:** Numeric columns are exported as numeric cells, bool columns as boolean cells and null/DBNull as blank cells (previously everything was text); string columns stay text so leading zeros survive
+- [x] 🐛 Fixed missing parentheses from operator precedence in formulas, e.g. `c["A"] * (c["B"] + c["C"])` used to produce `A2*B2+C2`
+- [x] ✨ **Improved:** Referring to a column title that does not exist on the current sheet now throws `Excel2ObjectException` instead of silently falling back
 
 * **2026.09.08** - v2.1.0
 - [x] ✨ **NEW:** Cross-sheet references in formula columns: `c.Sheet("Products")["Price", 2]`, `.Matrix(...)`, `.Columns(...)`, usable directly in `VLOOKUP` etc.; plus whole-column ranges on the current sheet via `c.Columns("A", "D")` - See [ExcelFunctions.md](ExcelFunctions.md)

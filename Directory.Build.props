@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup>
+    <!-- NPOI 2.8.0 leaks its build-time SourceLink 8.0.0 dependency into every project that references it. The
+         advisory concerns build machines, not the library's runtime, and pinning a patched SourceLink would drag
+         System.IO.Hashing 10.x into the net6.0 build, so suppress the audit warning instead. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-23fw-v26w-5fgq" />
+  </ItemGroup>
+</Project>

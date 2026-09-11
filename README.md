@@ -53,12 +53,19 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 
 ### 暂不支持的特性
 
-- [x] CLI 工具 ✅ **未发布（main）** - `dotnet tool install -g Chsword.Excel2Object.Cli`，查看 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
+- [x] CLI 工具 ✅ **v2.2.0 新增** - `dotnet tool install -g Chsword.Excel2Object.Cli`，查看 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
 - [x] 支持自动列宽 ✅ **v2.0.4 新增**
 - [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 
 ### 发布说明
+
+* **2026.09.11** - v2.2.0
+- [x] ✨ **新增:** 命令行工具 `excel2obj`（`dotnet tool install -g Chsword.Excel2Object.Cli`）：Excel ↔ JSON 转换、批量转换、由表头生成带 `[ExcelTitle]` 的模型类 - 查看 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)（#9）
+- [x] ✨ **新增:** 公式列可通过模型属性引用列：`options.FormulaColumns.Add<Order>("Total", (c, m) => m.Price * m.Qty)`，编译期检查属性名，引用未导出的属性会抛出异常 - 查看 [ExcelFunctions.md](ExcelFunctions.md)（#22）
+- [x] ✨ **改进:** 导出时数值列写成数字单元格、bool 列写成布尔单元格、null/DBNull 写成空白单元格（此前一律写成文本）；字符串列仍为文本，前导零不会丢失
+- [x] 🐛 修复公式中运算符优先级导致缺少括号的问题，如 `c["A"] * (c["B"] + c["C"])` 此前生成 `A2*B2+C2`
+- [x] ✨ **改进:** 公式中引用当前 sheet 不存在的列标题时抛出 `Excel2ObjectException`，不再静默回退
 
 * **2026.09.08** - v2.1.0
 - [x] ✨ **新增:** 公式列支持跨 sheet 引用：`c.Sheet("Products")["Price", 2]`、`.Matrix(...)`、`.Columns(...)`，可直接用于 `VLOOKUP` 等函数；另新增当前 sheet 的整列引用 `c.Columns("A列", "D列")` - 查看 [ExcelFunctions.md](ExcelFunctions.md)
