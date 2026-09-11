@@ -32,7 +32,7 @@ public class CellStyleTest : BaseExcelTest
         public string SameAsStyled { get; set; } = "x";
 
         [ExcelColumn("Qty", CellBold = true, CellFontColor = ExcelStyleColor.Red,
-            CellAlignment = Alignment.Right, Format = "0.00")]
+            CellAlignment = Alignment.Right)]
         public int Qty { get; set; } = 7;
 
         [ExcelColumn("Done", CellBold = true, CellFontColor = ExcelStyleColor.Red,
@@ -49,7 +49,7 @@ public class CellStyleTest : BaseExcelTest
 
         [ExcelColumn("BareQty")] public int BareQty { get; set; } = 11;
 
-        [ExcelColumn("Money", Format = "#,##0.000")]
+        [ExcelColumn("Money", Format = "#,##0.000", CellBold = true)]
         public decimal Money { get; set; } = 1.5m;
 
         [ExcelColumn("BareLink")] public Uri BareLink { get; set; } = new("https://example.org/");
@@ -60,10 +60,6 @@ public class CellStyleTest : BaseExcelTest
 
         [ExcelColumn("WhenBare", Format = "yyyy-MM-dd HH:mm:ss")]
         public DateTime WhenBare { get; set; } = new(2026, 9, 11, 14, 30, 45);
-
-        [ExcelColumn("DotNetFormat", Format = "N2")] public decimal DotNetFormat { get; set; } = 2.5m;
-
-        [ExcelColumn("EmptyFormat", Format = "")] public decimal EmptyFormat { get; set; } = 3.5m;
     }
 
     private static ISheet Export(ExcelType excelType, out IWorkbook workbook)
@@ -140,8 +136,6 @@ public class CellStyleTest : BaseExcelTest
             Assert.AreEqual(7d, qty.NumericCellValue, excelType.ToString());
             Assert.IsTrue(qty.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
             Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.Right, qty.CellStyle.Alignment);
-            Assert.AreEqual(NPOI.HSSF.UserModel.HSSFDataFormat.GetBuiltinFormat("0.00"),
-                qty.CellStyle.DataFormat, $"{excelType} number format");
 
             var done = row.GetCell(5);
             Assert.AreEqual(CellType.Boolean, done.CellType, excelType.ToString());
@@ -213,17 +207,19 @@ public class CellStyleTest : BaseExcelTest
     }
 
     /// <summary>
-    ///     A number format Excel has no builtin for has to be registered on the workbook, not dropped.
+    ///     Format is a DateTime column's business; on a number column it is ignored, and that must not
+    ///     cost the column the font and alignment it did declare.
     /// </summary>
     [TestMethod]
-    public void ACustomNumberFormatReachesTheCell()
+    public void FormatIsIgnoredOnANumberColumnButTheLookIsNot()
     {
         foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
         {
-            var cell = Export(excelType, out _).GetRow(1).GetCell(10);
+            var cell = Export(excelType, out var workbook).GetRow(1).GetCell(10);
             Assert.AreEqual(CellType.Numeric, cell.CellType, excelType.ToString());
             Assert.AreEqual(1.5d, cell.NumericCellValue, excelType.ToString());
-            Assert.AreEqual("#,##0.000", cell.CellStyle.GetDataFormatString(), excelType.ToString());
+            Assert.AreEqual(0, cell.CellStyle.DataFormat, $"{excelType} stays on General");
+            Assert.IsTrue(cell.CellStyle.GetFont(workbook).IsBold, excelType.ToString());
         }
     }
 
@@ -252,26 +248,6 @@ public class CellStyleTest : BaseExcelTest
             var bare = row.GetCell(13);
             Assert.AreEqual("2026-09-11 14:30:45", bare.StringCellValue, excelType.ToString());
             Assert.AreEqual(row.GetCell(6).CellStyle.Index, bare.CellStyle.Index, excelType.ToString());
-        }
-    }
-
-    /// <summary>
-    ///     On a numeric column Format is an Excel format code, not a .NET format string. Registering one
-    ///     verbatim makes Excel print it literally in every cell ("N2") or render the number as blank
-    ///     (""), so anything without a digit placeholder is ignored and the cell stays on General.
-    /// </summary>
-    [DataTestMethod]
-    [DataRow(14, 2.5, "N2")]
-    [DataRow(15, 3.5, "empty")]
-    public void ANumberFormatExcelCannotUseIsIgnored(int index, double value, string what)
-    {
-        foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
-        {
-            var row = Export(excelType, out _).GetRow(1);
-            var cell = row.GetCell(index);
-            Assert.AreEqual(CellType.Numeric, cell.CellType, $"{excelType} {what}");
-            Assert.AreEqual(value, cell.NumericCellValue, $"{excelType} {what}");
-            Assert.AreEqual(row.GetCell(6).CellStyle.Index, cell.CellStyle.Index, $"{excelType} {what}");
         }
     }
 

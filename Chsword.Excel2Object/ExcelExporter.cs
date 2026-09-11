@@ -267,19 +267,16 @@ public class ExcelExporter
             format = "text";
         else if (type == ExcelConstants.CellTypes.DateTime)
             format = style?.Format ?? "m/d/yy";
-        else if (type == ExcelConstants.CellTypes.Number)
-            format = NumberFormat(style?.Format);
         else if (type == ExcelConstants.CellTypes.Appearance)
             format = null;
         else
             return null;
 
-        // Text and dates need their format either way. A number, a boolean or a cell whose value was
-        // already formatted into text carries none of its own, so a column that asked for neither a
-        // look nor a format has nothing to apply and keeps the workbook default. Decided before the
-        // cache key is built, because this is the common case and the key costs an allocation.
-        if ((type == ExcelConstants.CellTypes.Number || type == ExcelConstants.CellTypes.Appearance) &&
-            format == null && !DeclaresAppearance(style))
+        // Text and dates need their format either way; an Appearance cell has none of its own, so a
+        // column that asked for no look has nothing to apply and keeps the workbook default. Decided
+        // before the cache key is built, because this is the common case and the key costs an
+        // allocation.
+        if (type == ExcelConstants.CellTypes.Appearance && !DeclaresAppearance(style))
             return null;
 
         var key = GetKey(type, style);
@@ -290,10 +287,8 @@ public class ExcelExporter
         var font = StyleToFont(workbook, style);
         if (font != null)
             cellStyle.SetFont(font);
-        // CreateDataFormat registers a custom format and returns the builtin index for a builtin one,
-        // so "#,##0.000" works as well as "0.00"
         if (format != null)
-            cellStyle.DataFormat = workbook.CreateDataFormat().GetFormat(format);
+            cellStyle.DataFormat = HSSFDataFormat.GetBuiltinFormat(format);
         if (style != null && style.CellAlignment != HorizontalAlignment.General)
             cellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.CellAlignment;
 
@@ -307,21 +302,6 @@ public class ExcelExporter
         if (cellStyle != null)
             cell.CellStyle = cellStyle;
     }
-
-    /// <summary>
-    ///     The Excel number format to register for a column, or null to leave the cell on General.
-    ///     <see cref="ExcelColumnAttribute.Format" /> is an Excel format code here, so it has to carry a
-    ///     digit placeholder; a .NET format string such as "N2" would otherwise be registered verbatim
-    ///     and Excel would print it literally in every cell.
-    /// </summary>
-    private static string? NumberFormat(string? format)
-    {
-        return !string.IsNullOrWhiteSpace(format) && format!.IndexOfAny(DigitPlaceholders) >= 0
-            ? format
-            : null;
-    }
-
-    private static readonly char[] DigitPlaceholders = {'0', '#', '?'};
 
     private string GetKey(string type, IExcelCellStyle? style)
     {
@@ -399,7 +379,7 @@ public class ExcelExporter
             if (!double.IsNaN(number))
             {
                 cell.SetCellValue(number);
-                ApplyStyle(cell, ExcelConstants.CellTypes.Number, column.CellStyle);
+                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle);
                 return;
             }
         }

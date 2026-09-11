@@ -1,4 +1,4 @@
-﻿namespace Chsword.Excel2Object.Internal;
+namespace Chsword.Excel2Object.Internal;
 
 internal static class ExcelConstants
 {
