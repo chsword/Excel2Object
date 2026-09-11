@@ -18,11 +18,15 @@ public class BaseFunctionTest
         ["It's Rates"] = new[] {"Code", "Rate"}
     };
 
-    protected void TestFunction(Expression<Func<ColumnCellDictionary, object>> exp, string expected)
+    protected static string Convert(Expression<Func<ColumnCellDictionary, object>> exp)
     {
         var convert = new ExpressionConvert(new[] {"One", "Two", "Three", "Four", "Five", "Six"}, 3,
             title => OtherSheets.TryGetValue(title, out var columns) ? columns : null);
-        var ret = convert.Convert(exp);
-        Assert.AreEqual(expected, ret);
+        return convert.Convert(exp);
+    }
+
+    protected void TestFunction(Expression<Func<ColumnCellDictionary, object>> exp, string expected)
+    {
+        Assert.AreEqual(expected, Convert(exp));
     }
 }
