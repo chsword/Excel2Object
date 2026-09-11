@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using Chsword.Excel2Object.Options;
@@ -12,6 +12,11 @@ namespace Chsword.Excel2Object.Tests;
 ///     title), and then inherits that column's [ExcelColumn] style. When that style carries a Format
 ///     Excel has no builtin number format for, the exporter cannot express it as a cell format, so it
 ///     falls back to writing the model's own value as text and drops the formula.
+///     <para>
+///         These tests record that fallback, they do not endorse it: asking for a formula and silently
+///         getting a static value instead is a known defect. They exist so the behaviour cannot change
+///         unnoticed, and so a future fix has to update them deliberately.
+///     </para>
 /// </summary>
 [TestClass]
 public class FormulaColumnFormatTest : BaseExcelTest
@@ -50,8 +55,9 @@ public class FormulaColumnFormatTest : BaseExcelTest
     }
 
     [TestMethod]
-    public void CustomFormatOnADateColumnWinsOverTheFormula()
+    public void CustomFormatOnADateColumnSilentlyReplacesTheFormula()
     {
+        // known defect: the requested formula is dropped, the model's own value is written instead
         var cell = Export().GetCell(1);
         Assert.AreEqual(CellType.String, cell.CellType);
         Assert.AreEqual(Birthday.ToString(CustomFormat), cell.StringCellValue);
@@ -60,6 +66,7 @@ public class FormulaColumnFormatTest : BaseExcelTest
     [TestMethod]
     public void CustomFormatOnAValueThatIsNotADateWritesItVerbatim()
     {
+        // same defect, for a value that does not parse as a date
         var cell = Export().GetCell(2);
         Assert.AreEqual(CellType.String, cell.CellType);
         Assert.AreEqual("n/a", cell.StringCellValue);
