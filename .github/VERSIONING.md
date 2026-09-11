@@ -210,7 +210,7 @@ Version format: `MAJOR.MINOR.PATCH` (e.g., `2.0.2`)
 
 ### Version History Reference
 
-See the [release notes in the README](../README.md#release-notes-and-roadmap) for the full version history; that section is also where the release workflow reads the GitHub Release body from.
+See the [release notes in the README](../README_EN.md#release-notes-and-roadmap) for the full version history; that section is also where the release workflow reads the GitHub Release body from.
 
 ### Pre-release Versions
 

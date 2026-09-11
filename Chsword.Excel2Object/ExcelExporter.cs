@@ -256,10 +256,14 @@ public class ExcelExporter
     }
 
     /// <summary>
-    ///     Builds (and caches per workbook) the cell style for a cell type. The cache key fingerprints the
-    ///     requested style too, so columns asking for the same look share one <see cref="ICellStyle" /> -
-    ///     a workbook can only hold a limited number of them.
+    ///     Builds the cell style for a cell type, or returns one already built during this export. The
+    ///     cache key fingerprints the requested style too, so columns asking for the same look share one
+    ///     <see cref="ICellStyle" /> - a workbook can only hold a limited number of them.
     /// </summary>
+    /// <remarks>
+    ///     The cache holds styles belonging to the workbook being written and is cleared when an export
+    ///     starts, so one <see cref="ExcelExporter" /> cannot run two exports at the same time.
+    /// </remarks>
     private ICellStyle? CreateStyle(string type, ICell cell, IExcelCellStyle? style)
     {
         string? format;

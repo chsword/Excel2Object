@@ -56,6 +56,32 @@ public class ExportDateFormatTest : BaseExcelTest
         File.Delete(path);
     }
 
+    public class BuiltinFormatModel
+    {
+        [ExcelColumn("Builtin", Format = "m/d/yy")] public DateTime Builtin { get; set; }
+        [ExcelColumn("None")] public DateTime None { get; set; }
+    }
+
+    /// <summary>
+    ///     Format is applied by rendering the value into text, which only happens for a format Excel has
+    ///     no builtin of its own for. One that collides with a builtin name is silently ignored - a
+    ///     long-standing trap worth pinning, since "m/d/yy" looks like the most natural thing to write.
+    /// </summary>
+    [TestMethod]
+    public void ABuiltinFormatNameOnADateColumnIsIgnored()
+    {
+        var when = new DateTime(2026, 9, 11, 14, 30, 45);
+        var bytes = new ExcelExporter().ObjectToExcelBytes(
+            new List<BuiltinFormatModel> {new() {Builtin = when, None = when}},
+            options => options.ExcelType = ExcelType.Xlsx);
+        Assert.IsNotNull(bytes);
+
+        using var stream = new MemoryStream(bytes);
+        var row = WorkbookFactory.Create(stream).GetSheetAt(0).GetRow(1);
+        Assert.AreEqual(row.GetCell(1).StringCellValue, row.GetCell(0).StringCellValue);
+        Assert.AreEqual(row.GetCell(1).CellStyle.DataFormat, row.GetCell(0).CellStyle.DataFormat);
+    }
+
     /// <summary>
     ///     A formula column declared to return a DateTime must be written with a date number format,
     ///     otherwise Excel shows the raw serial number (e.g. 46282.6 instead of 2026-09-11).

@@ -59,10 +59,23 @@ public class ExcelColumnAttribute : ExcelTitleAttribute, IExcelHeaderStyle, IExc
     public bool CellUnderline { get; set; }
 
     /// <summary>
-    /// Gets or sets the format of the cell. It applies to <see cref="System.DateTime"/> columns only:
-    /// an Excel builtin format name (for example "m/d/yy") when Excel has one, and otherwise a .NET
-    /// format string the value is rendered with before being written as text (for example
-    /// "yyyy-MM-dd HH:mm:ss"). On any other column type it is ignored.
+    /// Gets or sets the format of the cell. It only has an effect on <see cref="System.DateTime"/>
+    /// columns, where it is a .NET format string the value is rendered with before being written as
+    /// text - for example "yyyy-MM-dd HH:mm:ss" turns the cell into the text "2026-09-11 14:30:45".
+    /// <para>
+    /// Two things to know, both long-standing:
+    /// </para>
+    /// <list type="bullet">
+    /// <item>
+    /// A format that happens to be one of Excel's builtin format names, such as "m/d/yy", is silently
+    /// ignored - the cell comes out exactly as if no format had been given.
+    /// </item>
+    /// <item>
+    /// When a formula column takes over such a column (they are matched by title), the value is
+    /// written with this format and the formula is dropped.
+    /// </item>
+    /// </list>
+    /// On every other column type - string, numeric, boolean, Uri - it is ignored.
     /// </summary>
     public string? Format { get; set; }
 
