@@ -20,18 +20,18 @@ This document lists potential features and improvements for the Excel2Object pro
 - 处理不同地区的日期格式差异
 - 支持时区转换
 
-#### 2. 开发 CLI 命令行工具
+#### 2. 开发 CLI 命令行工具 ✅ 已完成（#9）
 **优先级：中**
 
-- 提供独立的命令行工具用于 Excel 文件转换
-- 支持批量转换操作
-- 支持配置文件定义转换规则
-- 提供模板生成功能
+- [x] 独立的 dotnet tool `Chsword.Excel2Object.Cli`（命令 `excel2obj`），见 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
+- [x] Excel ↔ JSON 转换，支持多文件批量转换到目录
+- [x] 由表头和数据推断类型，生成带 `[ExcelTitle]` 的模型类
+- [ ] 支持配置文件定义转换规则
 
 示例命令：
 ```bash
-excel2obj convert input.xlsx --output data.json --type Model
-excel2obj generate-model input.xlsx --output Model.cs
+excel2obj convert input.xlsx --output data.json --typed
+excel2obj generate-model input.xlsx --output Model.cs --class Model
 ```
 
 #### 3. 增强公式支持
@@ -117,18 +117,18 @@ excel2obj generate-model input.xlsx --output Model.cs
 - Handle regional date format differences
 - Support timezone conversion
 
-#### 2. Develop CLI Command-Line Tool
+#### 2. Develop CLI Command-Line Tool ✅ Done (#9)
 **Priority: Medium**
 
-- Provide standalone command-line tool for Excel file conversion
-- Support batch conversion operations
-- Support configuration files to define conversion rules
-- Provide template generation functionality
+- [x] Standalone dotnet tool `Chsword.Excel2Object.Cli` (command `excel2obj`), see [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
+- [x] Excel ↔ JSON conversion, batch conversion of several files into a directory
+- [x] Model class generation with `[ExcelTitle]` and types inferred from the header row and data
+- [ ] Configuration files to define conversion rules
 
 Example commands:
 ```bash
-excel2obj convert input.xlsx --output data.json --type Model
-excel2obj generate-model input.xlsx --output Model.cs
+excel2obj convert input.xlsx --output data.json --typed
+excel2obj generate-model input.xlsx --output Model.cs --class Model
 ```
 
 #### 3. Enhanced Formula Support

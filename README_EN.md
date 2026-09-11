@@ -35,11 +35,23 @@ Or using .NET CLI:
 dotnet add package Chsword.Excel2Object
 ```
 
+### Command-line tool excel2obj
+
+``` bash
+dotnet tool install -g Chsword.Excel2Object.Cli
+
+excel2obj convert orders.xlsx --output orders.json --typed   # Excel -> JSON
+excel2obj convert orders.json --output orders.xlsx           # JSON -> Excel
+excel2obj generate-model orders.xlsx --class Order           # C# model class with [ExcelTitle] from the header row
+```
+
+See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
+
 ## Release Notes and Roadmap
 
 ### Features Not Yet Supported
 
-- [ ] CLI tool
+- [x] CLI tool ✅ **unreleased (main)** - `dotnet tool install -g Chsword.Excel2Object.Cli`, see [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
 - [x] Support auto width column ✅ **New in v2.0.4**
 - [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4** - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)

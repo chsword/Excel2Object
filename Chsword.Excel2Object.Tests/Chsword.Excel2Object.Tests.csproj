@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Chsword.Excel2Object\Chsword.Excel2Object.csproj" />
+    <ProjectReference Include="..\Chsword.Excel2Object.Cli\Chsword.Excel2Object.Cli.csproj" />
   </ItemGroup>
 
   <ItemGroup>

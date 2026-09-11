@@ -37,11 +37,23 @@ PM> Install-Package Chsword.Excel2Object
 dotnet add package Chsword.Excel2Object
 ```
 
+### 命令行工具 excel2obj
+
+``` bash
+dotnet tool install -g Chsword.Excel2Object.Cli
+
+excel2obj convert orders.xlsx --output orders.json --typed   # Excel -> JSON
+excel2obj convert orders.json --output orders.xlsx           # JSON -> Excel
+excel2obj generate-model orders.xlsx --class Order           # 由表头生成带 [ExcelTitle] 的 C# 模型类
+```
+
+详见 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)。
+
 ## 发布说明和路线图
 
 ### 暂不支持的特性
 
-- [ ] CLI 工具
+- [x] CLI 工具 ✅ **未发布（main）** - `dotnet tool install -g Chsword.Excel2Object.Cli`，查看 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
 - [x] 支持自动列宽 ✅ **v2.0.4 新增**
 - [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)

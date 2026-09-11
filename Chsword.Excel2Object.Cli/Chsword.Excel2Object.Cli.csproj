@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RollForward>Major</RollForward>
+    <AssemblyName>excel2obj</AssemblyName>
+    <RootNamespace>Chsword.Excel2Object.Cli</RootNamespace>
+
+    <!-- Installed with: dotnet tool install -g Chsword.Excel2Object.Cli -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>excel2obj</ToolCommandName>
+    <PackageId>Chsword.Excel2Object.Cli</PackageId>
+    <!-- Same version as the library, read from its project file so release.ps1 only bumps one place -->
+    <Version>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../Chsword.Excel2Object/Chsword.Excel2Object.csproj')), '&lt;Version&gt;([^&lt;]+)&lt;/Version&gt;').Groups[1].Value)</Version>
+    <Authors>Zou Jian</Authors>
+    <Description>Command-line tool for Excel2Object: convert Excel to JSON and back, and generate C# model classes from a sheet.</Description>
+    <PackageProjectUrl>https://github.com/chsword/Excel2Object/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/chsword/Excel2Object</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>excel;json;cli;dotnet-tool;codegen</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Chsword.Excel2Object\Chsword.Excel2Object.csproj" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
