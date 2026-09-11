@@ -66,34 +66,36 @@ jobs:
         fi
         echo "✓ 版本号一致性验证通过 / Version consistency validated"
 
-  # 构建和测试
-  build-and-test:
-    name: Build and Test
+  # 构建、测试并打包
+  # tag 指向的提交已经由 .NET CI 在三个平台上测过，这里只在 ubuntu 上跑一遍作为发布前的闸门
+  # The tagged commit was already tested on all three platforms by .NET CI, so this is a single
+  # ubuntu run acting as the gate before publishing
+  pack-nuget:
+    name: Pack NuGet Package
     needs: validate-version
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-      fail-fast: false
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v7
 
+    # 10.0 的 SDK 可以编译 net472 / net6.0 / net8.0 / net9.0 的目标，测试只跑 net10.0
+    # The 10.0 SDK builds the net472 / net6.0 / net8.0 / net9.0 targets; the tests run on net10.0 only
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: |
-          6.0.x
-          8.0.x
-          9.0.x
-          10.0.x
+        dotnet-version: 10.0.x
 
-    - name: Restore dependencies
-      run: dotnet restore
+    - name: Cache NuGet packages
+      uses: actions/cache@v6
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
 
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release
 
     - name: Test
       run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
@@ -102,33 +104,8 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v7
       with:
-        name: test-results-${{ matrix.os }}
+        name: test-results
         path: "**/test-results.trx"
-
-  # 打包 NuGet 包
-  pack-nuget:
-    name: Pack NuGet Package
-    needs: [validate-version, build-and-test]
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v7
-
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v6
-      with:
-        dotnet-version: |
-          6.0.x
-          8.0.x
-          9.0.x
-          10.0.x
-
-    - name: Restore dependencies
-      run: dotnet restore
-
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
 
     - name: Pack NuGet package
       run: dotnet pack --configuration Release --no-build --output ./artifacts
@@ -173,7 +150,7 @@ jobs:
   # 创建 GitHub Release
   create-release:
     name: Create GitHub Release
-    needs: [validate-version, build-and-test, pack-nuget]
+    needs: [validate-version, pack-nuget]
     runs-on: ubuntu-latest
     permissions:
       contents: write
