@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Chsword.Excel2Object.Options;
 using Chsword.Excel2Object.Tests.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -12,27 +13,47 @@ namespace Chsword.Excel2Object.Tests;
 [TestClass]
 public class ExportDateFormatTest : BaseExcelTest
 {
+    /// <summary>
+    ///     A [ExcelColumn] Format that Excel has no builtin number format for is applied by writing the
+    ///     value as already-formatted text; an empty nullable date stays a blank cell.
+    /// </summary>
     [TestMethod]
     public void ExportDateTest()
     {
+        var birthday = new DateTime(2026, 9, 11, 14, 30, 45);
         var list = new List<TestModelDatePerson>
         {
-            new()
-            {
-                Age = 18,
-                Birthday = DateTime.Now,
-                Birthday2 = DateTime.Now,
-                Name = "test"
-            },
-            new()
-            {
-                Age = 18,
-                Birthday = DateTime.Now,
-
-                Name = "test2"
-            }
+            new() {Age = 18, Birthday = birthday, Birthday2 = birthday, Name = "test"},
+            new() {Age = 20, Birthday = birthday, Name = "test2"}
         };
-        ExcelHelper.ObjectToExcel(list, GetFilePath(DateTime.Now.Ticks + "test.xls"));
+        var path = GetFilePath(DateTime.Now.Ticks + "test.xls");
+        ExcelHelper.ObjectToExcel(list, path);
+        Assert.IsTrue(File.Exists(path));
+
+        using (var stream = File.OpenRead(path))
+        {
+            var sheet = WorkbookFactory.Create(stream).GetSheetAt(0);
+            Assert.AreEqual("出生日期", sheet.GetRow(0).GetCell(2).StringCellValue);
+
+            var firstRow = sheet.GetRow(1);
+            Assert.AreEqual(CellType.Numeric, firstRow.GetCell(1).CellType);
+            Assert.AreEqual(18d, firstRow.GetCell(1).NumericCellValue);
+            Assert.AreEqual(CellType.String, firstRow.GetCell(2).CellType);
+            Assert.AreEqual(birthday.ToString("yyyy-MM-dd HH:mm:ss"), firstRow.GetCell(2).StringCellValue);
+            Assert.AreEqual(birthday.ToString("yyyy-MM-dd HH:mm:ss"), firstRow.GetCell(3).StringCellValue);
+
+            Assert.AreEqual(CellType.Blank, sheet.GetRow(2).GetCell(3).CellType);
+        }
+
+        var result = ExcelHelper.ExcelToObject<TestModelDatePerson>(path)!.ToList();
+        Assert.AreEqual(2, result.Count);
+        Assert.AreEqual("test", result[0].Name);
+        Assert.AreEqual(birthday, result[0].Birthday);
+        Assert.AreEqual(birthday, result[0].Birthday2);
+        Assert.AreEqual(20, result[1].Age);
+        Assert.IsNull(result[1].Birthday2);
+
+        File.Delete(path);
     }
 
     /// <summary>
