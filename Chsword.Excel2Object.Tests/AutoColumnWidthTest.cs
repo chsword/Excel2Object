@@ -51,7 +51,22 @@ public class AutoColumnWidthTest : BaseExcelTest
         
         Assert.IsNotNull(bytes);
         Assert.IsTrue(bytes.Length > 0);
-        
+
+        // Without auto width every column takes DefaultColumnWidth, whatever it holds
+        var sheet = SheetOf(bytes);
+        for (var i = 0; i < 4; i++)
+            Assert.AreEqual(20 * 256d, sheet.GetColumnWidth(i), $"column {i}");
+
+        // and that is the option talking, not the content: measured, 姓名 comes out far narrower
+        var measured = ExcelHelper.ObjectToExcelBytes(models, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.AutoColumnWidth = true;
+            options.MinColumnWidth = 1;
+            options.MaxColumnWidth = 100;
+        });
+        Assert.AreEqual(6 * 256d, SheetOf(measured!).GetColumnWidth(0), "姓名 measured");
+
         // Verify the export can be imported back
         var importer = new ExcelImporter();
         var result = importer.ExcelToObject<TestModelPerson>(bytes).ToList();
