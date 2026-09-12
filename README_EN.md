@@ -55,11 +55,15 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 - [x] Support auto width column ✅ **New in v2.0.4**
 - [x] Frozen header row and filter dropdowns ✅ **New in v2.5.0**
 - [x] Data validation (dropdown lists) ✅ **New in v2.5.0**
+- [x] Conditional formatting ✅ **New in v2.6.0**
 - [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4**, exported as real date cells ✅ **New in v2.4.0** - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)
 - [x] Built-in formula function library ✅ **New in v2.3.0** - 334 Excel functions in 10 categories - See [ExcelFunctions.md](ExcelFunctions.md)
 
 ### Release Notes
+
+* **2026.09.12** - v2.6.0
+- [x] ✨ **NEW:** Conditional formatting through `options.ConditionalFormats`: a rule per column (`Operator` + `Value`, `Value2` for `Between`, or a `Formula` of your own) restyles the cells it matches - font colour, bold, italic, background fill - and `WholeRow = true` colours the whole row. Excel evaluates the rules, so the colours follow the data as it is edited; a column can carry several, and both `.xls` and `.xlsx` support them
 
 * **2026.09.12** - v2.5.0
 - [x] ✨ **NEW:** `ExcelExporterOptions.FreezeHeader` freezes the header row so it stays in view while scrolling, and `ExcelExporterOptions.AutoFilter` puts Excel's filter dropdowns on it over the rows this export wrote. Both are off by default and work in `.xls` as well as `.xlsx`
@@ -319,6 +323,40 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 ```
 
 Excel shows the values as a dropdown and rejects anything else. `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` takes the same options when appending a sheet. A list Excel cannot hold inline - over 255 characters in total, or a value carrying a comma or a quote - is written to a hidden sheet that a defined name points at, which the dropdown then reads (a `.xls` validation cannot reference another sheet directly); nothing about how it is used changes, and both `.xls` and `.xlsx` support it. An export with no rows still gets the dropdown on its first row, so it works as a template to fill in.
+
+### Conditional Formatting
+
+``` csharp
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    // amounts over 10,000 turn red and bold
+    options.ConditionalFormats.Add(new ConditionalFormat("Amount")
+    {
+        Operator = ConditionalOperator.GreaterThan,
+        Value = 10000,
+        FontColor = ExcelStyleColor.Red,
+        Bold = true
+    });
+
+    // the whole row turns yellow when the status says so
+    options.ConditionalFormats.Add(new ConditionalFormat("Status")
+    {
+        Operator = ConditionalOperator.Equal,
+        Value = "Urgent",
+        WholeRow = true,
+        BackgroundColor = ExcelStyleColor.Yellow
+    });
+
+    // or write the Excel condition yourself, against the first data row (row 2), anchoring the column
+    options.ConditionalFormats.Add(new ConditionalFormat("Amount")
+    {
+        Formula = "$B2>$C2",
+        BackgroundColor = ExcelStyleColor.LightGreen
+    });
+});
+```
+
+Excel evaluates the rules itself, so the colours follow the data as it is edited. `Value` is written as the Excel literal for its type (a number as it is, a string quoted, a `DateTime` as `DATE(y,m,d)`), and `Between` / `NotBetween` take the other end in `Value2`. A column can carry several rules, and both `.xls` and `.xlsx` support them.
 
 ### Use with ASP.NET MVC
 

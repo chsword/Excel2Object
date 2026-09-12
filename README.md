@@ -57,11 +57,15 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 - [x] 支持自动列宽 ✅ **v2.0.4 新增**
 - [x] 冻结首行与自动筛选 ✅ **v2.5.0 新增**
 - [x] 数据验证（下拉列表）✅ **v2.5.0 新增**
+- [x] 条件格式 ✅ **v2.6.0 新增**
 - [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增**，导出为真正的日期单元格 ✅ **v2.4.0 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 - [x] 公式内置函数库 ✅ **v2.3.0 新增** - 334 个 Excel 函数，10 个类别 - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 
 ### 发布说明
+
+* **2026.09.12** - v2.6.0
+- [x] ✨ **新增:** 条件格式 `options.ConditionalFormats`：按列写规则（`Operator` + `Value`，`Between` 用 `Value2`，或直接给 `Formula`），命中时改字体颜色、加粗、倾斜、填充背景色；`WholeRow = true` 可整行高亮。规则由 Excel 求值，数据编辑后颜色跟着变，同一列可挂多条，`.xls` / `.xlsx` 都支持
 
 * **2026.09.12** - v2.5.0
 - [x] ✨ **新增:** `ExcelExporterOptions.FreezeHeader` 冻结首行，滚动时表头常驻；`ExcelExporterOptions.AutoFilter` 给表头挂上筛选下拉，范围覆盖本次写入的数据行。两项默认关闭，`.xls` / `.xlsx` 都支持
@@ -322,6 +326,40 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 ```
 
 Excel 会把取值显示为下拉，并拒绝其他输入。追加导出用 `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` 同样可以设置这些选项。列表总长超过 255 字符、或取值里含逗号/引号时（Excel 行内列表放不下），自动改写到一张隐藏 sheet 上、由一个定义名称指向该区域，下拉再引用这个名称（`.xls` 无法让数据验证直接跨 sheet 引用），用法不变；`.xls` 与 `.xlsx` 都支持。导出空列表时下拉仍会挂在第一行，方便做填写模板。
+
+### 条件格式
+
+``` csharp
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    // 金额大于 1 万的单元格标红加粗
+    options.ConditionalFormats.Add(new ConditionalFormat("金额")
+    {
+        Operator = ConditionalOperator.GreaterThan,
+        Value = 10000,
+        FontColor = ExcelStyleColor.Red,
+        Bold = true
+    });
+
+    // 整行高亮：状态为"急件"时整行黄底
+    options.ConditionalFormats.Add(new ConditionalFormat("状态")
+    {
+        Operator = ConditionalOperator.Equal,
+        Value = "急件",
+        WholeRow = true,
+        BackgroundColor = ExcelStyleColor.Yellow
+    });
+
+    // 也可以直接写 Excel 条件，按第一行数据（第 2 行）书写，列用 $ 锁定
+    options.ConditionalFormats.Add(new ConditionalFormat("金额")
+    {
+        Formula = "$B2>$C2",
+        BackgroundColor = ExcelStyleColor.LightGreen
+    });
+});
+```
+
+规则由 Excel 自己求值，数据被编辑后颜色会跟着变。`Value` 按类型写成 Excel 字面量（数字原样、字符串加引号、`DateTime` 写成 `DATE(y,m,d)`），`Between` / `NotBetween` 用 `Value2` 给出另一端。同一列可以挂多条规则，`.xls` 与 `.xlsx` 都支持。
 
 ### 在 ASP.NET MVC 中使用
 
