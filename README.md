@@ -55,11 +55,18 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 
 - [x] CLI 工具 ✅ **v2.2.1 新增** - `dotnet tool install -g Chsword.Excel2Object.Cli`，查看 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
 - [x] 支持自动列宽 ✅ **v2.0.4 新增**
+- [x] 冻结首行与自动筛选 ✅ **v2.5.0 新增**
+- [x] 数据验证（下拉列表）✅ **v2.5.0 新增**
 - [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增**，导出为真正的日期单元格 ✅ **v2.4.0 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 - [x] 公式内置函数库 ✅ **v2.3.0 新增** - 334 个 Excel 函数，10 个类别 - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 
 ### 发布说明
+
+* **2026.09.12** - v2.5.0
+- [x] ✨ **新增:** `ExcelExporterOptions.FreezeHeader` 冻结首行，滚动时表头常驻；`ExcelExporterOptions.AutoFilter` 给表头挂上筛选下拉，范围覆盖本次写入的数据行。两项默认关闭，`.xls` / `.xlsx` 都支持
+- [x] ✨ **新增:** `AppendObjectToExcelBytes` 增加接受 options 的重载，追加 sheet 时也能设置冻结、筛选与下拉
+- [x] ✨ **新增:** 数据验证（下拉列表）：固定取值写在 `[ExcelColumn("状态", Dropdown = new[] {"启用", "停用"})]`，运行时取值走 `options.Dropdowns["列标题"] = values`（优先于特性）。Excel 会拒绝列表之外的输入；列表总长超过 255 字符或取值含逗号/引号时自动改用隐藏 sheet 承载（此前这种列表在 `.xls` 上会直接抛异常），空导出也会在首行挂上下拉以便做填写模板
 
 * **2026.09.11** - v2.4.0
 - [x] ✨ **新增:** 导出时 `DateTime` / `DateTime?` 列写成真正的日期单元格（序列号 + 日期格式），Excel 可以排序、筛选、参与计算，`null` 写成空单元格；`Dictionary<string, object>` 与 `DataTable` 导出中的 `DateTime` 值同样处理 - 查看 [DateTimeFormats.md](DateTimeFormats.md)
@@ -279,6 +286,42 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
     options.DefaultColumnWidth = 16;       // 禁用自动时的默认宽度
 });
 ```
+
+### 冻结首行与自动筛选
+
+``` csharp
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    options.ExcelType = ExcelType.Xlsx;
+    options.FreezeHeader = true;           // 滚动时表头始终可见
+    options.AutoFilter = true;             // 表头带上筛选下拉
+});
+```
+
+两个选项默认关闭，`.xls` 与 `.xlsx` 都支持。筛选范围覆盖表头及本次写入的数据行；`AppendObjectToExcelBytes` 追加的 sheet 各自独立，不影响已有 sheet。
+
+### 数据验证（下拉列表）
+
+``` csharp
+public class OrderModel
+{
+    [ExcelTitle("订单号")] public string No { get; set; }
+
+    // 固定取值写在特性上
+    [ExcelColumn("状态", Dropdown = new[] {"启用", "停用", "待审"})]
+    public string Status { get; set; }
+
+    [ExcelTitle("城市")] public string City { get; set; }
+}
+
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    // 运行时才知道的取值走 options，优先于特性
+    options.Dropdowns["城市"] = cities.Select(c => c.Name).ToArray();
+});
+```
+
+Excel 会把取值显示为下拉，并拒绝其他输入。追加导出用 `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` 同样可以设置这些选项。列表总长超过 255 字符、或取值里含逗号/引号时（Excel 行内列表放不下），自动改写到一张隐藏 sheet 上、由一个定义名称指向该区域，下拉再引用这个名称（`.xls` 无法让数据验证直接跨 sheet 引用），用法不变；`.xls` 与 `.xlsx` 都支持。导出空列表时下拉仍会挂在第一行，方便做填写模板。
 
 ### 在 ASP.NET MVC 中使用
 

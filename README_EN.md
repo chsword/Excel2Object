@@ -53,11 +53,18 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 - [x] CLI tool ✅ **New in v2.2.1** - `dotnet tool install -g Chsword.Excel2Object.Cli`, see [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
 - [x] Support auto width column ✅ **New in v2.0.4**
+- [x] Frozen header row and filter dropdowns ✅ **New in v2.5.0**
+- [x] Data validation (dropdown lists) ✅ **New in v2.5.0**
 - [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4**, exported as real date cells ✅ **New in v2.4.0** - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)
 - [x] Built-in formula function library ✅ **New in v2.3.0** - 334 Excel functions in 10 categories - See [ExcelFunctions.md](ExcelFunctions.md)
 
 ### Release Notes
+
+* **2026.09.12** - v2.5.0
+- [x] ✨ **NEW:** `ExcelExporterOptions.FreezeHeader` freezes the header row so it stays in view while scrolling, and `ExcelExporterOptions.AutoFilter` puts Excel's filter dropdowns on it over the rows this export wrote. Both are off by default and work in `.xls` as well as `.xlsx`
+- [x] ✨ **NEW:** `AppendObjectToExcelBytes` gained an options overload, so an appended sheet can be frozen, filtered and given dropdowns too
+- [x] ✨ **NEW:** Data validation (dropdown lists): a fixed list goes on the attribute, `[ExcelColumn("Status", Dropdown = new[] {"Open", "Closed"})]`, and values only known at runtime go through `options.Dropdowns["Column title"] = values`, which wins over the attribute. Excel rejects anything outside the list; a list over 255 characters, or one whose values carry a comma or a quote, is written to a hidden sheet the dropdown reads from (such a list used to throw outright on `.xls`), and an export with no rows still gets the dropdown on its first row so it works as a template
 
 * **2026.09.11** - v2.4.0
 - [x] ✨ **NEW:** `DateTime` / `DateTime?` columns are exported as real date cells (a serial number with a date format), so Excel can sort, filter and calculate with them; `null` becomes a blank cell. `DateTime` values in `Dictionary<string, object>` and `DataTable` exports get the same treatment - See [DateTimeFormats.md](DateTimeFormats.md)
@@ -276,6 +283,42 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
     options.DefaultColumnWidth = 16;       // Default width when auto is disabled
 });
 ```
+
+### Frozen Header and Filter Dropdowns
+
+``` csharp
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    options.ExcelType = ExcelType.Xlsx;
+    options.FreezeHeader = true;           // the header stays in view while scrolling
+    options.AutoFilter = true;             // the header carries Excel's filter dropdowns
+});
+```
+
+Both are off by default and work in `.xls` as well as `.xlsx`. The filter covers the header and the rows written in this export; a sheet appended with `AppendObjectToExcelBytes` gets its own, leaving the sheets already in the workbook alone.
+
+### Data Validation (Dropdown Lists)
+
+``` csharp
+public class OrderModel
+{
+    [ExcelTitle("No")] public string No { get; set; }
+
+    // a fixed list belongs on the attribute
+    [ExcelColumn("Status", Dropdown = new[] {"Open", "Closed", "Pending"})]
+    public string Status { get; set; }
+
+    [ExcelTitle("City")] public string City { get; set; }
+}
+
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    // values only known at runtime go through the options and win over the attribute
+    options.Dropdowns["City"] = cities.Select(c => c.Name).ToArray();
+});
+```
+
+Excel shows the values as a dropdown and rejects anything else. `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` takes the same options when appending a sheet. A list Excel cannot hold inline - over 255 characters in total, or a value carrying a comma or a quote - is written to a hidden sheet that a defined name points at, which the dropdown then reads (a `.xls` validation cannot reference another sheet directly); nothing about how it is used changes, and both `.xls` and `.xlsx` support it. An export with no rows still gets the dropdown on its first row, so it works as a template to fill in.
 
 ### Use with ASP.NET MVC
 

@@ -60,6 +60,7 @@ internal static class TypeConvert
             {
                 column.CellStyle = excelColumnAttr;
                 column.HeaderStyle = excelColumnAttr;
+                column.Dropdown = excelColumnAttr.Dropdown;
             }
 
             columns.Add(column);
@@ -149,6 +150,11 @@ internal static class TypeConvert
                 excelColumn.Formula = formulaColumn.ModelFormula ?? formulaColumn.Formula;
             }
         }
+
+        // after the formula columns are in, so a column a formula added can carry a dropdown too
+        foreach (var column in columns)
+            if (column.Title != null && options.Dropdowns.TryGetValue(column.Title, out var values))
+                column.Dropdown = values;
 
         for (var i = 0; i < columns.Count; i++) columns[i].Order = i * 10;
 

@@ -47,4 +47,22 @@ public class ExcelExporterOptions
     ///     Excel, but comes out character for character as <c>[ExcelColumn(Format = ...)]</c> renders it.
     /// </summary>
     public bool DateTimeAsText { get; set; }
+
+    /// <summary>
+    ///     Freeze the header row, so it stays in view while the sheet is scrolled (default: false).
+    /// </summary>
+    public bool FreezeHeader { get; set; }
+
+    /// <summary>
+    ///     The values a column's cells are limited to, keyed by column title - the runtime counterpart of
+    ///     <see cref="ExcelColumnAttribute.Dropdown" />, which it takes precedence over. Excel shows them
+    ///     as a dropdown and rejects anything else.
+    /// </summary>
+    public IDictionary<string, string[]> Dropdowns { get; set; } = new Dictionary<string, string[]>();
+
+    /// <summary>
+    ///     Put Excel's filter dropdowns on the header row, over the data written in this export
+    ///     (default: false).
+    /// </summary>
+    public bool AutoFilter { get; set; }
 }
