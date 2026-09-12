@@ -95,7 +95,6 @@ internal static class ConditionalFormatting
 
         return sheetFormatting.CreateConditionalFormattingRule(Operator(format.Operator),
             Literal(format.Value), format.Value2 == null ? null : Literal(format.Value2));
-
     }
 
     /// <summary>The comparison written as an expression, for a rule that colours more than its own cell.</summary>
