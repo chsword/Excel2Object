@@ -58,12 +58,7 @@ internal static class DropdownValidation
     /// <summary>Puts the values in their own column on the hidden sheet and returns the range.</summary>
     private static string WriteToListSheet(IWorkbook workbook, string[] values)
     {
-        var sheet = workbook.GetSheet(ListSheetName);
-        if (sheet == null)
-        {
-            sheet = workbook.CreateSheet(ListSheetName);
-            workbook.SetSheetHidden(workbook.GetSheetIndex(sheet), SheetVisibility.Hidden);
-        }
+        var sheet = ListSheet(workbook);
 
         // the sheet grows to the right, one column per list, so lists written earlier keep their range
         var column = 0;
@@ -77,6 +72,32 @@ internal static class DropdownValidation
         }
 
         var letter = CellReference.ConvertNumToColString(column);
-        return $"{ListSheetName}!${letter}$1:${letter}${values.Length}";
+        // the name needs no quoting, which matters: xlsx keeps the formula as written while xls reparses it
+        return $"{sheet.SheetName}!${letter}$1:${letter}${values.Length}";
+    }
+
+    /// <summary>
+    ///     The sheet the long lists are written to: the one an earlier export of this workbook left behind,
+    ///     or a new hidden one. A visible sheet of that name belongs to whoever made the workbook, so a name
+    ///     that is still free is taken instead of writing into it.
+    /// </summary>
+    private static ISheet ListSheet(IWorkbook workbook)
+    {
+        var name = ListSheetName;
+        for (var suffix = 2;; suffix++)
+        {
+            var existing = workbook.GetSheet(name);
+            if (existing == null)
+            {
+                var sheet = workbook.CreateSheet(name);
+                workbook.SetSheetHidden(workbook.GetSheetIndex(sheet), SheetVisibility.Hidden);
+                return sheet;
+            }
+
+            if (workbook.GetSheetVisibility(workbook.GetSheetIndex(existing)) != SheetVisibility.Visible)
+                return existing;
+
+            name = ListSheetName + suffix;
+        }
     }
 }

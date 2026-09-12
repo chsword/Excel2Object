@@ -63,6 +63,7 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 * **2026.09.12** - v2.5.0
 - [x] ✨ **NEW:** `ExcelExporterOptions.FreezeHeader` freezes the header row so it stays in view while scrolling, and `ExcelExporterOptions.AutoFilter` puts Excel's filter dropdowns on it over the rows this export wrote. Both are off by default and work in `.xls` as well as `.xlsx`
+- [x] ✨ **NEW:** `AppendObjectToExcelBytes` gained an options overload, so an appended sheet can be frozen, filtered and given dropdowns too
 - [x] ✨ **NEW:** Data validation (dropdown lists): a fixed list goes on the attribute, `[ExcelColumn("Status", Dropdown = new[] {"Open", "Closed"})]`, and values only known at runtime go through `options.Dropdowns["Column title"] = values`, which wins over the attribute. Excel rejects anything outside the list; a list over 255 characters, or one whose values carry a comma or a quote, is written to a hidden sheet the dropdown reads from (such a list used to throw outright on `.xls`), and an export with no rows still gets the dropdown on its first row so it works as a template
 
 * **2026.09.11** - v2.4.0
@@ -317,7 +318,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 });
 ```
 
-Excel shows the values as a dropdown and rejects anything else. A list Excel cannot hold inline - over 255 characters in total, or a value carrying a comma or a quote - is written to a hidden sheet the dropdown reads from, which changes nothing about how it is used; both `.xls` and `.xlsx` support it. An export with no rows still gets the dropdown on its first row, so it works as a template to fill in.
+Excel shows the values as a dropdown and rejects anything else. `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` takes the same options when appending a sheet. A list Excel cannot hold inline - over 255 characters in total, or a value carrying a comma or a quote - is written to a hidden sheet the dropdown reads from, which changes nothing about how it is used; both `.xls` and `.xlsx` support it. An export with no rows still gets the dropdown on its first row, so it works as a template to fill in.
 
 ### Use with ASP.NET MVC
 

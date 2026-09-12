@@ -18,9 +18,15 @@ public class ExcelExporter
     public byte[]? AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data,
         string sheetTitle)
     {
+        return AppendObjectToExcelBytes(sourceExcelBytes, data, options => options.SheetTitle = sheetTitle);
+    }
+
+    public byte[]? AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data,
+        Action<ExcelExporterOptions> optionsAction)
+    {
         return ObjectToExcelBytes(data, options =>
         {
-            options.SheetTitle = sheetTitle;
+            optionsAction(options);
             options.SourceExcelBytes = sourceExcelBytes;
         });
     }

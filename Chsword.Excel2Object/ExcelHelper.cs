@@ -12,6 +12,13 @@ public static class ExcelHelper
         return excelExporter.AppendObjectToExcelBytes(sourceExcelBytes, data, sheetTitle);
     }
 
+    public static byte[]? AppendObjectToExcelBytes<TModel>(byte[] sourceExcelBytes, IEnumerable<TModel> data,
+        Action<ExcelExporterOptions> optionsAction)
+    {
+        var excelExporter = new ExcelExporter();
+        return excelExporter.AppendObjectToExcelBytes(sourceExcelBytes, data, optionsAction);
+    }
+
     /// <summary>
     ///     convert a excel file(bytes) to IEnumerable of TModel
     /// </summary>

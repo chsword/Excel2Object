@@ -121,6 +121,61 @@ public class DropdownTest : BaseExcelTest
         Assert.AreEqual("甲, 乙", workbook.GetSheet(ListSheetName).GetRow(0).GetCell(0).StringCellValue);
     }
 
+    /// <summary>A quote cannot go inline either - Excel ends the list literal at it.</summary>
+    [TestMethod]
+    public void AValueWithAQuoteMovesToAHiddenSheet()
+    {
+        var values = new[] {"14\" 屏", "15 寸"};
+        var workbook = Export(ExcelType.Xlsx, options => options.Dropdowns["状态"] = values);
+
+        Assert.AreEqual($"{ListSheetName}!$A$1:$A$2",
+            workbook.GetSheetAt(0).GetDataValidations().Single().ValidationConstraint.Formula1);
+        Assert.AreEqual("14\" 屏", workbook.GetSheet(ListSheetName).GetRow(0).GetCell(0).StringCellValue);
+    }
+
+    /// <summary>
+    ///     A sheet of that name the workbook already owns is left alone - the values go to a free name
+    ///     instead of into someone else's data.
+    /// </summary>
+    [TestMethod]
+    public void AVisibleSheetOfTheSameNameIsNotWrittenInto()
+    {
+        var workbook = new NPOI.XSSF.UserModel.XSSFWorkbook();
+        var mine = workbook.CreateSheet(ListSheetName);
+        mine.CreateRow(0).CreateCell(0).SetCellValue("我的数据");
+        var stream = new MemoryStream();
+        workbook.Write(stream, true);
+
+        var many = Enumerable.Range(0, 60).Select(i => $"取值{i:D3}").ToArray();
+        var bytes = ExcelHelper.AppendObjectToExcelBytes(stream.ToArray(), Rows, options =>
+        {
+            options.SheetTitle = "数据";
+            options.Dropdowns["状态"] = many;
+        })!;
+
+        var back = WorkbookFactory.Create(new MemoryStream(bytes));
+        Assert.AreEqual($"{ListSheetName}2!$A$1:$A$60",
+            back.GetSheet("数据").GetDataValidations().Single().ValidationConstraint.Formula1);
+        Assert.AreEqual("我的数据", back.GetSheet(ListSheetName).GetRow(0).GetCell(0).StringCellValue);
+        Assert.AreEqual("取值000", back.GetSheet(ListSheetName + "2").GetRow(0).GetCell(0).StringCellValue);
+    }
+
+    /// <summary>The freeze and the filter reach an appended sheet through the same options.</summary>
+    [TestMethod]
+    public void AppendTakesOptions()
+    {
+        var first = new ExcelExporter().ObjectToExcelBytes(Rows, options => options.ExcelType = ExcelType.Xlsx)!;
+        var bytes = ExcelHelper.AppendObjectToExcelBytes(first, Rows, options =>
+        {
+            options.SheetTitle = "第二页";
+            options.FreezeHeader = true;
+        })!;
+
+        var workbook = WorkbookFactory.Create(new MemoryStream(bytes));
+        Assert.IsNotNull(workbook.GetSheet("第二页").PaneInformation);
+        Assert.IsNull(workbook.GetSheetAt(0).PaneInformation);
+    }
+
     /// <summary>Two long lists share the hidden sheet, each in its own column.</summary>
     [TestMethod]
     public void EachLongListGetsItsOwnColumnOnTheHiddenSheet()

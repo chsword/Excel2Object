@@ -114,10 +114,6 @@ internal static class TypeConvert
     private static List<ExcelColumn> AttachColumns(List<ExcelColumn> columns, ExcelExporterOptions options)
     {
         columns = columns.OrderBy(c => c.Order).ToList();
-        foreach (var column in columns)
-            if (column.Title != null && options.Dropdowns.TryGetValue(column.Title, out var values))
-                column.Dropdown = values;
-
         foreach (var formulaColumn in options.FormulaColumns)
         {
             var excelColumn = columns.FirstOrDefault(c => c.Title == formulaColumn.Title);
@@ -154,6 +150,11 @@ internal static class TypeConvert
                 excelColumn.Formula = formulaColumn.ModelFormula ?? formulaColumn.Formula;
             }
         }
+
+        // after the formula columns are in, so a column a formula added can carry a dropdown too
+        foreach (var column in columns)
+            if (column.Title != null && options.Dropdowns.TryGetValue(column.Title, out var values))
+                column.Dropdown = values;
 
         for (var i = 0; i < columns.Count; i++) columns[i].Order = i * 10;
 

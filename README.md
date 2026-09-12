@@ -65,6 +65,7 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 
 * **2026.09.12** - v2.5.0
 - [x] ✨ **新增:** `ExcelExporterOptions.FreezeHeader` 冻结首行，滚动时表头常驻；`ExcelExporterOptions.AutoFilter` 给表头挂上筛选下拉，范围覆盖本次写入的数据行。两项默认关闭，`.xls` / `.xlsx` 都支持
+- [x] ✨ **新增:** `AppendObjectToExcelBytes` 增加接受 options 的重载，追加 sheet 时也能设置冻结、筛选与下拉
 - [x] ✨ **新增:** 数据验证（下拉列表）：固定取值写在 `[ExcelColumn("状态", Dropdown = new[] {"启用", "停用"})]`，运行时取值走 `options.Dropdowns["列标题"] = values`（优先于特性）。Excel 会拒绝列表之外的输入；列表总长超过 255 字符或取值含逗号/引号时自动改用隐藏 sheet 承载（此前这种列表在 `.xls` 上会直接抛异常），空导出也会在首行挂上下拉以便做填写模板
 
 * **2026.09.11** - v2.4.0
@@ -320,7 +321,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 });
 ```
 
-Excel 会把取值显示为下拉，并拒绝其他输入。列表总长超过 255 字符、或取值里含逗号/引号时（Excel 行内列表放不下），自动改写到一张隐藏 sheet 上再由下拉引用，用法不变；`.xls` 与 `.xlsx` 都支持。导出空列表时下拉仍会挂在第一行，方便做填写模板。
+Excel 会把取值显示为下拉，并拒绝其他输入。追加导出用 `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` 同样可以设置这些选项。列表总长超过 255 字符、或取值里含逗号/引号时（Excel 行内列表放不下），自动改写到一张隐藏 sheet 上再由下拉引用，用法不变；`.xls` 与 `.xlsx` 都支持。导出空列表时下拉仍会挂在第一行，方便做填写模板。
 
 ### 在 ASP.NET MVC 中使用
 
