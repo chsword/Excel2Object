@@ -49,6 +49,12 @@ public class ExcelExporterOptions
     public bool DateTimeAsText { get; set; }
 
     /// <summary>
+    ///     Rules that restyle cells whose value meets a condition - Excel re-evaluates them as the sheet is
+    ///     edited, so the colours keep following the data.
+    /// </summary>
+    public IList<ConditionalFormat> ConditionalFormats { get; set; } = new List<ConditionalFormat>();
+
+    /// <summary>
     ///     Freeze the header row, so it stays in view while the sheet is scrolled (default: false).
     /// </summary>
     public bool FreezeHeader { get; set; }
