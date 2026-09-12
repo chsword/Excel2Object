@@ -55,11 +55,17 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 
 - [x] CLI 工具 ✅ **v2.2.1 新增** - `dotnet tool install -g Chsword.Excel2Object.Cli`，查看 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)
 - [x] 支持自动列宽 ✅ **v2.0.4 新增**
+- [x] 冻结首行与自动筛选 ✅ **v2.5.0 新增**
+- [x] 数据验证（下拉列表）✅ **v2.5.0 新增**
 - [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增**，导出为真正的日期单元格 ✅ **v2.4.0 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 - [x] 公式内置函数库 ✅ **v2.3.0 新增** - 334 个 Excel 函数，10 个类别 - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 
 ### 发布说明
+
+* **2026.09.12** - v2.5.0
+- [x] ✨ **新增:** `ExcelExporterOptions.FreezeHeader` 冻结首行，滚动时表头常驻；`ExcelExporterOptions.AutoFilter` 给表头挂上筛选下拉，范围覆盖本次写入的数据行。两项默认关闭，`.xls` / `.xlsx` 都支持
+- [x] ✨ **新增:** 数据验证（下拉列表）：固定取值写在 `[ExcelColumn("状态", Dropdown = new[] {"启用", "停用"})]`，运行时取值走 `options.Dropdowns["列标题"] = values`（优先于特性）。Excel 会拒绝列表之外的输入；列表总长超过 255 字符或取值含逗号/引号时自动改用隐藏 sheet 承载（此前这种列表在 `.xls` 上会直接抛异常），空导出也会在首行挂上下拉以便做填写模板
 
 * **2026.09.11** - v2.4.0
 - [x] ✨ **新增:** 导出时 `DateTime` / `DateTime?` 列写成真正的日期单元格（序列号 + 日期格式），Excel 可以排序、筛选、参与计算，`null` 写成空单元格；`Dictionary<string, object>` 与 `DataTable` 导出中的 `DateTime` 值同样处理 - 查看 [DateTimeFormats.md](DateTimeFormats.md)
