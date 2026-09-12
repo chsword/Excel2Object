@@ -80,6 +80,18 @@ public class ExcelColumnAttribute : ExcelTitleAttribute, IExcelHeaderStyle, IExc
     /// </summary>
     public string? Format { get; set; }
 
+    /// <summary>
+    /// Gets or sets the values this column's cells are limited to. Excel shows them as a dropdown and
+    /// rejects anything else: <c>[ExcelColumn("状态", Dropdown = new[] {"启用", "停用"})]</c>.
+    /// <para>
+    /// A list Excel cannot hold inline - over 255 characters in total, or a value carrying a comma or a
+    /// quote - is written to a hidden sheet the dropdown then reads from, which works the same way in
+    /// Excel. For values only known at runtime use <see cref="Options.ExcelExporterOptions.Dropdowns"/>,
+    /// which takes precedence over this one.
+    /// </para>
+    /// </summary>
+    public string[]? Dropdown { get; set; }
+
     // Header
 
     /// <summary>

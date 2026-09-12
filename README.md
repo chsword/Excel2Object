@@ -293,6 +293,29 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 
 两个选项默认关闭，`.xls` 与 `.xlsx` 都支持。筛选范围覆盖表头及本次写入的数据行；`AppendObjectToExcelBytes` 追加的 sheet 各自独立，不影响已有 sheet。
 
+### 数据验证（下拉列表）
+
+``` csharp
+public class OrderModel
+{
+    [ExcelTitle("订单号")] public string No { get; set; }
+
+    // 固定取值写在特性上
+    [ExcelColumn("状态", Dropdown = new[] {"启用", "停用", "待审"})]
+    public string Status { get; set; }
+
+    [ExcelTitle("城市")] public string City { get; set; }
+}
+
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    // 运行时才知道的取值走 options，优先于特性
+    options.Dropdowns["城市"] = cities.Select(c => c.Name).ToArray();
+});
+```
+
+Excel 会把取值显示为下拉，并拒绝其他输入。列表总长超过 255 字符、或取值里含逗号/引号时（Excel 行内列表放不下），自动改写到一张隐藏 sheet 上再由下拉引用，用法不变；`.xls` 与 `.xlsx` 都支持。导出空列表时下拉仍会挂在第一行，方便做填写模板。
+
 ### 在 ASP.NET MVC 中使用
 
 在 ASP.NET MVC 模型中，`DisplayAttribute` 可以像 `ExcelTitleAttribute` 一样被支持。

@@ -152,6 +152,7 @@ public class ExcelExporter
                 }
 
                 ApplyHeaderView(sheet, options, columns.Length, rowNumber - 1);
+                DropdownValidation.Apply(sheet, columns, rowNumber - 1);
             }
 
         return ToBytes(workbook);

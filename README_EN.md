@@ -290,6 +290,29 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 
 Both are off by default and work in `.xls` as well as `.xlsx`. The filter covers the header and the rows written in this export; a sheet appended with `AppendObjectToExcelBytes` gets its own, leaving the sheets already in the workbook alone.
 
+### Data Validation (Dropdown Lists)
+
+``` csharp
+public class OrderModel
+{
+    [ExcelTitle("No")] public string No { get; set; }
+
+    // a fixed list belongs on the attribute
+    [ExcelColumn("Status", Dropdown = new[] {"Open", "Closed", "Pending"})]
+    public string Status { get; set; }
+
+    [ExcelTitle("City")] public string City { get; set; }
+}
+
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    // values only known at runtime go through the options and win over the attribute
+    options.Dropdowns["City"] = cities.Select(c => c.Name).ToArray();
+});
+```
+
+Excel shows the values as a dropdown and rejects anything else. A list Excel cannot hold inline - over 255 characters in total, or a value carrying a comma or a quote - is written to a hidden sheet the dropdown reads from, which changes nothing about how it is used; both `.xls` and `.xlsx` support it. An export with no rows still gets the dropdown on its first row, so it works as a template to fill in.
+
 ### Use with ASP.NET MVC
 
 In ASP.NET MVC models, the `DisplayAttribute` can be supported like `ExcelTitleAttribute`.

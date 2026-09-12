@@ -20,4 +20,7 @@ internal class ExcelColumn
 
     public string? Title { get; set; }
     public Type? Type { get; set; }
+
+    /// <summary>The values the column's cells are limited to, shown as a dropdown.</summary>
+    public string[]? Dropdown { get; set; }
 }
