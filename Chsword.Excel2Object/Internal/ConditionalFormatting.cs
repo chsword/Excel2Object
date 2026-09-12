@@ -24,6 +24,7 @@ internal static class ConditionalFormatting
         foreach (var format in formats)
         {
             var column = IndexOf(columns, format.Title);
+            Validate(format);
             var rule = CreateRule(sheetFormatting, format, column);
 
             var font = rule.CreateFontFormatting();
@@ -54,6 +55,36 @@ internal static class ConditionalFormatting
             $"Conditional format refers to column [{title}], which is not in the sheet.");
     }
 
+    /// <summary>
+    ///     Says what a rule is missing before NPOI is handed an incomplete one, naming the column and the
+    ///     operator so the rule at fault is the one you go and look at.
+    /// </summary>
+    private static void Validate(ConditionalFormat format)
+    {
+        if (format.Operator == ConditionalOperator.None)
+        {
+            if (string.IsNullOrEmpty(format.Formula))
+                throw new Excel2ObjectException(
+                    $"{Describe(format)} has neither an Operator to compare with nor a Formula of its own.");
+            return;
+        }
+
+        if (format.Value == null)
+            throw new Excel2ObjectException($"{Describe(format)} needs a Value to compare with.");
+
+        if (format.Value2 == null &&
+            format.Operator is ConditionalOperator.Between or ConditionalOperator.NotBetween)
+            throw new Excel2ObjectException(
+                $"{Describe(format)} needs a Value2 as well - {format.Operator} takes both ends of the range.");
+    }
+
+    private static string Describe(ConditionalFormat format)
+    {
+        return format.Operator == ConditionalOperator.None
+            ? $"The conditional format on column [{format.Title}]"
+            : $"The conditional format on column [{format.Title}] ({format.Operator})";
+    }
+
     private static IConditionalFormattingRule CreateRule(ISheetConditionalFormatting sheetFormatting,
         ConditionalFormat format, int column)
     {
@@ -64,6 +95,7 @@ internal static class ConditionalFormatting
 
         return sheetFormatting.CreateConditionalFormattingRule(Operator(format.Operator),
             Literal(format.Value), format.Value2 == null ? null : Literal(format.Value2));
+
     }
 
     /// <summary>The comparison written as an expression, for a rule that colours more than its own cell.</summary>
@@ -108,8 +140,7 @@ internal static class ConditionalFormatting
     {
         return value switch
         {
-            null => throw new Excel2ObjectException(
-                "A conditional format needs a Value to compare with, or a Formula of its own."),
+            null => throw new Excel2ObjectException("A conditional format has no value to compare with."),
             DateTime date => $"DATE({date.Year},{date.Month},{date.Day})",
             bool flag => flag ? "TRUE" : "FALSE",
             string text => "\"" + text.Replace("\"", "\"\"") + "\"",

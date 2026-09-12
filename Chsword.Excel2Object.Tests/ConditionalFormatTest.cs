@@ -202,5 +202,49 @@ public class ConditionalFormatTest : BaseExcelTest
                 {Operator = ConditionalOperator.GreaterThan})));
 
         StringAssert.Contains(e.Message, "Value");
+        // which of the rules is at fault, when there are several
+        StringAssert.Contains(e.Message, "金额");
+        StringAssert.Contains(e.Message, "GreaterThan");
+    }
+
+    /// <summary>Between without its other end would reach NPOI as half a rule.</summary>
+    [DataTestMethod]
+    [DataRow(ConditionalOperator.Between)]
+    [DataRow(ConditionalOperator.NotBetween)]
+    public void BetweenWithoutTheOtherEndSaysSo(ConditionalOperator op)
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            Export(ExcelType.Xlsx, options => options.ConditionalFormats.Add(new ConditionalFormat("金额")
+                {Operator = op, Value = 1000})));
+
+        StringAssert.Contains(e.Message, "Value2");
+        StringAssert.Contains(e.Message, "金额");
+    }
+
+    [TestMethod]
+    public void ARuleWithNeitherOperatorNorFormulaSaysSo()
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            Export(ExcelType.Xlsx, options => options.ConditionalFormats.Add(new ConditionalFormat("金额")
+                {Bold = true})));
+
+        StringAssert.Contains(e.Message, "Formula");
+        StringAssert.Contains(e.Message, "金额");
+    }
+
+    /// <summary>A whole-row Between becomes an expression over both ends.</summary>
+    [TestMethod]
+    public void WholeRowBetweenSpellsOutBothEnds()
+    {
+        var sheet = Export(ExcelType.Xlsx, options => options.ConditionalFormats.Add(new ConditionalFormat("金额")
+        {
+            Operator = ConditionalOperator.Between,
+            Value = 1000,
+            Value2 = 5000,
+            WholeRow = true,
+            BackgroundColor = ExcelStyleColor.Yellow
+        }));
+
+        Assert.AreEqual("AND($B2>=1000,$B2<=5000)", SingleRule(sheet, out _).Formula1);
     }
 }
