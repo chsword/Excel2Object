@@ -7,6 +7,7 @@ using Chsword.Excel2Object.Styles;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.Formula;
 using NPOI.SS.UserModel;
+using NPOI.SS.Util;
 using NPOI.XSSF.UserModel;
 using HorizontalAlignment = Chsword.Excel2Object.Styles.HorizontalAlignment;
 
@@ -149,9 +150,26 @@ public class ExcelExporter
                         SetCellValue(options, column, cell, raw, val, columnTitles, sheetColumnsResolver, cellStyleDict);
                     }
                 }
+
+                ApplyHeaderView(sheet, options, columns.Length, rowNumber - 1);
             }
 
         return ToBytes(workbook);
+    }
+
+    /// <summary>
+    ///     Keeps the header usable on a long sheet: frozen in view while scrolling, and carrying Excel's
+    ///     filter dropdowns.
+    /// </summary>
+    private static void ApplyHeaderView(ISheet sheet, ExcelExporterOptions options, int columnCount, int lastRowIndex)
+    {
+        if (options.FreezeHeader)
+            sheet.CreateFreezePane(0, ExcelConstants.DefaultDataStartRowIndex);
+
+        if (!options.AutoFilter || columnCount == 0) return;
+        // the range covers the header even when no row followed it, so the dropdowns are there either way
+        sheet.SetAutoFilter(new CellRangeAddress(ExcelConstants.DefaultHeaderRowIndex,
+            Math.Max(lastRowIndex, ExcelConstants.DefaultHeaderRowIndex), 0, columnCount - 1));
     }    private static bool IsNumeric(Type type)
     {
         return type == typeof(int) || type == typeof(long) || type == typeof(double) || type == typeof(decimal) ||

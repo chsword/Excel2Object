@@ -280,6 +280,19 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 });
 ```
 
+### 冻结首行与自动筛选
+
+``` csharp
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    options.ExcelType = ExcelType.Xlsx;
+    options.FreezeHeader = true;           // 滚动时表头始终可见
+    options.AutoFilter = true;             // 表头带上筛选下拉
+});
+```
+
+两个选项默认关闭，`.xls` 与 `.xlsx` 都支持。筛选范围覆盖表头及本次写入的数据行；`AppendObjectToExcelBytes` 追加的 sheet 各自独立，不影响已有 sheet。
+
 ### 在 ASP.NET MVC 中使用
 
 在 ASP.NET MVC 模型中，`DisplayAttribute` 可以像 `ExcelTitleAttribute` 一样被支持。

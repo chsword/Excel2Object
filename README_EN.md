@@ -277,6 +277,19 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 });
 ```
 
+### Frozen Header and Filter Dropdowns
+
+``` csharp
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    options.ExcelType = ExcelType.Xlsx;
+    options.FreezeHeader = true;           // the header stays in view while scrolling
+    options.AutoFilter = true;             // the header carries Excel's filter dropdowns
+});
+```
+
+Both are off by default and work in `.xls` as well as `.xlsx`. The filter covers the header and the rows written in this export; a sheet appended with `AppendObjectToExcelBytes` gets its own, leaving the sheets already in the workbook alone.
+
 ### Use with ASP.NET MVC
 
 In ASP.NET MVC models, the `DisplayAttribute` can be supported like `ExcelTitleAttribute`.
