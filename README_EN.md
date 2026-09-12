@@ -318,7 +318,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 });
 ```
 
-Excel shows the values as a dropdown and rejects anything else. `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` takes the same options when appending a sheet. A list Excel cannot hold inline - over 255 characters in total, or a value carrying a comma or a quote - is written to a hidden sheet the dropdown reads from, which changes nothing about how it is used; both `.xls` and `.xlsx` support it. An export with no rows still gets the dropdown on its first row, so it works as a template to fill in.
+Excel shows the values as a dropdown and rejects anything else. `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` takes the same options when appending a sheet. A list Excel cannot hold inline - over 255 characters in total, or a value carrying a comma or a quote - is written to a hidden sheet that a defined name points at, which the dropdown then reads (a `.xls` validation cannot reference another sheet directly); nothing about how it is used changes, and both `.xls` and `.xlsx` support it. An export with no rows still gets the dropdown on its first row, so it works as a template to fill in.
 
 ### Use with ASP.NET MVC
 

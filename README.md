@@ -321,7 +321,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 });
 ```
 
-Excel 会把取值显示为下拉，并拒绝其他输入。追加导出用 `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` 同样可以设置这些选项。列表总长超过 255 字符、或取值里含逗号/引号时（Excel 行内列表放不下），自动改写到一张隐藏 sheet 上再由下拉引用，用法不变；`.xls` 与 `.xlsx` 都支持。导出空列表时下拉仍会挂在第一行，方便做填写模板。
+Excel 会把取值显示为下拉，并拒绝其他输入。追加导出用 `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` 同样可以设置这些选项。列表总长超过 255 字符、或取值里含逗号/引号时（Excel 行内列表放不下），自动改写到一张隐藏 sheet 上、由一个定义名称指向该区域，下拉再引用这个名称（`.xls` 无法让数据验证直接跨 sheet 引用），用法不变；`.xls` 与 `.xlsx` 都支持。导出空列表时下拉仍会挂在第一行，方便做填写模板。
 
 ### 在 ASP.NET MVC 中使用
 

@@ -177,7 +177,9 @@ public class ExcelExporter
         // the range covers the header even when no row followed it, so the dropdowns are there either way
         sheet.SetAutoFilter(new CellRangeAddress(ExcelConstants.DefaultHeaderRowIndex,
             Math.Max(lastRowIndex, ExcelConstants.DefaultHeaderRowIndex), 0, columnCount - 1));
-    }    private static bool IsNumeric(Type type)
+    }
+
+    private static bool IsNumeric(Type type)
     {
         return type == typeof(int) || type == typeof(long) || type == typeof(double) || type == typeof(decimal) ||
                type == typeof(float) || type == typeof(short) || type == typeof(byte) || type == typeof(uint) ||

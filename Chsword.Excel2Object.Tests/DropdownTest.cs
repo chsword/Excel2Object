@@ -98,8 +98,9 @@ public class DropdownTest : BaseExcelTest
         {
             var workbook = Export(excelType, options => options.Dropdowns["状态"] = many);
             var validation = workbook.GetSheetAt(0).GetDataValidations().Single();
-            Assert.AreEqual($"{ListSheetName}!$A$1:$A$60", validation.ValidationConstraint.Formula1,
-                excelType.ToString());
+            Assert.AreEqual("_excel2object_list1", validation.ValidationConstraint.Formula1, excelType.ToString());
+            Assert.AreEqual($"{ListSheetName}!$A$1:$A$60",
+                workbook.GetName("_excel2object_list1").RefersToFormula, excelType.ToString());
 
             var listSheet = workbook.GetSheet(ListSheetName);
             Assert.AreEqual(SheetVisibility.Hidden, workbook.GetSheetVisibility(workbook.GetSheetIndex(listSheet)),
@@ -117,7 +118,8 @@ public class DropdownTest : BaseExcelTest
         var workbook = Export(ExcelType.Xlsx, options => options.Dropdowns["状态"] = values);
 
         Assert.AreEqual($"{ListSheetName}!$A$1:$A$2",
-            workbook.GetSheetAt(0).GetDataValidations().Single().ValidationConstraint.Formula1);
+            workbook.GetName(workbook.GetSheetAt(0).GetDataValidations().Single().ValidationConstraint.Formula1)
+                .RefersToFormula);
         Assert.AreEqual("甲, 乙", workbook.GetSheet(ListSheetName).GetRow(0).GetCell(0).StringCellValue);
     }
 
@@ -129,7 +131,8 @@ public class DropdownTest : BaseExcelTest
         var workbook = Export(ExcelType.Xlsx, options => options.Dropdowns["状态"] = values);
 
         Assert.AreEqual($"{ListSheetName}!$A$1:$A$2",
-            workbook.GetSheetAt(0).GetDataValidations().Single().ValidationConstraint.Formula1);
+            workbook.GetName(workbook.GetSheetAt(0).GetDataValidations().Single().ValidationConstraint.Formula1)
+                .RefersToFormula);
         Assert.AreEqual("14\" 屏", workbook.GetSheet(ListSheetName).GetRow(0).GetCell(0).StringCellValue);
     }
 
@@ -155,7 +158,8 @@ public class DropdownTest : BaseExcelTest
 
         var back = WorkbookFactory.Create(new MemoryStream(bytes));
         Assert.AreEqual($"{ListSheetName}2!$A$1:$A$60",
-            back.GetSheet("数据").GetDataValidations().Single().ValidationConstraint.Formula1);
+            back.GetName(back.GetSheet("数据").GetDataValidations().Single().ValidationConstraint.Formula1)
+                .RefersToFormula);
         Assert.AreEqual("我的数据", back.GetSheet(ListSheetName).GetRow(0).GetCell(0).StringCellValue);
         Assert.AreEqual("取值000", back.GetSheet(ListSheetName + "2").GetRow(0).GetCell(0).StringCellValue);
     }
@@ -189,10 +193,10 @@ public class DropdownTest : BaseExcelTest
             options.Dropdowns["状态"] = second;
         });
 
-        var formulas = workbook.GetSheetAt(0).GetDataValidations()
-            .Select(v => v.ValidationConstraint.Formula1).ToArray();
+        var ranges = workbook.GetSheetAt(0).GetDataValidations()
+            .Select(v => workbook.GetName(v.ValidationConstraint.Formula1).RefersToFormula).ToArray();
         CollectionAssert.AreEquivalent(
-            new[] {$"{ListSheetName}!$A$1:$A$60", $"{ListSheetName}!$B$1:$B$70"}, formulas);
+            new[] {$"{ListSheetName}!$A$1:$A$60", $"{ListSheetName}!$B$1:$B$70"}, ranges);
 
         var listSheet = workbook.GetSheet(ListSheetName);
         Assert.AreEqual("甲000", listSheet.GetRow(0).GetCell(0).StringCellValue);
@@ -200,6 +204,41 @@ public class DropdownTest : BaseExcelTest
         // the shorter list ends where it ends; the longer one keeps going on its own
         Assert.IsNull(listSheet.GetRow(65).GetCell(0));
         Assert.AreEqual("乙065", listSheet.GetRow(65).GetCell(1).StringCellValue);
+    }
+
+    /// <summary>
+    ///     Excel counts the quotes it wraps the inline list in, so the last list that still fits is two
+    ///     characters shorter than the limit itself.
+    /// </summary>
+    [DataTestMethod]
+    [DataRow(253, true)]
+    [DataRow(254, false)]
+    public void TheInlineListStopsAtWhatExcelHolds(int joinedLength, bool inline)
+    {
+        // two values, so the join adds one comma
+        var first = new string('a', joinedLength / 2);
+        var second = new string('b', joinedLength - 1 - first.Length);
+        var values = new[] {first, second};
+        Assert.AreEqual(joinedLength, string.Join(",", values).Length);
+
+        var validation = Export(ExcelType.Xlsx, options => options.Dropdowns["状态"] = values)
+            .GetSheetAt(0).GetDataValidations().Single();
+
+        if (inline)
+            CollectionAssert.AreEqual(values, validation.ValidationConstraint.ExplicitListValues);
+        else
+            Assert.AreEqual("_excel2object_list1", validation.ValidationConstraint.Formula1);
+    }
+
+    /// <summary>A list Excel cannot show an empty entry in should say so, not throw a NullReference.</summary>
+    [TestMethod]
+    public void ANullValueIsRejectedByName()
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            Export(ExcelType.Xlsx, options => options.Dropdowns["状态"] = new[] {"启用", null!}));
+
+        StringAssert.Contains(e.Message, "状态");
+        StringAssert.Contains(e.Message, "index 1");
     }
 
     /// <summary>The values a dropdown allows still import as the values they are.</summary>
