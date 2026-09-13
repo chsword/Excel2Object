@@ -63,6 +63,11 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 ### Release Notes
 
+* **2026.09.13** - v2.8.1
+- [x] 🐛 Fixed styles overwriting one another on .NET Framework: `string.Join(string, params object[])` returns an empty string there when the first element is `null`, and both the cell-style and font cache keys start with the font colour, so every style that set none shared one cell style. Since v2.7.0 this left striped rows, borders, bold, underline and the `[ExcelColumn]` cell styles without effect on .NET Framework; on .NET (Core) they have always been correct
+- [x] 🐛 Fixed numbers losing precision on import under .NET Framework, where the default numeric format is `G15` and `"R"` does not round-trip for some values, so a date serial read into a `double` property differed from the value stored. The text is now verified to parse back to the same number, falling back to 17 significant digits only where it does not
+- [x] 🔧 The tests now run on several target frameworks - `net10.0` and `net8.0` everywhere, `net472` on Windows - which is how both defects above were found
+
 * **2026.09.13** - v2.8.0
 - [x] 🐛 Fixed how a failed cell read is handled on import: `ExcelImporter` used to catch the exception in three places, write it to standard output and carry on, leaving the caller with an empty value and no explanation. Nothing is written to standard output any more; failures are reported through the `ExcelImporterOptions.OnCellError` callback, which receives the sheet name, the row and column indexes, the cell reference and the original exception. A cell that cannot be read (a date serial outside Excel's calendar, say) takes its default value and the import continues, as before, and throwing from the callback stops it; a value that cannot be converted to the property type (the text `abc` into an `int`, say) is reported and then still throws, aborting the import as it always has. Text that is no date and a value outside its enum used to pass silently; both are now reported
 - [x] ✨ **IMPROVED:** The formula evaluator is created once per workbook and reused throughout the import, instead of once per formula cell
