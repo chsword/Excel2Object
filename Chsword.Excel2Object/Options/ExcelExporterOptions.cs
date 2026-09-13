@@ -63,6 +63,23 @@ public class ExcelExporterOptions
     public IList<ConditionalFormat> ConditionalFormats { get; set; } = new List<ConditionalFormat>();
 
     /// <summary>
+    ///     这些列中连续相同的值会并成一格，按列标题指定。分组报表常用，例如同一城市的若干行只显示一次
+    ///     城市名。
+    /// </summary>
+    /// <remarks>
+    ///     仅相邻且相等的行参与，空单元格不参与；各列彼此独立判断。被并入的单元格仍保留各自的值，
+    ///     Excel 只显示左上角那一个，因此导回对象时每一行的数据依然完整。
+    ///     需要注意：Excel 中含合并单元格的区域无法排序，若同时启用 <see cref="AutoFilter" />，
+    ///     筛选可用而排序会被 Excel 拒绝。
+    /// </remarks>
+    public IList<string> MergeRepeatedColumns { get; set; } = new List<string>();
+
+    /// <summary>
+    ///     直接指定要合并的区域，写作 <c>A1:C1</c> 这样的形式，用于上面那条规则覆盖不到的情形。
+    /// </summary>
+    public IList<string> MergedRegions { get; set; } = new List<string>();
+
+    /// <summary>
     ///     Freeze the header row, so it stays in view while the sheet is scrolled (default: false).
     /// </summary>
     public bool FreezeHeader { get; set; }

@@ -63,6 +63,9 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 ### Release Notes
 
+* **2026.09.13** - v2.9.0
+- [x] ✨ **NEW:** Merged cells: `options.MergeRepeatedColumns.Add("Province")` merges consecutive equal values in that column into one cell (only adjacent equal rows, never blanks, each column judged on its own), and `options.MergedRegions.Add("A1:C1")` merges a range outright. The cells merged away keep their own values, so every row still imports in full; overlapping regions are refused at export time, naming the region they overlap
+
 * **2026.09.13** - v2.8.1
 - [x] 🐛 Fixed styles overwriting one another on .NET Framework: `string.Join(string, params object[])` returns an empty string there when the first element is `null`, and both the cell-style and font cache keys start with the font colour, so every style that set none shared one cell style. Since v2.7.0 this left striped rows, borders, bold, underline and the `[ExcelColumn]` cell styles without effect on .NET Framework; on .NET (Core) they have always been correct
 - [x] 🐛 Fixed numbers losing precision on import under .NET Framework, where the default numeric format is `G15` and `"R"` does not round-trip for some values, so a date serial read into a `double` property differed from the value stored. The text is now verified to parse back to the same number, falling back to 17 significant digits only where it does not
@@ -375,6 +378,25 @@ Where a `Format` is written decides which cells it reaches. Written for one colu
 **Colours**: `.xlsx` stores a hex colour as it is. `.xls` has only its 56-colour palette, so the nearest one is picked by what the eye sees (CIELAB) - a light grey comes out grey rather than lavender - though a very pale colour such as `#F2F2F2` lands on white, so striping an `.xls` wants a deeper grey such as `#C0C0C0`. A colour picked from `ExcelStyleColor` is still written as its palette index in both formats.
 
 Cells that look alike share one cell style (`.xls` stops at 4000), so striping a long sheet costs a handful of styles rather than one per row.
+
+### Merged Cells
+
+``` csharp
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    // consecutive equal values in a column become one cell: in a grouped report the province
+    // is shown once for the rows that share it
+    options.MergeRepeatedColumns.Add("Province");
+    options.MergeRepeatedColumns.Add("City");
+
+    // anything that rule does not cover, as a range
+    options.MergedRegions.Add("A1:C1");
+});
+```
+
+Only adjacent equal rows merge, blank cells never do, and each column is judged on its own. The cells merged away keep their own values - Excel shows only the top-left one - so **every row still imports in full**. Overlapping regions are refused at export time, naming the region they overlap.
+
+Note that Excel cannot sort a range containing merged cells: with `AutoFilter` on, filtering works while sorting is refused by Excel.
 
 ### Conditional Formatting
 

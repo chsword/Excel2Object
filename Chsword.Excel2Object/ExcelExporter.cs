@@ -172,6 +172,7 @@ public class ExcelExporter
                 ApplyHeaderView(sheet, options, columns.Length, rowNumber - 1);
                 DropdownValidation.Apply(sheet, columns, rowNumber - 1);
                 ConditionalFormatting.Apply(sheet, columns, rowNumber - 1, options.ConditionalFormats);
+                MergedRegions.Apply(sheet, columns, rowNumber - 1, options);
             }
 
         return ToBytes(workbook);
