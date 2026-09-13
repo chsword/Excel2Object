@@ -99,7 +99,7 @@ public class ExcelExporter
             }
 
         if (options.MappingColumnAction == null) options.MappingColumnAction = (s, _) => s;
-        var cellStyleDict = new Dictionary<string, ICellStyle>();
+        var styleFactory = new CellStyleFactory(workbook);
         
         if (excel.Sheets != null)
             foreach (var excelSheet in excel.Sheets)
@@ -131,10 +131,10 @@ public class ExcelExporter
                 for (var i = 0; i < columns.Length; i++)
                 {
                     var cell = headerRow.CreateCell(i);
-                    cell.CellStyle = cell.Sheet.Workbook.CreateCellStyle();
                     cell.SetCellType(CellType.String);
                     cell.SetCellValue(options.MappingColumnAction(columns[i].Title, columns[i].Type));
-                    SetHeaderStyle(cell, columns[i].HeaderStyle);
+                    var headerStyle = styleFactory.Get(StyleResolver.Header(columns[i], options.Styles));
+                    if (headerStyle != null) cell.CellStyle = headerStyle;
                 }
 
                 var columnTitles = columns.Select(c => c.Title).ToArray();
@@ -153,7 +153,9 @@ public class ExcelExporter
                             : null;
                         if (raw is DBNull) raw = null;
                         var val = raw?.ToString() ?? "";
-                        SetCellValue(options, column, cell, raw, val, columnTitles, sheetColumnsResolver, cellStyleDict);
+                        var style = StyleResolver.Cell(column, options.Styles, row.RowNum);
+                        SetCellValue(options, column, style, cell, raw, val, columnTitles, sheetColumnsResolver,
+                            styleFactory);
                     }
                 }
 
@@ -187,71 +189,6 @@ public class ExcelExporter
                type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte);
     }
 
-    private static void SetHeaderStyle(ICell cell, IExcelHeaderStyle? style)
-    {
-        if (style == null)
-            return;
-        var font = cell.Sheet.Workbook.CreateFont();
-        cell.CellStyle.SetFont(font);
-        if (!string.IsNullOrWhiteSpace(style.HeaderFontFamily))
-            font.FontName = style.HeaderFontFamily;
-        if (style.HeaderFontHeight > 0)
-            font.FontHeightInPoints = style.HeaderFontHeight;
-        else
-            font.FontHeightInPoints = ExcelConstants.DefaultFontHeightInPoints;
-
-        if (style.HeaderFontColor > 0)
-            font.Color = (short) style.HeaderFontColor;
-        if (style.HeaderBold)
-            font.IsBold = true;
-        if (style.HeaderItalic)
-            font.IsItalic = true;
-        if (style.HeaderStrikeout)
-            font.IsStrikeout = true;
-        if (style.HeaderUnderline)
-            font.Underline = FontUnderlineType.Single; //暂不考虑等情况 Double
-        if (style.HeaderAlignment != HorizontalAlignment.General)
-            cell.CellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.HeaderAlignment;
-    }
-
-    /// <summary>
-    ///     Whether the column asked for anything that changes how a cell looks. [ExcelColumn] is handed
-    ///     to the column as its CellStyle even when it only carries a title or header settings, so a
-    ///     null check is not enough to tell "styled" from "not styled".
-    /// </summary>
-    private static bool DeclaresAppearance(IExcelCellStyle? style)
-    {
-        return style != null &&
-               (!string.IsNullOrWhiteSpace(style.CellFontFamily) || style.CellFontHeight > 0 ||
-                style.CellFontColor > 0 || style.CellBold || style.CellItalic || style.CellStrikeout ||
-                style.CellUnderline || style.CellAlignment != HorizontalAlignment.General);
-    }
-
-    private static IFont? StyleToFont(IWorkbook workbook, IExcelCellStyle? style)
-    {
-        if (style == null || !DeclaresAppearance(style)) return null;
-        var font = workbook.CreateFont();
-        if (!string.IsNullOrWhiteSpace(style.CellFontFamily))
-            font.FontName = style.CellFontFamily;
-        // Leave the height alone unless asked for one: this font is now really applied to the cell, and
-        // forcing a default here would shrink every [ExcelColumn] column that only sets a title.
-        if (style.CellFontHeight > 0)
-            font.FontHeightInPoints = style.CellFontHeight;
-
-        if (style.CellFontColor > 0)
-            font.Color = (short) style.CellFontColor;
-        if (style.CellBold)
-            font.IsBold = true;
-        if (style.CellItalic)
-            font.IsItalic = true;
-        if (style.CellStrikeout)
-            font.IsStrikeout = true;
-        if (style.CellUnderline)
-            font.Underline = FontUnderlineType.Single;
-
-        return font;
-    }
-
     private static T Switch<T>(ExcelType excelType, Func<T> funcXlsHssf, Func<T> funcXlsxXssf)
     {
         var obj = excelType switch
@@ -282,74 +219,6 @@ public class ExcelExporter
         };
 
         return workbook;
-    }
-
-    /// <summary>
-    ///     Builds the cell style for a cell type, or returns one already built during this export. The
-    ///     cache key fingerprints the requested style too, so columns asking for the same look share one
-    ///     <see cref="ICellStyle" /> - a workbook can only hold a limited number of them.
-    /// </summary>
-    /// <remarks>
-    ///     The cache is local to each export run, so styles are only reused within the workbook currently
-    ///     being written.
-    /// </remarks>
-    private ICellStyle? CreateStyle(string type, ICell cell, IExcelCellStyle? style,
-        IDictionary<string, ICellStyle> cellStyleDict)
-    {
-        if (type != ExcelConstants.CellTypes.Text && type != ExcelConstants.CellTypes.DateTime &&
-            type != ExcelConstants.CellTypes.Appearance)
-            return null;
-
-        // Text and dates need their format either way; an Appearance cell has none of its own, so a
-        // column that asked for no look has nothing to apply and keeps the workbook default. Decided
-        // before the cache key is built, because this is the common case and the key costs an
-        // allocation.
-        if (type == ExcelConstants.CellTypes.Appearance && !DeclaresAppearance(style))
-            return null;
-
-        var key = GetKey(type, style);
-        if (cellStyleDict.TryGetValue(key, out var cached)) return cached;
-
-        var format = type == ExcelConstants.CellTypes.Text ? "@" :
-            type == ExcelConstants.CellTypes.DateTime ? ExcelDateFormat.ToExcel(style?.Format) : null;
-        var workbook = cell.Sheet.Workbook;
-        var cellStyle = workbook.CreateCellStyle();
-        var font = StyleToFont(workbook, style);
-        if (font != null)
-            cellStyle.SetFont(font);
-        if (format != null)
-            // GetFormat hands back the builtin index when there is one and registers the format otherwise
-            cellStyle.DataFormat = workbook.CreateDataFormat().GetFormat(format);
-        if (style != null && style.CellAlignment != HorizontalAlignment.General)
-            cellStyle.Alignment = (NPOI.SS.UserModel.HorizontalAlignment) style.CellAlignment;
-
-        cellStyleDict[key] = cellStyle;
-        return cellStyle;
-    }
-
-    private void ApplyStyle(ICell cell, string type, IExcelCellStyle? style,
-        IDictionary<string, ICellStyle> cellStyleDict)
-    {
-        var cellStyle = CreateStyle(type, cell, style, cellStyleDict);
-        if (cellStyle != null)
-            cell.CellStyle = cellStyle;
-    }
-
-    private string GetKey(string type, IExcelCellStyle? style)
-    {
-        if (style == null) return type;
-        var arr = new List<string?>
-        {
-            type, style.CellFontFamily, style.CellAlignment.ToString(),
-            style.CellBold.ToString(), style.CellFontColor.ToString(),
-            style.CellFontHeight.ToString(CultureInfo.InvariantCulture),
-            style.CellItalic.ToString(),
-            style.CellStrikeout.ToString(),
-            style.CellUnderline.ToString()
-        };
-        if (type == ExcelConstants.CellTypes.DateTime)
-            arr.Add(style.Format);
-        return string.Join("|", arr);
     }
 
     /// <summary>
@@ -390,15 +259,17 @@ public class ExcelExporter
         };
     }
 
-    private void SetCellValue(ExcelExporterOptions options, ExcelColumn column, ICell cell, object? raw, string val,
-        string[] columnTitles, Func<string, string[]?> sheetColumnsResolver,
-        IDictionary<string, ICellStyle> cellStyleDict)
+    private void SetCellValue(ExcelExporterOptions options, ExcelColumn column, ExcelStyle? style, ICell cell,
+        object? raw, string val, string[] columnTitles, Func<string, string[]?> sheetColumnsResolver,
+        CellStyleFactory styleFactory)
     {
         var valueType = column.Type == null ? null : TypeUtil.GetUnNullableType(column.Type);
         if (valueType != null && valueType != typeof(Expression) && valueType != typeof(string) && val.Length == 0)
         {
-            // null / missing values stay blank so formulas treat them as 0 instead of failing on ""
+            // null / missing values stay blank so formulas treat them as 0 instead of failing on "" - but
+            // they still take the look of the rows around them, or a striped table would have holes in it
             cell.SetBlank();
+            SetStyle(cell, styleFactory.Get(style));
             return;
         }
 
@@ -413,14 +284,14 @@ public class ExcelExporter
             if (!double.IsNaN(number))
             {
                 cell.SetCellValue(number);
-                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
+                SetStyle(cell, styleFactory.Get(style));
                 return;
             }
         }
         else if (valueType == typeof(bool) && bool.TryParse(val, out var flag))
         {
             cell.SetCellValue(flag);
-            ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
+            SetStyle(cell, styleFactory.Get(style));
             return;
         }
 
@@ -437,11 +308,10 @@ public class ExcelExporter
                     Address = val
                 }
             );
-            // A hyperlink cell holds text, so it takes the text style - but only when the column asked
-            // for one. Unlike a plain string column there is nothing to protect here (no leading zeros
-            // to keep), so styling every link would only change the format of existing exports.
-            if (DeclaresAppearance(column.CellStyle))
-                ApplyStyle(cell, ExcelConstants.CellTypes.Text, column.CellStyle, cellStyleDict);
+            // A hyperlink cell holds text, so it takes the column's look - but nothing is forced on it.
+            // Unlike a plain string column there is no leading zero to protect, so giving every link the
+            // text format would only change the format of existing exports.
+            SetStyle(cell, styleFactory.Get(style, style?.NumberFormat));
         }
         else if (column.Type == typeof(Expression))
         {
@@ -463,24 +333,28 @@ public class ExcelExporter
                     $"Formula column [{column.Title}] produced an invalid formula: {e.Message}", e);
             }
             // a formula that yields a date needs a date format, or Excel shows the serial number
-            if (column.ResultType == typeof(DateTime))
-                cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.DateTime, cell, column.CellStyle,
-                    cellStyleDict);
-            else
-                ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
+            SetStyle(cell, column.ResultType == typeof(DateTime)
+                ? styleFactory.Get(style, ExcelDateFormat.ToExcel(StyleResolver.DateFormat(style, column)))
+                : styleFactory.Get(style));
 
             return;
         }
         else if (raw is DateTime date)
         {
             // decided on the value, not the column type: a dictionary export types every column string
-            SetDateTimeCellValue(column, cell, date, val, options.DateTimeAsText, cellStyleDict);
+            SetDateTimeCellValue(options, column, style, cell, date, val, styleFactory);
             return;
         }
         else if (column.Type == typeof(string))
         {
             cell.SetCellType(CellType.String);
-            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle, cellStyleDict);
+            // text keeps what it holds verbatim - a leading zero, an identifier Excel would read as a number
+            SetStyle(cell, styleFactory.Get(style, style?.NumberFormat ?? ExcelConstants.CellFormats.Text));
+        }
+        else
+        {
+            // an enum, a Guid, a TimeSpan: written as the text it renders to, and styled like any other cell
+            SetStyle(cell, styleFactory.Get(style, style?.NumberFormat));
         }
 
         cell.SetCellValue(val);
@@ -492,10 +366,11 @@ public class ExcelExporter
     ///     format that shows the same thing; <see cref="ExcelExporterOptions.DateTimeAsText" /> restores
     ///     the text export of earlier versions.
     /// </summary>
-    private void SetDateTimeCellValue(ExcelColumn column, ICell cell, DateTime date, string val, bool asText,
-        IDictionary<string, ICellStyle> cellStyleDict)
+    private void SetDateTimeCellValue(ExcelExporterOptions options, ExcelColumn column, ExcelStyle? style,
+        ICell cell, DateTime date, string val, CellStyleFactory styleFactory)
     {
-        var format = column.CellStyle?.Format;
+        var asText = options.DateTimeAsText;
+        var format = StyleResolver.DateFormat(style, column);
 
         // Excel's calendar starts at 1900-01-01 (1904 in a workbook on the 1904 date system), so anything
         // earlier - default(DateTime) above all - can only be kept as text
@@ -503,7 +378,7 @@ public class ExcelExporter
         if (!asText && DateUtil.IsValidExcelDate(DateUtil.GetExcelDate(date, workbook.IsDate1904())))
         {
             cell.SetCellValue(date);
-            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.DateTime, cell, column.CellStyle, cellStyleDict);
+            SetStyle(cell, styleFactory.Get(style, ExcelDateFormat.ToExcel(format)));
             return;
         }
 
@@ -512,13 +387,18 @@ public class ExcelExporter
         {
             cell.SetCellValue(DateToText(date, format));
             // the Format went into the text, but the column's font and alignment still apply
-            ApplyStyle(cell, ExcelConstants.CellTypes.Appearance, column.CellStyle, cellStyleDict);
+            SetStyle(cell, styleFactory.Get(style));
         }
         else
         {
             cell.SetCellValue(val);
-            cell.CellStyle = CreateStyle(ExcelConstants.CellTypes.Text, cell, column.CellStyle, cellStyleDict);
+            SetStyle(cell, styleFactory.Get(style, ExcelConstants.CellFormats.Text));
         }
+    }
+
+    private static void SetStyle(ICell cell, ICellStyle? style)
+    {
+        if (style != null) cell.CellStyle = style;
     }
 
     /// <summary>
@@ -536,6 +416,12 @@ public class ExcelExporter
             columnWidths[i] = CalculateTextWidth(headerText);
         }
 
+        // a cell is measured as it is shown, so the styles of its column decide the text; the stripes
+        // make no difference to that, and resolving once per column keeps it out of the row loop
+        var styles = columns
+            .Select(c => StyleResolver.Cell(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex))
+            .ToArray();
+
         // Calculate widths based on data content
         foreach (var item in data)
         {
@@ -544,10 +430,9 @@ public class ExcelExporter
                 var column = columns[i];
                 if (column.Title != null && item.TryGetValue(column.Title, out var value))
                 {
-                    // a date cell shows its column's format, which is what the width has to fit
                     var cellText = value is DateTime date
-                        ? DateToText(date, column.CellStyle?.Format)
-                        : (value ?? "").ToString() ?? "";
+                        ? DateToText(date, StyleResolver.DateFormat(styles[i], column))
+                        : NumberToText(value, styles[i]?.NumberFormat) ?? (value ?? "").ToString() ?? "";
                     var textWidth = CalculateTextWidth(cellText);
                     if (textWidth > columnWidths[i])
                     {
@@ -565,6 +450,30 @@ public class ExcelExporter
         }
 
         return columnWidths;
+    }
+
+    /// <summary>
+    ///     What a number shows under its format, for the width of an auto-sized column. Excel's number
+    ///     formats and .NET's agree on the part people write - digits, a thousands separator, decimals, a
+    ///     percent sign - so that much is rendered; anything else Excel alone understands (colours,
+    ///     conditions, literals) is left to be measured as the plain number.
+    /// </summary>
+    private static string? NumberToText(object? value, string? format)
+    {
+        if (format == null || value == null || !IsNumeric(value.GetType())) return null;
+        foreach (var c in format)
+            if (!char.IsDigit(c) && c != '#' && c != '0' && c != '.' && c != ',' && c != '%' && c != ' ')
+                return null;
+
+        try
+        {
+            return Convert.ToDecimal(value, CultureInfo.InvariantCulture)
+                .ToString(format, CultureInfo.InvariantCulture);
+        }
+        catch (Exception e) when (e is FormatException or OverflowException or InvalidCastException)
+        {
+            return null;
+        }
     }
 
     /// <summary>

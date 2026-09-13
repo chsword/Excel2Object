@@ -58,11 +58,19 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 - [x] 冻结首行与自动筛选 ✅ **v2.5.0 新增**
 - [x] 数据验证（下拉列表）✅ **v2.5.0 新增**
 - [x] 条件格式 ✅ **v2.6.0 新增**
+- [x] 样式表（CSS 风格）：背景色、边框、隔行底色、表头样式 ✅ **v2.7.0 新增**
 - [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增**，导出为真正的日期单元格 ✅ **v2.4.0 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 - [x] 公式内置函数库 ✅ **v2.3.0 新增** - 334 个 Excel 函数，10 个类别 - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 
 ### 发布说明
+
+* **2026.09.13** - v2.7.0
+- [x] ✨ **新增:** 样式表 `options.Styles`：按作用范围写样式而不是抄在每个 `[ExcelColumn]` 上 —— `Header` / `Cells` / `Column("标题")` / `OddRows` / `EvenRows`，层叠顺序为 `Cells → 奇偶行 → [ExcelColumn] → Column`，只有显式设置的属性参与叠加
+- [x] ✨ **新增:** 单元格背景色与边框（此前完全不支持）：`Background("#4472C4")`、`Border("1px solid #D0D0D0")`，以及 `Wrap`、`VerticalAlign`、`FontSize` 等
+- [x] ✨ **新增:** 颜色支持十六进制（`#RRGGBB` / `#RGB`），不再局限于 56 色枚举。`.xlsx` 原样保存；`.xls` 按 CIELAB 感知距离挑调色板最近色（浅灰得到灰而非淡紫）；用 `ExcelStyleColor` 指定的颜色在两种格式下仍按索引写入
+- [x] ✨ **改进:** 样式写在 `Column("标题")` 上时对任何列类型生效，包括给数字列设 `Format("#,##0.00")`（特性上的 `Format` 仍只作用于日期列，保持兼容）
+- [x] ✨ **改进:** 外观相同的单元格共用一个 cell style，隔行底色等不会撑爆 `.xls` 的 4000 样式上限
 
 * **2026.09.12** - v2.6.0
 - [x] ✨ **新增:** 条件格式 `options.ConditionalFormats`：按列写规则（`Operator` + `Value`，`Between` 用 `Value2`，或直接给 `Formula`），命中时改字体颜色、加粗、倾斜、填充背景色；`WholeRow = true` 可整行高亮。规则由 Excel 求值，数据编辑后颜色跟着变，同一列可挂多条，`.xls` / `.xlsx` 都支持
@@ -326,6 +334,36 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 ```
 
 Excel 会把取值显示为下拉，并拒绝其他输入。追加导出用 `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` 同样可以设置这些选项。列表总长超过 255 字符、或取值里含逗号/引号时（Excel 行内列表放不下），自动改写到一张隐藏 sheet 上、由一个定义名称指向该区域，下拉再引用这个名称（`.xls` 无法让数据验证直接跨 sheet 引用），用法不变；`.xls` 与 `.xlsx` 都支持。导出空列表时下拉仍会挂在第一行，方便做填写模板。
+
+### 样式表（CSS 风格）
+
+样式不必再抄在每个 `[ExcelColumn]` 上，可以按"作用于谁"来写：
+
+``` csharp
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    options.Styles
+        .Header(s => s.Bold().Background("#4472C4").Color("#FFF").Center())
+        .Cells(s => s.Border("1px solid #D0D0D0"))
+        .EvenRows(s => s.Background("#F2F2F2"))              // 隔行底色
+        .Column("金额", s => s.Format("#,##0.00").Right())
+        .Column("备注", s => s.Wrap().VerticalAlign(ExcelVerticalAlignment.Middle));
+});
+```
+
+可写的属性：`Color` / `Background`（`#RRGGBB`、`#RGB` 或 `ExcelStyleColor`）、`Bold` / `Italic` / `Underline` / `Strikeout`、`FontFamily` / `FontSize`、`Left` / `Center` / `Right` / `Align` / `VerticalAlign`、`Wrap`、`Format`、`Border` 及 `BorderTop` / `BorderRight` / `BorderBottom` / `BorderLeft`（写法同 CSS：`1px solid #D0D0D0`、`2px dashed red`、`none`；颜色可用十六进制或 `red`、`gray`、`navy` 等 CSS 基本色名）。
+
+**层叠顺序**（从宽到窄，只有显式设置的属性参与，所以各层是叠加而不是互相覆盖）：
+
+    Cells → OddRows / EvenRows → [ExcelColumn] 特性 → Column("标题")
+
+`Header(...)` 位于特性的 `Header*` 属性之下，规则相同；写了表头样式后，整行表头字号一致，不再受"带 `[ExcelColumn]` 的表头默认 10pt"这条历史行为影响。
+
+写在 `Cells` / 奇偶行这类大范围上的 `Format` 只作用于它说得上话的列：`#,##0.00` 不会落到日期列上把日期变成 `46278.00`，日期列只接受日期格式。
+
+**颜色**：`.xlsx` 原样保存十六进制颜色；`.xls` 只有 56 色调色板，会按人眼感知（CIELAB）挑最接近的一个——所以浅灰得到的是灰而不是淡紫，但非常浅的颜色（如 `#F2F2F2`）会落到白色，`.xls` 下想要隔行效果建议用深一点的灰（如 `#C0C0C0`）。用 `ExcelStyleColor` 指定的颜色在两种格式下都仍按调色板索引写入。
+
+外观相同的单元格共用同一个 cell style（`.xls` 上限 4000 个），隔行底色不会因为行数多而撑爆样式表。
 
 ### 条件格式
 

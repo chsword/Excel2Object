@@ -56,11 +56,19 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 - [x] Frozen header row and filter dropdowns ✅ **New in v2.5.0**
 - [x] Data validation (dropdown lists) ✅ **New in v2.5.0**
 - [x] Conditional formatting ✅ **New in v2.6.0**
+- [x] A CSS-flavoured stylesheet: backgrounds, borders, striped rows, header styles ✅ **New in v2.7.0**
 - [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4**, exported as real date cells ✅ **New in v2.4.0** - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)
 - [x] Built-in formula function library ✅ **New in v2.3.0** - 334 Excel functions in 10 categories - See [ExcelFunctions.md](ExcelFunctions.md)
 
 ### Release Notes
+
+* **2026.09.13** - v2.7.0
+- [x] ✨ **NEW:** A stylesheet, `options.Styles`: styles written by what they apply to rather than repeated on every `[ExcelColumn]` - `Header` / `Cells` / `Column("title")` / `OddRows` / `EvenRows`, layering `Cells → row stripes → [ExcelColumn] → Column`, with only the properties a style sets taking part
+- [x] ✨ **NEW:** Cell background and borders, which had no support at all: `Background("#4472C4")`, `Border("1px solid #D0D0D0")`, along with `Wrap`, `VerticalAlign` and `FontSize`
+- [x] ✨ **NEW:** Colours can be written as hex (`#RRGGBB` / `#RGB`) instead of only the 56-colour enum. `.xlsx` stores them as they are; `.xls` picks the nearest palette colour by perceived distance (CIELAB), so a light grey stays grey; a colour picked from `ExcelStyleColor` is still written as its palette index in both formats
+- [x] ✨ **IMPROVED:** A style written for a column applies to any column type, so `Format("#,##0.00")` reaches a number column (the attribute's `Format` still applies to date columns only, as it always has)
+- [x] ✨ **IMPROVED:** Cells that look alike share one cell style, so striped rows no longer push against the 4000-style limit of `.xls`
 
 * **2026.09.12** - v2.6.0
 - [x] ✨ **NEW:** Conditional formatting through `options.ConditionalFormats`: a rule per column (`Operator` + `Value`, `Value2` for `Between`, or a `Formula` of your own) restyles the cells it matches - font colour, bold, italic, background fill - and `WholeRow = true` colours the whole row. Excel evaluates the rules, so the colours follow the data as it is edited; a column can carry several, and both `.xls` and `.xlsx` support them
@@ -323,6 +331,36 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 ```
 
 Excel shows the values as a dropdown and rejects anything else. `ExcelHelper.AppendObjectToExcelBytes(bytes, models, options => ...)` takes the same options when appending a sheet. A list Excel cannot hold inline - over 255 characters in total, or a value carrying a comma or a quote - is written to a hidden sheet that a defined name points at, which the dropdown then reads (a `.xls` validation cannot reference another sheet directly); nothing about how it is used changes, and both `.xls` and `.xlsx` support it. An export with no rows still gets the dropdown on its first row, so it works as a template to fill in.
+
+### Stylesheet (CSS-flavoured)
+
+Styles need not be repeated on every `[ExcelColumn]`; write them by what they apply to:
+
+``` csharp
+var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
+{
+    options.Styles
+        .Header(s => s.Bold().Background("#4472C4").Color("#FFF").Center())
+        .Cells(s => s.Border("1px solid #D0D0D0"))
+        .EvenRows(s => s.Background("#F2F2F2"))              // striped rows
+        .Column("Amount", s => s.Format("#,##0.00").Right())
+        .Column("Note", s => s.Wrap().VerticalAlign(ExcelVerticalAlignment.Middle));
+});
+```
+
+What a style can set: `Color` / `Background` (`#RRGGBB`, `#RGB` or an `ExcelStyleColor`), `Bold` / `Italic` / `Underline` / `Strikeout`, `FontFamily` / `FontSize`, `Left` / `Center` / `Right` / `Align` / `VerticalAlign`, `Wrap`, `Format`, and `Border` with `BorderTop` / `BorderRight` / `BorderBottom` / `BorderLeft` (written as CSS writes them: `1px solid #D0D0D0`, `2px dashed red`, `none`; colours as hex or one of the basic CSS names such as `red`, `gray`, `navy`).
+
+**They layer** from the widest to the narrowest, and only the properties a style sets take part, so the layers add up rather than replace one another:
+
+    Cells → OddRows / EvenRows → [ExcelColumn] attribute → Column("title")
+
+`Header(...)` sits under the attribute's `Header…` properties the same way. Once a header style is written the whole header row shares one size, rather than keeping the 10pt every `[ExcelColumn]` header used to carry.
+
+A `Format` written at a broad scope - `Cells`, the row stripes - only reaches the columns it can speak for: `#,##0.00` does not land on a date column and turn a date into `46278.00`; a date column takes a date format only.
+
+**Colours**: `.xlsx` stores a hex colour as it is. `.xls` has only its 56-colour palette, so the nearest one is picked by what the eye sees (CIELAB) - a light grey comes out grey rather than lavender - though a very pale colour such as `#F2F2F2` lands on white, so striping an `.xls` wants a deeper grey such as `#C0C0C0`. A colour picked from `ExcelStyleColor` is still written as its palette index in both formats.
+
+Cells that look alike share one cell style (`.xls` stops at 4000), so striping a long sheet costs a handful of styles rather than one per row.
 
 ### Conditional Formatting
 

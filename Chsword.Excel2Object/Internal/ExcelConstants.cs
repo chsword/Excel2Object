@@ -7,14 +7,10 @@ internal static class ExcelConstants
     public const int DefaultDataStartRowIndex = 1;
     public const short DefaultFontHeightInPoints = 10;
     
-    public static class CellTypes
+    public static class CellFormats
     {
-        public const string Text = "text";
-        public const string DateTime = "datetime";
-        public const string Number = "number";
-
-        /// <summary>Font and alignment only, for cells that carry no data format of their own.</summary>
-        public const string Appearance = "appearance";
+        /// <summary>Excel's text format: the cell keeps what it holds, leading zeros and all.</summary>
+        public const string Text = "@";
     }
     
     public static class BooleanValues
