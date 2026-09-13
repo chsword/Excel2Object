@@ -206,6 +206,77 @@ public class MergedCellTest : BaseExcelTest
         StringAssert.Contains(e.Message, "A1:C1");
     }
 
+    public class FormulaModel
+    {
+        [ExcelTitle("数量")] public int Count { get; set; }
+        [ExcelTitle("合计")] public double Total { get; set; }
+    }
+
+    /// <summary>
+    ///     公式列写进单元格的是公式，其结果由 Excel 打开时才算出，导出时无从比较，故明确拒绝而非
+    ///     按公式文本比较——后者会因每行的引用不同而永不合并。
+    /// </summary>
+    [TestMethod]
+    public void AFormulaColumnCannotMergeByValue()
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            new ExcelExporter().ObjectToExcelBytes(
+                new List<FormulaModel> {new() {Count = 1}, new() {Count = 1}}, options =>
+                {
+                    options.ExcelType = ExcelType.Xlsx;
+                    options.FormulaColumns.Add("合计", c => c["数量"]);
+                    options.MergeRepeatedColumns.Add("合计");
+                }));
+
+        StringAssert.Contains(e.Message, "合计");
+        StringAssert.Contains(e.Message, "公式");
+    }
+
+    /// <summary>同一列写两次不应产生两段相同的区域（那将彼此重叠）。</summary>
+    [TestMethod]
+    public void TheSameColumnTwiceIsHarmless()
+    {
+        var sheet = Export(ExcelType.Xlsx, options =>
+        {
+            options.MergeRepeatedColumns.Add("省份");
+            options.MergeRepeatedColumns.Add("省份");
+        });
+
+        CollectionAssert.AreEqual(new[] {"A2:A4"}, Regions(sheet));
+    }
+
+    /// <summary>
+    ///     分组表动辄数万行，合并区域的数量与行数同阶。此处确认其耗时不随行数平方增长——
+    ///     NPOI 自带的 AddMergedRegion 会对每个新区域扫描已有全部区域，8000 个区域即需数秒。
+    /// </summary>
+    [TestMethod]
+    public void ManyRunsStayFast()
+    {
+        var rows = new List<Model>();
+        for (var i = 0; i < 20000; i++)
+            rows.Add(new Model {Province = $"省{i / 2}", City = "甲", Amount = i});
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var sheet = Export(ExcelType.Xlsx, options => options.MergeRepeatedColumns.Add("省份"), rows);
+        watch.Stop();
+
+        Assert.AreEqual(10000, sheet.NumMergedRegions);
+        Assert.IsTrue(watch.ElapsedMilliseconds < 20000, $"耗时 {watch.ElapsedMilliseconds} ms");
+    }
+
+    /// <summary>只占一个单元格的区域无从合并。</summary>
+    [DataTestMethod]
+    [DataRow("A1:A1")]
+    [DataRow(null)]
+    public void ASingleCellRegionSaysSo(string? address)
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            Export(ExcelType.Xlsx, options => options.MergedRegions.Add(
+                address == null ? new MergedRegion("省份") {FirstRow = 1} : address)));
+
+        StringAssert.Contains(e.Message, "一个单元格");
+    }
+
     /// <summary>重叠的区域会被 Excel 视为损坏，故提前拒绝并指出与哪一个重叠。</summary>
     [TestMethod]
     public void OverlappingRegionsAreRejected()

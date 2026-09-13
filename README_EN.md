@@ -399,6 +399,8 @@ Columns are named by their title and rows by their data-row ordinal (counting fr
 
 Only adjacent equal rows merge, blank cells never do, and each column is judged on its own. The cells merged away keep their own values - Excel shows only the top-left one - so **every row still imports in full**. Overlapping regions are refused at export time, naming the region they overlap.
 
+A formula column cannot merge by value: the cell holds a formula whose result Excel works out when the file is opened, so there is nothing to compare at export time, and the attempt is refused rather than silently comparing formula text.
+
 Note that Excel cannot sort a range containing merged cells: with `AutoFilter` on, filtering works while sorting is refused by Excel.
 
 ### Conditional Formatting
