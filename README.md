@@ -410,6 +410,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 
 ## 文档
 
+- [docs/](docs/README.md) - 文档索引：**各版本特性说明**与专题文档
 - [ExcelFunctions.md](ExcelFunctions.md) - 公式列：内置函数、按列标题/模型属性引用、跨 sheet 引用
 - [DateTimeFormats.md](DateTimeFormats.md) - 支持的日期时间格式与解析规则
 - [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md) - 命令行工具 `excel2obj` 用法
