@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
+#if !NETFRAMEWORK
 using System.IO.Compression;
+#endif
 using System.Linq;
 using Chsword.Excel2Object.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -27,12 +29,14 @@ public class TempDiagnosticTest
             o.Styles.Cells(s => s.Background("#F2F2F2").Italic());
         })!;
 
-        string xml;
+        var xml = "(skipped)";
+#if !NETFRAMEWORK
         using (var zip = new ZipArchive(new MemoryStream(bytes)))
         {
             var entry = zip.Entries.First(e => e.FullName.EndsWith("styles.xml"));
             xml = new StreamReader(entry.Open()).ReadToEnd();
         }
+#endif
 
         var workbook = (XSSFWorkbook) WorkbookFactory.Create(new MemoryStream(bytes));
         var cell = workbook.GetSheetAt(0).GetRow(1).GetCell(0);
@@ -41,10 +45,10 @@ public class TempDiagnosticTest
         var rgb = style.FillForegroundColorColor?.RGB;
 
         Assert.Fail(
-            $"[诊断] 文件中含 F2F2F2={xml.Contains("F2F2F2")} | fills 段={Fragment(xml, "<fills")} | " +
-            $"fonts 段={Fragment(xml, "<fonts")} | 读回 fill={(rgb == null ? "null" : string.Join(",", rgb))} | " +
-            $"pattern={style.FillPattern} | italic={font.IsItalic} | 样式数={workbook.NumCellStyles} | " +
-            $"styleIndex={style.Index}");
+            $"DIAG hasF2F2F2={xml.Contains("F2F2F2")} fills={Fragment(xml, "<fills")} " +
+            $"readFill={(rgb == null ? "null" : string.Join(",", rgb))} pattern={style.FillPattern} " +
+            $"italic={font.IsItalic} styleCount={workbook.NumCellStyles} styleIndex={style.Index} " +
+            $"styleType={style.GetType().Name} fontType={font.GetType().Name}");
     }
 
     private static string Fragment(string xml, string tag)
