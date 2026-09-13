@@ -37,9 +37,12 @@ public class ExpressionConvertClrMappingTests : BaseFunctionTest
         TestFunction(c => ((string) c["One"]).EndsWith("xy"), "EXACT(RIGHT(A4,LEN(\"xy\")),\"xy\")");
         // FIND errors when the text is absent, where .NET returns -1
         TestFunction(c => ((string) c["One"]).IndexOf("xy"), "IFERROR(FIND(\"xy\",A4)-1,-1)");
-        // the char overloads of the same methods translate the same way
+#if !NETFRAMEWORK
+        // the char overloads of the same methods translate the same way. .NET Framework has no such
+        // overload, so there the expression could not be written in the first place.
         TestFunction(c => ((string) c["One"]).Contains('x'), "ISNUMBER(FIND(\"x\",A4))");
         TestFunction(c => ((string) c["One"]).StartsWith('x'), "EXACT(LEFT(A4,LEN(\"x\")),\"x\")");
+#endif
     }
 
     [TestMethod]
