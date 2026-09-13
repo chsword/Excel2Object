@@ -427,6 +427,34 @@ public class StyleSheetTest : BaseExcelTest
         Assert.AreEqual("000000", sheet.GetRow(1).GetCell(2).CellStyle.GetDataFormatString());
     }
 
+    /// <summary>
+    ///     A date column given a number format shows the serial number Excel stores, and an auto-sized
+    ///     column is measured as what it shows rather than as the date underneath.
+    /// </summary>
+    [TestMethod]
+    public void AutoColumnWidthFollowsADateShownAsANumber()
+    {
+        byte[] Export(Action<ExcelExporterOptions> configure)
+        {
+            return new ExcelExporter().ObjectToExcelBytes(new List<Timed> {new()}, options =>
+            {
+                options.ExcelType = ExcelType.Xlsx;
+                options.AutoColumnWidth = true;
+                options.MinColumnWidth = 1;
+                configure(options);
+            })!;
+        }
+
+        var asDate = WorkbookFactory.Create(new MemoryStream(Export(_ => { }))).GetSheetAt(0);
+        var asNumber = WorkbookFactory
+            .Create(new MemoryStream(Export(o => o.Styles.Column("时间", s => s.Format("#,##0.00")))))
+            .GetSheetAt(0);
+
+        // "2026-09-13 14:30:45" (19 characters) against the serial "46,278.60" (9)
+        Assert.IsTrue(asNumber.GetColumnWidth(0) < asDate.GetColumnWidth(0),
+            $"{asNumber.GetColumnWidth(0)} vs {asDate.GetColumnWidth(0)}");
+    }
+
     /// <summary>CSS measures a border in pixels or names its width.</summary>
     [DataTestMethod]
     [DataRow("thin solid #CCC", BorderStyle.Thin)]

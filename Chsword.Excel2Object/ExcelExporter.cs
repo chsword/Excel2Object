@@ -442,9 +442,7 @@ public class ExcelExporter
                 var column = columns[i];
                 if (column.Title != null && item.TryGetValue(column.Title, out var value))
                 {
-                    var cellText = value is DateTime date
-                        ? DateToText(date, styles[i].DateFormat)
-                        : NumberToText(value, styles[i].ValueFormat) ?? (value ?? "").ToString() ?? "";
+                    var cellText = CellText(value, styles[i]);
                     var textWidth = CalculateTextWidth(cellText);
                     if (textWidth > columnWidths[i])
                     {
@@ -462,6 +460,20 @@ public class ExcelExporter
         }
 
         return columnWidths;
+    }
+
+    /// <summary>
+    ///     The text a cell shows, which is what the width of an auto-sized column has to fit. A date
+    ///     column given a number format - which only a format written for that very column can do - shows
+    ///     the serial number Excel stores it as, so that is what it is measured as.
+    /// </summary>
+    private static string CellText(object? value, ResolvedColumnStyle resolved)
+    {
+        if (value is not DateTime date)
+            return NumberToText(value, resolved.ValueFormat) ?? (value ?? "").ToString() ?? "";
+
+        return NumberToText(DateUtil.GetExcelDate(date), resolved.DateFormat) ??
+               DateToText(date, resolved.DateFormat);
     }
 
     /// <summary>
