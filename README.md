@@ -66,32 +66,32 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 ### 发布说明
 
 * **2026.09.13** - v2.7.1
-- [x] 🐛 修复样式表中 `Format` 的作用范围：写在 `Column("标题")` 上的现在会盖过特性上的 `Format`（此前 `Cells` 上的格式反而能盖掉特性，导致 `[ExcelColumn(Format = "yyyy-MM-dd HH:mm:ss")]` 的时分秒被丢掉）；写在 `Cells` / 奇偶行上的只落到说得上话的列——日期格式不再把 `12.5` 显示成 `1900-01-12`，数字格式也不再顶掉文本列的 `@`（前导零保护）
-- [x] ✨ **改进:** 边框宽度支持 CSS 关键字 `thin` / `medium` / `thick`，写法错误时的报错会指出是哪一段不认识
-- [x] ✨ **改进:** 每列每种行（奇/偶）的样式只解析一次而不是每个单元格一次，大表导出少掉数百万次样式合并与键拼接
+- [x] 🐛 修复样式表中 `Format` 的作用范围：为某一列声明的格式（`Column("标题")`）现优先于特性上的 `Format`（此前 `Cells` 上声明的格式反而会覆盖特性，致使 `[ExcelColumn(Format = "yyyy-MM-dd HH:mm:ss")]` 的时分秒丢失）；在 `Cells` 与奇偶行上声明的格式仅作用于类型相符的列——日期格式不再使 `12.5` 显示为 `1900-01-12`，数字格式亦不再覆盖文本列的 `@`（前导零保护）
+- [x] ✨ **改进:** 边框宽度支持 CSS 关键字 `thin` / `medium` / `thick`；写法无法识别时，异常信息将指出未能识别的片段
+- [x] ✨ **改进:** 样式改为按「列 × 行奇偶」解析一次并在整表复用，不再逐单元格解析；大表导出可减少数百万次样式合并与缓存键构造
 
 * **2026.09.13** - v2.7.0
-- [x] ✨ **新增:** 样式表 `options.Styles`：按作用范围写样式而不是抄在每个 `[ExcelColumn]` 上 —— `Header` / `Cells` / `Column("标题")` / `OddRows` / `EvenRows`，层叠顺序为 `Cells → 奇偶行 → [ExcelColumn] → Column`，只有显式设置的属性参与叠加
-- [x] ✨ **新增:** 单元格背景色与边框（此前完全不支持）：`Background("#4472C4")`、`Border("1px solid #D0D0D0")`，以及 `Wrap`、`VerticalAlign`、`FontSize` 等
-- [x] ✨ **新增:** 颜色支持十六进制（`#RRGGBB` / `#RGB`），不再局限于 56 色枚举。`.xlsx` 原样保存；`.xls` 按 CIELAB 感知距离挑调色板最近色（浅灰得到灰而非淡紫）；用 `ExcelStyleColor` 指定的颜色在两种格式下仍按索引写入
-- [x] ✨ **改进:** 样式写在 `Column("标题")` 上时对任何列类型生效，包括给数字列设 `Format("#,##0.00")`（特性上的 `Format` 仍只作用于日期列，保持兼容）
-- [x] ✨ **改进:** 外观相同的单元格共用一个 cell style，隔行底色等不会撑爆 `.xls` 的 4000 样式上限
+- [x] ✨ **新增:** 样式表 `options.Styles`：样式按作用范围声明，无需在每个 `[ExcelColumn]` 上重复书写 —— `Header` / `Cells` / `Column("标题")` / `OddRows` / `EvenRows`，层叠顺序为 `Cells → 奇偶行 → [ExcelColumn] → Column`，仅显式设置的属性参与叠加
+- [x] ✨ **新增:** 单元格背景色与边框（此前不支持）：`Background("#4472C4")`、`Border("1px solid #D0D0D0")`，以及 `Wrap`、`VerticalAlign`、`FontSize` 等
+- [x] ✨ **新增:** 颜色支持十六进制（`#RRGGBB` / `#RGB`），不再局限于 56 色枚举。`.xlsx` 直接保存所写的颜色；`.xls` 按 CIELAB 感知距离选取调色板中最接近的一色（浅灰匹配为灰而非淡紫）；以 `ExcelStyleColor` 指定的颜色在两种格式下仍按调色板索引写入
+- [x] ✨ **改进:** 在 `Column("标题")` 上声明的样式适用于任何列类型，数值列由此可设置 `Format("#,##0.00")`（特性上的 `Format` 仍仅作用于日期列，以保持兼容）
+- [x] ✨ **改进:** 外观相同的单元格共用同一个单元格样式，隔行底色等场景不会突破 `.xls` 的 4000 个样式上限
 
 * **2026.09.12** - v2.6.0
-- [x] ✨ **新增:** 条件格式 `options.ConditionalFormats`：按列写规则（`Operator` + `Value`，`Between` 用 `Value2`，或直接给 `Formula`），命中时改字体颜色、加粗、倾斜、填充背景色；`WholeRow = true` 可整行高亮。规则由 Excel 求值，数据编辑后颜色跟着变，同一列可挂多条，`.xls` / `.xlsx` 都支持
+- [x] ✨ **新增:** 条件格式 `options.ConditionalFormats`：以列为单位声明规则（`Operator` 与 `Value`，`Between` 另需 `Value2`，亦可直接给出 `Formula`），命中时改变字体颜色、加粗、倾斜与填充背景色；`WholeRow = true` 可高亮整行。规则由 Excel 求值，数据被编辑后颜色随之变化；同一列可声明多条规则，`.xls` 与 `.xlsx` 均受支持
 
 * **2026.09.12** - v2.5.0
-- [x] ✨ **新增:** `ExcelExporterOptions.FreezeHeader` 冻结首行，滚动时表头常驻；`ExcelExporterOptions.AutoFilter` 给表头挂上筛选下拉，范围覆盖本次写入的数据行。两项默认关闭，`.xls` / `.xlsx` 都支持
-- [x] ✨ **新增:** `AppendObjectToExcelBytes` 增加接受 options 的重载，追加 sheet 时也能设置冻结、筛选与下拉
-- [x] ✨ **新增:** 数据验证（下拉列表）：固定取值写在 `[ExcelColumn("状态", Dropdown = new[] {"启用", "停用"})]`，运行时取值走 `options.Dropdowns["列标题"] = values`（优先于特性）。Excel 会拒绝列表之外的输入；列表总长超过 255 字符或取值含逗号/引号时自动改用隐藏 sheet 承载（此前这种列表在 `.xls` 上会直接抛异常），空导出也会在首行挂上下拉以便做填写模板
+- [x] ✨ **新增:** `ExcelExporterOptions.FreezeHeader` 冻结首行，滚动时表头保持可见；`ExcelExporterOptions.AutoFilter` 为表头附加筛选下拉，范围覆盖本次写入的数据行。两项默认关闭，`.xls` 与 `.xlsx` 均受支持
+- [x] ✨ **新增:** `AppendObjectToExcelBytes` 新增接受 options 的重载，追加工作表时同样可设置冻结、筛选与下拉
+- [x] ✨ **新增:** 数据验证（下拉列表）：固定取值声明于 `[ExcelColumn("状态", Dropdown = new[] {"启用", "停用"})]`，运行时方可确定的取值通过 `options.Dropdowns["列标题"] = values` 传入（优先于特性）。Excel 将拒绝列表之外的输入；列表总长超过 255 字符，或取值含有逗号、引号时，改由隐藏工作表承载（此前该类列表在 `.xls` 上会直接抛出异常）；无数据的导出同样在首行附带下拉，便于作为填写模板
 
 * **2026.09.11** - v2.4.0
-- [x] ✨ **新增:** 导出时 `DateTime` / `DateTime?` 列写成真正的日期单元格（序列号 + 日期格式），Excel 可以排序、筛选、参与计算，`null` 写成空单元格；`Dictionary<string, object>` 与 `DataTable` 导出中的 `DateTime` 值同样处理 - 查看 [DateTimeFormats.md](DateTimeFormats.md)
+- [x] ✨ **新增:** 导出时 `DateTime` 与 `DateTime?` 列写为日期单元格（序列号与日期格式），可在 Excel 中排序、筛选并参与计算，`null` 写为空白单元格；`Dictionary<string, object>` 与 `DataTable` 导出中的 `DateTime` 值同样处理 - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] ✨ **新增:** `[ExcelColumn(Format = ...)]` 的 .NET 日期格式串自动翻译成对应的 Excel 数字格式（`yyyy-MM-dd HH:mm:ss` → `yyyy-mm-dd hh:mm:ss`，`yyyy年MM月dd日` → `yyyy"年"mm"月"dd"日"`），未指定时为 `yyyy-mm-dd hh:mm:ss`；已经是 Excel 拼写的格式（`m/d/yy`、`[$-409]d-mmm-yy`、`yyyy/m/d;@`）原样使用
-- [x] ✨ **新增:** `ExcelExporterOptions.DateTimeAsText`，恢复 v2.3 及之前把日期写成文本的导出方式；`DataTable` 导出新增接受 options 的重载 `ObjectToExcelBytes(DataTable, Action<ExcelExporterOptions>)`
-- [x] 🐛 修复公式列接管带自定义 `Format` 的 `DateTime` 列时公式被丢弃、改写成模型值文本的问题：现在保留公式并套用日期格式（公式若返回数字而非日期，用 `FormulaResultType` 声明）
-- [x] 🐛 修复日期单元格读进 `string` 属性或 `Dictionary<string, object>` 时得到 `46276.6` 这类序列号的问题：现按单元格格式渲染成 `yyyy-MM-dd`、`HH:mm:ss` 或两者，`[h]:mm` 这类经过时间仍按数字读；数值属性（`double`、`decimal` 等）始终取原始数字
-- [x] ⚠️ **行为变更:** Excel 日历不覆盖 1900 年之前（1904 日期系统的工作簿为 1904 年之前），这类日期（尤其 `default(DateTime)`）仍按 `Format` 渲染成文本写入；`hh` 不带 `tt` 时显示 24 小时制，Excel 没有不带 AM/PM 标记的 12 小时制
+- [x] ✨ **新增:** `ExcelExporterOptions.DateTimeAsText`，恢复 v2.3 及之前按文本导出日期的方式；`DataTable` 导出新增接受 options 的重载 `ObjectToExcelBytes(DataTable, Action<ExcelExporterOptions>)`
+- [x] 🐛 修复公式列接管带自定义 `Format` 的 `DateTime` 列时公式被丢弃、改写为模型自身值的文本的问题：现保留公式并套用日期格式（公式若返回数值而非日期，请以 `FormulaResultType` 声明）
+- [x] 🐛 修复日期单元格读入 `string` 属性或 `Dictionary<string, object>` 时得到 `46276.6` 一类序列号的问题：现按单元格格式渲染为 `yyyy-MM-dd`、`HH:mm:ss` 或两者；`[h]:mm` 一类的经过时间仍按数值读取；数值属性（`double`、`decimal` 等）始终取原始数值
+- [x] ⚠️ **行为变更:** Excel 的日历不覆盖 1900 年之前（采用 1904 日期系统的工作簿为 1904 年之前），此类日期（尤以未赋值的 `default(DateTime)` 为常见）仍按 `Format` 渲染为文本写入；`hh` 不带 `tt` 时显示 24 小时制，Excel 没有不带 AM/PM 标记的 12 小时制
 
 * **2026.09.11** - v2.3.0
 - [x] ✨ **新增:** 公式内置函数库从 34 个扩充到 **334 个** Excel 函数，分 10 类：数学与三角（73）、统计（80）、逻辑（11）、查找与引用（33）、日期时间（25）、文本（39）、信息（20）、财务（21）、工程（20）、数据库（12）。信息 / 财务 / 工程 / 数据库为全新分类，入口为 `ExcelFunctions.Information`、`.Financial`、`.Engineering`、`.Database` - 查看 [ExcelFunctions.md](ExcelFunctions.md)
