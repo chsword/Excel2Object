@@ -23,32 +23,25 @@ public class TempDiagnosticTest
     [TestMethod]
     public void DumpStyles()
     {
-        var bytes = new ExcelExporter().ObjectToExcelBytes(new List<Model> {new(), new()}, o =>
+        // 完全复刻 RowsStripe：只设偶数行底色
+        var bytes = new ExcelExporter().ObjectToExcelBytes(new List<Model> {new(), new(), new()}, o =>
         {
             o.ExcelType = ExcelType.Xlsx;
-            o.Styles.Cells(s => s.Background("#F2F2F2").Italic());
+            o.Styles.EvenRows(s => s.Background("#F2F2F2"));
         })!;
 
-        var xml = "(skipped)";
-#if !NETFRAMEWORK
-        using (var zip = new ZipArchive(new MemoryStream(bytes)))
-        {
-            var entry = zip.Entries.First(e => e.FullName.EndsWith("styles.xml"));
-            xml = new StreamReader(entry.Open()).ReadToEnd();
-        }
-#endif
-
         var workbook = (XSSFWorkbook) WorkbookFactory.Create(new MemoryStream(bytes));
-        var cell = workbook.GetSheetAt(0).GetRow(1).GetCell(0);
-        var style = (XSSFCellStyle) cell.CellStyle;
-        var font = (XSSFFont) style.GetFont(workbook);
-        var rgb = style.FillForegroundColorColor?.RGB;
+        var sheet = workbook.GetSheetAt(0);
+        var dump = "";
+        for (var r = 0; r <= 3; r++)
+        {
+            var style = (XSSFCellStyle) sheet.GetRow(r).GetCell(0).CellStyle;
+            var rgb = style.FillForegroundColorColor?.RGB;
+            dump += $"row{r}:idx={style.Index},pattern={style.FillPattern}," +
+                    $"fill={(rgb == null ? "null" : string.Join("-", rgb))},fmt={style.GetDataFormatString()} ";
+        }
 
-        Assert.Fail(
-            $"DIAG hasF2F2F2={xml.Contains("F2F2F2")} fills={Fragment(xml, "<fills")} " +
-            $"readFill={(rgb == null ? "null" : string.Join(",", rgb))} pattern={style.FillPattern} " +
-            $"italic={font.IsItalic} styleCount={workbook.NumCellStyles} styleIndex={style.Index} " +
-            $"styleType={style.GetType().Name} fontType={font.GetType().Name}");
+        Assert.Fail($"DIAG styleCount={workbook.NumCellStyles} {dump}");
     }
 
     private static string Fragment(string xml, string tag)
