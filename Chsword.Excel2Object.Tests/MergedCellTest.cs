@@ -264,6 +264,34 @@ public class MergedCellTest : BaseExcelTest
         Assert.IsTrue(watch.ElapsedMilliseconds < 20000, $"耗时 {watch.ElapsedMilliseconds} ms");
     }
 
+    /// <summary>
+    ///     数值按其值比较，不经由可能有损的文本表示：.NET Framework 上 "R" 格式对少数值无法往返，
+    ///     会让两个不同的数看起来相同。
+    /// </summary>
+    [TestMethod]
+    public void NumbersThatOnlyLookAlikeDoNotMerge()
+    {
+        var rows = new List<Model>
+        {
+            new() {Province = "甲", City = "A", Amount = 1.0000000000000002m},
+            new() {Province = "乙", City = "B", Amount = 1.0000000000000004m},
+            new() {Province = "丙", City = "C", Amount = 2}
+        };
+        var sheet = Export(ExcelType.Xlsx, options => options.MergeRepeatedColumns.Add("金额"), rows);
+
+        Assert.AreEqual(0, sheet.NumMergedRegions, "两个数并不相同，不应合并");
+    }
+
+    /// <summary>只给结束行会把表头一并并进去，故要求一并给出起始行。</summary>
+    [TestMethod]
+    public void OnlyALastRowSaysSo()
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            Export(ExcelType.Xlsx, options => options.MergedRegions.Add(new MergedRegion("金额") {LastRow = 3})));
+
+        StringAssert.Contains(e.Message, "FirstRow");
+    }
+
     /// <summary>只占一个单元格的区域无从合并。</summary>
     [DataTestMethod]
     [DataRow("A1:A1")]

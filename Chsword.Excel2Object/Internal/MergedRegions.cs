@@ -126,7 +126,9 @@ internal static class MergedRegions
         switch (cell.CellType)
         {
             case CellType.Numeric:
-                return cell.NumericCellValue.ToString("R", CultureInfo.InvariantCulture);
+                // G17 而非 "R"：这串文本只用于比较、不会写进文件，故不怕位数冗长；而 .NET Framework
+                // 的 "R" 对少数值无法往返，会让两个不同的数看起来相同而被并成一格
+                return cell.NumericCellValue.ToString("G17", CultureInfo.InvariantCulture);
             case CellType.String:
                 var text = cell.StringCellValue;
                 return string.IsNullOrEmpty(text) ? null : text;
@@ -148,6 +150,11 @@ internal static class MergedRegions
         var first = IndexOf(columns, region.Column!);
         var last = region.LastColumn == null ? first : IndexOf(columns, region.LastColumn);
         if (last < first) (first, last) = (last, first);
+
+        if (region.FirstRow == null && region.LastRow != null)
+            throw new Excel2ObjectException(
+                $"合并区域 [{region}] 只给了结束行：省略起始行即指表头行，如此会把表头一并并进去。" +
+                "请一并给出 FirstRow。");
 
         // 行以数据行的序号给出，自 1 计起；省略则指表头行
         var firstRow = Row(region, region.FirstRow, lastDataRowIndex);
