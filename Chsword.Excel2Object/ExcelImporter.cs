@@ -270,8 +270,10 @@ public class ExcelImporter
             switch (cell.CellType)
             {
                 case CellType.Numeric:
+                    // "R" 而非默认格式：.NET Framework 的默认数值格式为 G15，
+                    // 46276.6046875 这类序列号读进 double 属性时会丢掉低位
                     result = (datesAsText ? DateCellText(cell) : null)
-                             ?? cell.NumericCellValue.ToString(CultureInfo.InvariantCulture);
+                             ?? cell.NumericCellValue.ToString("R", CultureInfo.InvariantCulture);
                     break;
                 case CellType.String:
                     result = cell.StringCellValue;

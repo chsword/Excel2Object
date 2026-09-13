@@ -96,8 +96,10 @@ internal sealed class CellStyleFactory
             style.IsStrikeout == null && style.FontName == null && style.FontPoints == null)
             return null;
 
-        var key = string.Join("|", style.TextColor, style.IsBold, style.IsItalic, style.IsUnderline,
-            style.IsStrikeout, style.FontName, style.FontPoints);
+        // 同 ExcelStyle.Key：.NET Framework 的 string.Join(string, params object[]) 在首个元素为 null
+        // 时返回空字符串，会让所有未设字体色的字体共用一个
+        var key = $"{style.TextColor}|{style.IsBold}|{style.IsItalic}|{style.IsUnderline}|" +
+                  $"{style.IsStrikeout}|{style.FontName}|{style.FontPoints}";
         if (_fonts.TryGetValue(key, out var cached)) return cached;
 
         var font = _workbook.CreateFont();

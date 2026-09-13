@@ -218,9 +218,14 @@ public class ExcelStyle
     }
 
     /// <summary>Everything this style asks for, as one string, so equal styles share one cell style.</summary>
+    /// <remarks>
+    ///     写成插值而非 <c>string.Join(string, params object[])</c>：.NET Framework 的该重载在首个元素
+    ///     为 null 时直接返回空字符串，未设字体色的样式便会得到相同的键，进而共用同一个单元格样式。
+    /// </remarks>
     internal string Key()
     {
-        return string.Join("|", TextColor, FillColor, IsBold, IsItalic, IsUnderline, IsStrikeout, FontName,
-            FontPoints, Horizontal, Vertical, IsWrapped, NumberFormat, TopLine, RightLine, BottomLine, LeftLine);
+        return $"{TextColor}|{FillColor}|{IsBold}|{IsItalic}|{IsUnderline}|{IsStrikeout}|{FontName}|" +
+               $"{FontPoints}|{Horizontal}|{Vertical}|{IsWrapped}|{NumberFormat}|{TopLine}|{RightLine}|" +
+               $"{BottomLine}|{LeftLine}";
     }
 }
