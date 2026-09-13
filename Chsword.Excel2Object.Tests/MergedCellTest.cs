@@ -271,16 +271,20 @@ public class MergedCellTest : BaseExcelTest
 
     /// <summary>
     ///     数值直接比较其值，不经由文本：.NET Framework 上 "R" 与 G17 两种格式都可能把两个不同的数
-    ///     渲染成同一串字符。此处特意用 double 字面量而非 decimal——decimal 转 double 在
-    ///     .NET Framework 上会舍入到 15 位有效数字，两个数在写进单元格之前就已相同，便测不到本意。
+    ///     渲染成同一串字符。
+    ///     <para>
+    ///     两个取值选在 13 位有效数字上，而非相邻的两个 double：decimal 转 double、以及 NPOI 把
+    ///     double 写进 XML，在 .NET Framework 上都只保留约 15 位有效数字，需要 17 位才能分辨的两个数
+    ///     在文件里就已经相同，那样测到的便不是本意了。
+    ///     </para>
     /// </summary>
     [TestMethod]
     public void NumbersThatOnlyLookAlikeDoNotMerge()
     {
         var rows = new List<DoubleModel>
         {
-            new() {Value = 1.0000000000000002d},
-            new() {Value = 1.0000000000000004d},
+            new() {Value = 1.000000000001d},
+            new() {Value = 1.000000000002d},
             new() {Value = 2d}
         };
         var bytes = new ExcelExporter().ObjectToExcelBytes(rows, options =>
