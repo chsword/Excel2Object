@@ -1,3 +1,5 @@
+using Chsword.Excel2Object.Styles;
+
 namespace Chsword.Excel2Object.Options;
 
 public class ExcelExporterOptions
@@ -47,6 +49,12 @@ public class ExcelExporterOptions
     ///     Excel, but comes out character for character as <c>[ExcelColumn(Format = ...)]</c> renders it.
     /// </summary>
     public bool DateTimeAsText { get; set; }
+
+    /// <summary>
+    ///     How the sheet looks, written by what each style applies to - the header, every cell, one column,
+    ///     every other row - instead of repeated on every <c>[ExcelColumn]</c>.
+    /// </summary>
+    public ExcelStyleSheet Styles { get; set; } = new();
 
     /// <summary>
     ///     Rules that restyle cells whose value meets a condition - Excel re-evaluates them as the sheet is

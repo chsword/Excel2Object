@@ -1,0 +1,249 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using Chsword.Excel2Object.Options;
+using Chsword.Excel2Object.Styles;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
+
+namespace Chsword.Excel2Object.Tests;
+
+/// <summary>
+///     Styles are written by what they apply to - the header, every cell, one column, every other row -
+///     instead of repeated on every column, and they layer over each other.
+/// </summary>
+[TestClass]
+public class StyleSheetTest : BaseExcelTest
+{
+    public class Model
+    {
+        [ExcelTitle("城市")] public string City { get; set; } = "北京";
+        [ExcelTitle("金额")] public decimal Amount { get; set; } = 1000;
+
+        [ExcelColumn("备注", CellBold = true)] public string Note { get; set; } = "n/a";
+    }
+
+    private static readonly List<Model> Rows = new() {new(), new(), new()};
+
+    private static ISheet Export(ExcelType excelType, Action<ExcelExporterOptions> configure,
+        out IWorkbook workbook, List<Model>? rows = null)
+    {
+        var bytes = new ExcelExporter().ObjectToExcelBytes(rows ?? Rows, options =>
+        {
+            options.ExcelType = excelType;
+            configure(options);
+        });
+        Assert.IsNotNull(bytes);
+        workbook = WorkbookFactory.Create(new MemoryStream(bytes));
+        return workbook.GetSheetAt(0);
+    }
+
+    private static string Hex(IColor? color)
+    {
+        var rgb = color?.RGB;
+        return rgb == null ? "" : $"#{rgb[0]:X2}{rgb[1]:X2}{rgb[2]:X2}";
+    }
+
+    [TestMethod]
+    public void TheHeaderTakesTheStyleWrittenForIt()
+    {
+        var sheet = Export(ExcelType.Xlsx,
+            options => options.Styles.Header(s => s.Bold().Background("#4472C4").Color("#FFF").Center()),
+            out var workbook);
+
+        var cell = sheet.GetRow(0).GetCell(0);
+        var font = cell.CellStyle.GetFont(workbook);
+        Assert.IsTrue(font.IsBold);
+        Assert.AreEqual("#FFFFFF", Hex(((XSSFFont) font).GetXSSFColor()));
+        Assert.AreEqual("#4472C4", Hex(((XSSFCellStyle) cell.CellStyle).FillForegroundColorColor));
+        Assert.AreEqual(FillPattern.SolidForeground, cell.CellStyle.FillPattern);
+        Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.Center, cell.CellStyle.Alignment);
+    }
+
+    /// <summary>A hex colour is stored as it is in .xlsx; .xls has to pick the nearest of its 56.</summary>
+    [TestMethod]
+    public void AHexColourSurvivesInXlsxAndIsMatchedInXls()
+    {
+        var xlsx = Export(ExcelType.Xlsx, options => options.Styles.Cells(s => s.Background("#4472C4")), out _);
+        Assert.AreEqual("#4472C4",
+            Hex(((XSSFCellStyle) xlsx.GetRow(1).GetCell(0).CellStyle).FillForegroundColorColor));
+
+        var xls = Export(ExcelType.Xls, options => options.Styles.Cells(s => s.Background("#4472C4")),
+            out var workbook);
+        var index = xls.GetRow(1).GetCell(0).CellStyle.FillForegroundColor;
+        Assert.AreNotEqual(0, index);
+        Assert.AreEqual(FillPattern.SolidForeground, xls.GetRow(1).GetCell(0).CellStyle.FillPattern);
+        // #4472C4 is a blue, and the palette colour chosen for it has to be one too
+        var rgb = ((NPOI.HSSF.UserModel.HSSFWorkbook) workbook).GetCustomPalette().GetColor(index)!.RGB;
+        Assert.IsTrue(rgb[2] > rgb[0], $"#{rgb[0]:X2}{rgb[1]:X2}{rgb[2]:X2} is no blue");
+    }
+
+    /// <summary>
+    ///     A light grey has no exact match in the .xls palette, and the nearest is measured by eye rather
+    ///     than by raw RGB distance - which would land on a pale lavender.
+    /// </summary>
+    [TestMethod]
+    public void TheNearestPaletteColourOfAGreyIsAGrey()
+    {
+        var sheet = Export(ExcelType.Xls, options => options.Styles.EvenRows(s => s.Background("#D9D9D9")),
+            out var workbook);
+
+        var index = sheet.GetRow(2).GetCell(0).CellStyle.FillForegroundColor;
+        var rgb = ((NPOI.HSSF.UserModel.HSSFWorkbook) workbook).GetCustomPalette().GetColor(index)!.RGB;
+        Assert.AreEqual(rgb[0], rgb[1], $"#{rgb[0]:X2}{rgb[1]:X2}{rgb[2]:X2} is no grey");
+        Assert.AreEqual(rgb[1], rgb[2], $"#{rgb[0]:X2}{rgb[1]:X2}{rgb[2]:X2} is no grey");
+    }
+
+    /// <summary>Every other row takes its own colour, and the first data row counts as odd.</summary>
+    [TestMethod]
+    public void RowsStripe()
+    {
+        var sheet = Export(ExcelType.Xlsx, options => options.Styles.EvenRows(s => s.Background("#F2F2F2")), out _);
+
+        Assert.AreEqual("", Hex(((XSSFCellStyle) sheet.GetRow(1).GetCell(0).CellStyle).FillForegroundColorColor));
+        Assert.AreEqual("#F2F2F2",
+            Hex(((XSSFCellStyle) sheet.GetRow(2).GetCell(0).CellStyle).FillForegroundColorColor));
+        Assert.AreEqual("", Hex(((XSSFCellStyle) sheet.GetRow(3).GetCell(0).CellStyle).FillForegroundColorColor));
+    }
+
+    /// <summary>Cells under stripes under the attribute under the column's own style.</summary>
+    [TestMethod]
+    public void StylesLayerFromTheWidestToTheNarrowest()
+    {
+        var sheet = Export(ExcelType.Xlsx, options =>
+        {
+            options.Styles.Cells(s => s.Italic().FontFamily("宋体"));
+            options.Styles.EvenRows(s => s.Background("#F2F2F2"));
+            options.Styles.Column("金额", s => s.Right().Format("#,##0.00"));
+        }, out var workbook);
+
+        var amount = sheet.GetRow(2).GetCell(1);
+        var font = amount.CellStyle.GetFont(workbook);
+        Assert.IsTrue(font.IsItalic, "from Cells");
+        Assert.AreEqual("宋体", font.FontName, "from Cells");
+        Assert.AreEqual("#F2F2F2", Hex(((XSSFCellStyle) amount.CellStyle).FillForegroundColorColor), "from EvenRows");
+        Assert.AreEqual(NPOI.SS.UserModel.HorizontalAlignment.Right, amount.CellStyle.Alignment, "from Column");
+        Assert.AreEqual("#,##0.00", amount.CellStyle.GetDataFormatString(), "from Column");
+
+        // the attribute still reaches the cells of its own column
+        Assert.IsTrue(sheet.GetRow(1).GetCell(2).CellStyle.GetFont(workbook).IsBold, "from [ExcelColumn]");
+    }
+
+    /// <summary>The style written for a column is the most deliberate, so it wins over the attribute.</summary>
+    [TestMethod]
+    public void AColumnStyleOverridesTheAttribute()
+    {
+        var sheet = Export(ExcelType.Xlsx, options => options.Styles.Column("备注", s => s.Bold(false).Underline()),
+            out var workbook);
+
+        var font = sheet.GetRow(1).GetCell(2).CellStyle.GetFont(workbook);
+        Assert.IsFalse(font.IsBold);
+        Assert.AreEqual(FontUnderlineType.Single, font.Underline);
+    }
+
+    [TestMethod]
+    public void BordersAreWrittenTheWayCssWritesThem()
+    {
+        var sheet = Export(ExcelType.Xlsx, options =>
+        {
+            options.Styles.Cells(s => s.Border("1px solid #D0D0D0"));
+            options.Styles.Column("金额", s => s.BorderBottom("2px dashed #FF0000"));
+        }, out _);
+
+        var city = sheet.GetRow(1).GetCell(0).CellStyle;
+        Assert.AreEqual(BorderStyle.Thin, city.BorderTop);
+        Assert.AreEqual(BorderStyle.Thin, city.BorderLeft);
+        Assert.AreEqual("#D0D0D0", Hex(((XSSFCellStyle) city).TopBorderXSSFColor));
+
+        var amount = (XSSFCellStyle) sheet.GetRow(1).GetCell(1).CellStyle;
+        Assert.AreEqual(BorderStyle.MediumDashed, amount.BorderBottom, "2px dashed");
+        Assert.AreEqual("#FF0000", Hex(amount.BottomBorderXSSFColor));
+        Assert.AreEqual(BorderStyle.Thin, amount.BorderTop, "the other sides keep what Cells gave them");
+    }
+
+    /// <summary>A format written for a column applies whatever the column holds, numbers included.</summary>
+    [TestMethod]
+    public void AFormatReachesANumberColumn()
+    {
+        var sheet = Export(ExcelType.Xlsx, options => options.Styles.Column("金额", s => s.Format("#,##0.00")), out _);
+
+        var cell = sheet.GetRow(1).GetCell(1);
+        Assert.AreEqual(CellType.Numeric, cell.CellType);
+        Assert.AreEqual("#,##0.00", cell.CellStyle.GetDataFormatString());
+    }
+
+    /// <summary>Text keeps its own format unless the style names one, so a leading zero survives.</summary>
+    [TestMethod]
+    public void ATextColumnKeepsTheTextFormat()
+    {
+        var sheet = Export(ExcelType.Xlsx, options => options.Styles.Cells(s => s.Italic()), out _);
+        Assert.AreEqual("@", sheet.GetRow(1).GetCell(0).CellStyle.GetDataFormatString());
+    }
+
+    [TestMethod]
+    public void WrapAndVerticalAlignmentReachTheCell()
+    {
+        var sheet = Export(ExcelType.Xlsx,
+            options => options.Styles.Cells(s => s.Wrap().VerticalAlign(ExcelVerticalAlignment.Middle)), out _);
+
+        var style = sheet.GetRow(1).GetCell(0).CellStyle;
+        Assert.IsTrue(style.WrapText);
+        Assert.AreEqual(VerticalAlignment.Center, style.VerticalAlignment);
+    }
+
+    /// <summary>
+    ///     Cells that look alike share one cell style: a workbook holds a limited number of them, and a
+    ///     striped table would otherwise want one per row.
+    /// </summary>
+    [TestMethod]
+    public void CellsThatLookAlikeShareOneStyle()
+    {
+        var many = new List<Model>();
+        for (var i = 0; i < 400; i++) many.Add(new Model());
+
+        var sheet = Export(ExcelType.Xlsx, options =>
+        {
+            options.Styles.Cells(s => s.Border("1px solid #CCC"));
+            options.Styles.EvenRows(s => s.Background("#F2F2F2"));
+        }, out var workbook, many);
+
+        Assert.AreEqual(sheet.GetRow(1).GetCell(0).CellStyle.Index, sheet.GetRow(3).GetCell(0).CellStyle.Index);
+        Assert.AreEqual(sheet.GetRow(2).GetCell(0).CellStyle.Index, sheet.GetRow(4).GetCell(0).CellStyle.Index);
+        // header, text, number, striped variants of each - a handful, not one per cell
+        Assert.IsTrue(workbook.NumCellStyles < 20, $"{workbook.NumCellStyles} cell styles");
+    }
+
+    /// <summary>A colour picked from the palette keeps meaning that palette entry, as it always has.</summary>
+    [TestMethod]
+    public void APaletteColourStaysIndexed()
+    {
+        var sheet = Export(ExcelType.Xlsx, options => options.Styles.Cells(s => s.Color(ExcelStyleColor.Red)),
+            out var workbook);
+
+        Assert.AreEqual((short) ExcelStyleColor.Red, sheet.GetRow(1).GetCell(0).CellStyle.GetFont(workbook).Color);
+    }
+
+    [DataTestMethod]
+    [DataRow("")]
+    [DataRow("nope")]
+    [DataRow("#12345")]
+    public void AColourThatIsNoneSaysSo(string color)
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            Export(ExcelType.Xlsx, options => options.Styles.Cells(s => s.Background(color)), out _));
+
+        StringAssert.Contains(e.Message, "#4472C4");
+    }
+
+    /// <summary>Nothing declared means nothing written, so an export without styles is what it always was.</summary>
+    [TestMethod]
+    public void WithoutStylesTheCellsKeepTheWorkbookDefault()
+    {
+        var sheet = Export(ExcelType.Xlsx, _ => { }, out var workbook);
+
+        Assert.AreEqual(0, sheet.GetRow(0).GetCell(0).CellStyle.Index, "the header keeps the default style");
+        Assert.AreEqual(0, sheet.GetRow(1).GetCell(1).CellStyle.Index, "so does a plain number cell");
+        Assert.IsTrue(workbook.NumCellStyles < 5, $"{workbook.NumCellStyles} cell styles");
+    }
+}
