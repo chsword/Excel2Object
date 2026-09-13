@@ -270,8 +270,7 @@ public class ExcelImporter
             switch (cell.CellType)
             {
                 case CellType.Numeric:
-                    result = (datesAsText ? DateCellText(cell) : null)
-                             ?? cell.NumericCellValue.ToString(CultureInfo.InvariantCulture);
+                    result = (datesAsText ? DateCellText(cell) : null) ?? NumberText(cell.NumericCellValue);
                     break;
                 case CellType.String:
                     result = cell.StringCellValue;
@@ -297,6 +296,24 @@ public class ExcelImporter
         }
 
         return (result ?? "").Trim();
+    }
+
+    /// <summary>
+    ///     数值的文本表示，必须能原样解析回同一个 double：数值列正是经由这段文本转换的。
+    /// </summary>
+    /// <remarks>
+    ///     .NET Framework 的默认格式为 G15，会丢掉低位；其 <c>"R"</c> 对少数值给出的表示同样无法往返
+    ///     （已知缺陷）。故先按 <c>"R"</c> 渲染并验证一次，确实不能往返时才退回 17 位有效数字——这样
+    ///     常见数值不会平白变成 <c>0.10000000000000001</c> 这样的写法。
+    /// </remarks>
+    private static string NumberText(double value)
+    {
+        var text = value.ToString("R", CultureInfo.InvariantCulture);
+        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var back) &&
+            back.Equals(value))
+            return text;
+
+        return value.ToString("G17", CultureInfo.InvariantCulture);
     }
 
     /// <summary>

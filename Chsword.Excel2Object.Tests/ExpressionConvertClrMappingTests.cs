@@ -1,3 +1,4 @@
+using System.Globalization;
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -37,9 +38,12 @@ public class ExpressionConvertClrMappingTests : BaseFunctionTest
         TestFunction(c => ((string) c["One"]).EndsWith("xy"), "EXACT(RIGHT(A4,LEN(\"xy\")),\"xy\")");
         // FIND errors when the text is absent, where .NET returns -1
         TestFunction(c => ((string) c["One"]).IndexOf("xy"), "IFERROR(FIND(\"xy\",A4)-1,-1)");
-        // the char overloads of the same methods translate the same way
+#if !NETFRAMEWORK
+        // the char overloads of the same methods translate the same way. .NET Framework has no such
+        // overload, so there the expression could not be written in the first place.
         TestFunction(c => ((string) c["One"]).Contains('x'), "ISNUMBER(FIND(\"x\",A4))");
         TestFunction(c => ((string) c["One"]).StartsWith('x'), "EXACT(LEFT(A4,LEN(\"x\")),\"x\")");
+#endif
     }
 
     [TestMethod]
@@ -71,8 +75,13 @@ public class ExpressionConvertClrMappingTests : BaseFunctionTest
     {
         TestFunction(c => c["One"] > new DateTime(2024, 3, 1, 8, 30, 0),
             "A4>DATE(2024,3,1)+TIME(8,30,0)");
-        TestFunction(c => c["One"] > new DateTime(2024, 3, 1, 8, 30, 0, 500),
-            "A4>DATE(2024,3,1)+TIME(8,30,0)+5.787037037037037E-06");
+        // 小数的位数依运行时而异（.NET Framework 的 "R" 会多给几位），两种写法解析后是同一个
+        // double，Excel 也照单全收，故按数值而非字面量比较
+        var formula = Convert(c => c["One"] > new DateTime(2024, 3, 1, 8, 30, 0, 500));
+        const string head = "A4>DATE(2024,3,1)+TIME(8,30,0)+";
+        StringAssert.StartsWith(formula, head);
+        Assert.AreEqual(500d / 86400000, double.Parse(formula.Substring(head.Length),
+            NumberStyles.Float, CultureInfo.InvariantCulture), 1e-18);
     }
 
     [TestMethod]

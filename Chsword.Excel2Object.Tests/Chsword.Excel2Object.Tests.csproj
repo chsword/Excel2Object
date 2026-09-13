@@ -1,8 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- 库发布 7 个目标框架，此处按「能跑起来的运行时」取样：net10.0 与 net8.0 覆盖 .NET，
+         net472 覆盖 .NET Framework（仅 Windows 可运行，故按平台条件加入）。
+         netstandard2.0 / 2.1 不是可运行的目标框架，其产物由编译保证，无法在此直接运行。 -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net472;net8.0;net10.0</TargetFrameworks>
 	  <Nullable>annotations</Nullable>
+    <!-- 与库一致，各目标框架使用同一语言版本：否则 net8.0 会退回 C# 12，
+         表达式树中省略可选参数的调用将编译失败（CS0854） -->
+    <LangVersion>14.0</LangVersion>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -23,7 +30,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Chsword.Excel2Object\Chsword.Excel2Object.csproj" />
+  </ItemGroup>
+
+  <!-- 命令行工具只发布 net8.0，.NET Framework 无法引用，故该目标框架下不含其测试 -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <ProjectReference Include="..\Chsword.Excel2Object.Cli\Chsword.Excel2Object.Cli.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="CliTest.cs" />
   </ItemGroup>
 
   <ItemGroup>

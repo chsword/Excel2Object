@@ -476,6 +476,24 @@ public class StyleSheetTest : BaseExcelTest
         StringAssert.Contains(e.Message, "1px solid #D0D0D0");
     }
 
+    /// <summary>
+    ///     样式的缓存键必须把每个属性都算进去，哪怕第一个属性（字体色）没有设置——.NET Framework 的
+    ///     string.Join(string, params object[]) 在首个元素为 null 时返回空字符串，曾使所有未设字体色的
+    ///     样式共用同一个单元格样式，隔行底色、边框、加粗因此全部失效。
+    /// </summary>
+    [TestMethod]
+    public void StylesWithoutAFontColourStillGetDistinctKeys()
+    {
+        var plain = new ExcelStyle();
+        var filled = new ExcelStyle().Background("#F2F2F2");
+        var bold = new ExcelStyle().Bold();
+
+        Assert.AreNotEqual(plain.Key(), filled.Key());
+        Assert.AreNotEqual(plain.Key(), bold.Key());
+        Assert.AreNotEqual(filled.Key(), bold.Key());
+        StringAssert.Contains(filled.Key(), "F2F2F2");
+    }
+
     /// <summary>CSS names a handful of colours, and a stylesheet may as well take them.</summary>
     [TestMethod]
     public void AColourCanBeNamed()
