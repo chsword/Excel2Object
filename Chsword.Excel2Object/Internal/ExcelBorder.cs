@@ -36,13 +36,36 @@ internal readonly struct ExcelBorder : IEquatable<ExcelBorder>
             if (part.EndsWith("px", StringComparison.OrdinalIgnoreCase) &&
                 int.TryParse(part.Substring(0, part.Length - 2), out var pixels))
                 width = pixels;
+            else if (Keyword(part) is { } named)
+                width = named;
             else if (IsStyleWord(part))
                 style = part.ToLowerInvariant();
             else
-                color = StyleColor.Parse(part);
+                try
+                {
+                    color = StyleColor.Parse(part);
+                }
+                catch (Excel2ObjectException e)
+                {
+                    throw new Excel2ObjectException(
+                        $"[{border}] is no border: {e.Message} Write one as CSS writes it, e.g. " +
+                        "\"1px solid #D0D0D0\", \"medium dashed red\" or \"none\".", e);
+                }
         }
 
         return new ExcelBorder(Line2(style, width), color);
+    }
+
+    /// <summary>CSS names three widths as well as measuring them in pixels.</summary>
+    private static int? Keyword(string part)
+    {
+        switch (part.ToLowerInvariant())
+        {
+            case "thin": return 1;
+            case "medium": return 2;
+            case "thick": return 3;
+            default: return null;
+        }
     }
 
     private static bool IsStyleWord(string part)

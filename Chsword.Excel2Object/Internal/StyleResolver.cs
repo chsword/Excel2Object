@@ -30,13 +30,64 @@ internal static class StyleResolver
         return column.HeaderStyle == null || styles.HeaderStyle != null ? resolved : Merge(resolved, LegacyHeaderSize);
     }
 
-    public static ExcelStyle? Cell(ExcelColumn column, ExcelStyleSheet styles, int rowIndex)
+    /// <summary>
+    ///     How a column's cells look on one kind of row, settled once for the whole sheet.
+    /// </summary>
+    /// <param name="rowIndex">Any row of that kind; only its odd- or evenness is read.</param>
+    public static ResolvedColumnStyle Resolve(ExcelColumn column, ExcelStyleSheet styles, int rowIndex)
     {
-        var stripe = (rowIndex - ExcelConstants.DefaultDataStartRowIndex) % 2 == 0
+        var style = Cell(column, styles, rowIndex);
+        var written = ForThisColumn(column, styles);
+        var fallback = Broad(styles, rowIndex);
+
+        // a date column takes a date format, a value column takes anything else; what was written for
+        // the column itself is used either way
+        var forColumn = ColumnStyleFormat(column, styles);
+        var date = written ?? (IsDateFormat(fallback) ? fallback : null);
+        var value = forColumn ?? (IsDateFormat(fallback) ? null : fallback);
+
+        return new ResolvedColumnStyle(style, date, value, forColumn);
+    }
+
+    /// <summary>
+    ///     The format written for this column and no wider: the stylesheet's <c>Column(title)</c>, else
+    ///     the <c>[ExcelColumn]</c>'s own - which has always meant the format of a date column.
+    /// </summary>
+    private static string? ForThisColumn(ExcelColumn column, ExcelStyleSheet styles)
+    {
+        return ColumnStyleFormat(column, styles) ?? column.CellStyle?.Format;
+    }
+
+    private static string? ColumnStyleFormat(ExcelColumn column, ExcelStyleSheet styles)
+    {
+        return column.Title != null && styles.ColumnStyles.TryGetValue(column.Title, out var byTitle)
+            ? byTitle.NumberFormat
+            : null;
+    }
+
+    /// <summary>The format written for every cell, or for the stripe this row falls on.</summary>
+    private static string? Broad(ExcelStyleSheet styles, int rowIndex)
+    {
+        var stripe = Stripe(styles, rowIndex);
+        return stripe?.NumberFormat ?? styles.CellsStyle?.NumberFormat;
+    }
+
+    private static bool IsDateFormat(string? format)
+    {
+        return format != null &&
+               ExcelDateFormat.PartsShown(ExcelDateFormat.ToExcel(format)) != ExcelDateFormat.Parts.None;
+    }
+
+    private static ExcelStyle? Stripe(ExcelStyleSheet styles, int rowIndex)
+    {
+        return (rowIndex - ExcelConstants.DefaultDataStartRowIndex) % 2 == 0
             ? styles.OddRowsStyle
             : styles.EvenRowsStyle;
+    }
 
-        var resolved = Merge(stripe, styles.CellsStyle);
+    public static ExcelStyle? Cell(ExcelColumn column, ExcelStyleSheet styles, int rowIndex)
+    {
+        var resolved = Merge(Stripe(styles, rowIndex), styles.CellsStyle);
         resolved = Merge(FromCell(column.CellStyle), resolved);
         if (column.Title != null && styles.ColumnStyles.TryGetValue(column.Title, out var byTitle))
             resolved = Merge(byTitle, resolved);
@@ -82,21 +133,6 @@ internal static class StyleResolver
         if (attribute.HeaderAlignment != HorizontalAlignment.General) style.Align(attribute.HeaderAlignment);
 
         return style.IsEmpty ? null : style;
-    }
-
-    /// <summary>
-    ///     The format a date column shows: the one the styles resolved for the cell - from whatever scope
-    ///     wrote it - else the <c>[ExcelColumn]</c>'s own, which has always meant a date's format.
-    /// </summary>
-    public static string? DateFormat(ExcelStyle? resolved, ExcelColumn column)
-    {
-        // a format written for every cell is usually about the numbers; only one that shows a date has
-        // anything to say to a date cell, or "#,##0.00" would turn it into 46,278.00
-        var format = resolved?.NumberFormat;
-        if (format != null && ExcelDateFormat.PartsShown(ExcelDateFormat.ToExcel(format)) != ExcelDateFormat.Parts.None)
-            return format;
-
-        return column.CellStyle?.Format;
     }
 
     /// <summary>One style laid over another, either of which may be nothing at all.</summary>

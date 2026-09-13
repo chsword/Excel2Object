@@ -19,10 +19,6 @@ public class ExcelStyleSheet
     internal ExcelStyle? EvenRowsStyle { get; private set; }
     internal Dictionary<string, ExcelStyle> ColumnStyles { get; } = new(StringComparer.Ordinal);
 
-    /// <summary>True when the export declares no styles here at all.</summary>
-    internal bool IsEmpty => HeaderStyle == null && CellsStyle == null && OddRowsStyle == null &&
-                             EvenRowsStyle == null && ColumnStyles.Count == 0;
-
     /// <summary>How the header row looks.</summary>
     public ExcelStyleSheet Header(Action<ExcelStyle> style)
     {

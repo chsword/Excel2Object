@@ -20,6 +20,13 @@ internal sealed class CellStyleFactory
     private readonly Dictionary<string, ICellStyle> _styles = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IFont> _fonts = new(StringComparer.Ordinal);
 
+    /// <summary>
+    ///     The style already handed out for a style object, keyed by that object rather than by what it
+    ///     says. The export resolves one style per column per kind of row and then asks for it once per
+    ///     cell, so this answers nearly every call without building a key.
+    /// </summary>
+    private readonly Dictionary<(ExcelStyle?, string?), ICellStyle?> _asked = new();
+
     public CellStyleFactory(IWorkbook workbook)
     {
         _workbook = workbook;
@@ -31,26 +38,27 @@ internal sealed class CellStyleFactory
     /// </summary>
     /// <param name="style">What the export asked for, if anything.</param>
     /// <param name="format">
-    ///     The number format the cell needs whatever the style says - <c>@</c> for text, the translated
-    ///     format of a date - which the style's own <c>Format</c> overrides when it has one.
+    ///     The number format this cell shows, which the caller settles: where a format was written decides
+    ///     which cells it reaches, so the style's own <c>Format</c> is not read here.
     /// </param>
     public ICellStyle? Get(ExcelStyle? style, string? format = null)
     {
         if ((style == null || style.IsEmpty) && format == null) return null;
+        if (_asked.TryGetValue((style, format), out var known)) return known;
 
-        var key = (style?.Key() ?? "") + "" + format;
-        if (_styles.TryGetValue(key, out var cached)) return cached;
+        var key = (style?.Key() ?? "") + "|@|" + format;
+        if (!_styles.TryGetValue(key, out var cellStyle))
+        {
+            cellStyle = _workbook.CreateCellStyle();
+            if (style != null && !style.IsEmpty) Apply(cellStyle, style);
+            if (format != null)
+                // GetFormat hands back the builtin index when there is one and registers it otherwise
+                cellStyle.DataFormat = _workbook.CreateDataFormat().GetFormat(format);
 
-        var cellStyle = _workbook.CreateCellStyle();
-        if (style != null && !style.IsEmpty) Apply(cellStyle, style);
+            _styles[key] = cellStyle;
+        }
 
-        // the caller's format is the cell's own need - "@" for text, a date's translated format - and wins
-        var numberFormat = format ?? style?.NumberFormat;
-        if (numberFormat != null)
-            // GetFormat hands back the builtin index when there is one and registers the format otherwise
-            cellStyle.DataFormat = _workbook.CreateDataFormat().GetFormat(numberFormat);
-
-        _styles[key] = cellStyle;
+        _asked[(style, format)] = cellStyle;
         return cellStyle;
     }
 

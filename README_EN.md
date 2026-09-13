@@ -63,6 +63,11 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 ### Release Notes
 
+* **2026.09.13** - v2.7.1
+- [x] 🐛 Fixed which cells a stylesheet `Format` reaches: one written for a column now outranks the attribute's own (a format written for every cell used to win instead, dropping the time of day of `[ExcelColumn(Format = "yyyy-MM-dd HH:mm:ss")]`), and one written for every cell or for the row stripes only reaches the columns it can speak for - a date format no longer shows `12.5` as `1900-01-12`, and a number format no longer takes the `@` that keeps a leading zero away from a text column
+- [x] ✨ **IMPROVED:** A border width can be named `thin` / `medium` / `thick` as CSS names it, and a border that cannot be read says which part of it was not understood
+- [x] ✨ **IMPROVED:** The look of a column is resolved once per kind of row rather than once per cell, taking millions of style merges and key builds out of a large export
+
 * **2026.09.13** - v2.7.0
 - [x] ✨ **NEW:** A stylesheet, `options.Styles`: styles written by what they apply to rather than repeated on every `[ExcelColumn]` - `Header` / `Cells` / `Column("title")` / `OddRows` / `EvenRows`, layering `Cells → row stripes → [ExcelColumn] → Column`, with only the properties a style sets taking part
 - [x] ✨ **NEW:** Cell background and borders, which had no support at all: `Background("#4472C4")`, `Border("1px solid #D0D0D0")`, along with `Wrap`, `VerticalAlign` and `FontSize`
@@ -348,7 +353,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 });
 ```
 
-What a style can set: `Color` / `Background` (`#RRGGBB`, `#RGB` or an `ExcelStyleColor`), `Bold` / `Italic` / `Underline` / `Strikeout`, `FontFamily` / `FontSize`, `Left` / `Center` / `Right` / `Align` / `VerticalAlign`, `Wrap`, `Format`, and `Border` with `BorderTop` / `BorderRight` / `BorderBottom` / `BorderLeft` (written as CSS writes them: `1px solid #D0D0D0`, `2px dashed red`, `none`; colours as hex or one of the basic CSS names such as `red`, `gray`, `navy`).
+What a style can set: `Color` / `Background` (`#RRGGBB`, `#RGB` or an `ExcelStyleColor`), `Bold` / `Italic` / `Underline` / `Strikeout`, `FontFamily` / `FontSize`, `Left` / `Center` / `Right` / `Align` / `VerticalAlign`, `Wrap`, `Format`, and `Border` with `BorderTop` / `BorderRight` / `BorderBottom` / `BorderLeft` (written as CSS writes them: `1px solid #D0D0D0`, `medium dashed red`, `none`; the width in pixels or as `thin` / `medium` / `thick`, colours as hex or one of the basic CSS names such as `red`, `gray`, `navy`).
 
 **They layer** from the widest to the narrowest, and only the properties a style sets take part, so the layers add up rather than replace one another:
 
@@ -356,7 +361,7 @@ What a style can set: `Color` / `Background` (`#RRGGBB`, `#RGB` or an `ExcelStyl
 
 `Header(...)` sits under the attribute's `Header…` properties the same way. Once a header style is written the whole header row shares one size, rather than keeping the 10pt every `[ExcelColumn]` header used to carry.
 
-A `Format` written at a broad scope - `Cells`, the row stripes - only reaches the columns it can speak for: `#,##0.00` does not land on a date column and turn a date into `46278.00`; a date column takes a date format only.
+Where a `Format` is written decides which cells it reaches. Written for one column - `Column("title")` - it is a deliberate statement about that column and is used as it is, on numbers, text and dates alike, outranking the attribute's own `Format`. Written for every cell, or for the row stripes, it is a default that only reaches the columns it can speak for: a number format does not turn a date into `46278.00`, a date format does not turn `12.5` into `1900-01-12`, and neither takes the `@` that keeps a leading zero away from a text column.
 
 **Colours**: `.xlsx` stores a hex colour as it is. `.xls` has only its 56-colour palette, so the nearest one is picked by what the eye sees (CIELAB) - a light grey comes out grey rather than lavender - though a very pale colour such as `#F2F2F2` lands on white, so striping an `.xls` wants a deeper grey such as `#C0C0C0`. A colour picked from `ExcelStyleColor` is still written as its palette index in both formats.
 
