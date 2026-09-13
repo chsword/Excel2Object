@@ -14,9 +14,18 @@ namespace Chsword.Excel2Object.Internal;
 /// </remarks>
 internal static class StyleResolver
 {
+    /// <summary>
+    ///     The size a header has had since before there was a stylesheet: any column declaring an
+    ///     <c>[ExcelColumn]</c> got one whether or not it asked. It sits under everything, so a size set
+    ///     anywhere - on the attribute or in the stylesheet - is the one that shows.
+    /// </summary>
+    private static readonly ExcelStyle LegacyHeaderSize =
+        new ExcelStyle().FontSize(ExcelConstants.DefaultFontHeightInPoints);
+
     public static ExcelStyle? Header(ExcelColumn column, ExcelStyleSheet styles)
     {
-        return Merge(FromHeader(column.HeaderStyle), styles.HeaderStyle);
+        var resolved = Merge(FromHeader(column.HeaderStyle), styles.HeaderStyle);
+        return column.HeaderStyle == null ? resolved : Merge(resolved, LegacyHeaderSize);
     }
 
     public static ExcelStyle? Cell(ExcelColumn column, ExcelStyleSheet styles, int rowIndex)
@@ -62,10 +71,7 @@ internal static class StyleResolver
         var style = new ExcelStyle();
 
         if (!string.IsNullOrWhiteSpace(attribute.HeaderFontFamily)) style.FontFamily(attribute.HeaderFontFamily!);
-        // a header that declares an [ExcelColumn] has always been sized, whether or not it asked to be
-        style.FontSize(attribute.HeaderFontHeight > 0
-            ? attribute.HeaderFontHeight
-            : ExcelConstants.DefaultFontHeightInPoints);
+        if (attribute.HeaderFontHeight > 0) style.FontSize(attribute.HeaderFontHeight);
         if (attribute.HeaderFontColor > 0) style.Color(attribute.HeaderFontColor);
         if (attribute.HeaderBold) style.Bold();
         if (attribute.HeaderItalic) style.Italic();
@@ -73,20 +79,25 @@ internal static class StyleResolver
         if (attribute.HeaderUnderline) style.Underline();
         if (attribute.HeaderAlignment != HorizontalAlignment.General) style.Align(attribute.HeaderAlignment);
 
-        return style;
+        return style.IsEmpty ? null : style;
     }
 
     /// <summary>
-    ///     The format a date column shows: the one the stylesheet wrote for that column, else the
-    ///     <c>[ExcelColumn]</c>'s own.
+    ///     The format a date column shows: the one the styles resolved for the cell - from whatever scope
+    ///     wrote it - else the <c>[ExcelColumn]</c>'s own, which has always meant a date's format.
     /// </summary>
-    public static string? DateFormat(ExcelColumn column, ExcelStyleSheet styles)
+    public static string? DateFormat(ExcelStyle? resolved, ExcelColumn column)
     {
-        if (column.Title != null && styles.ColumnStyles.TryGetValue(column.Title, out var byTitle) &&
-            byTitle.NumberFormat != null)
-            return byTitle.NumberFormat;
+        return resolved?.NumberFormat ?? column.CellStyle?.Format;
+    }
 
-        return column.CellStyle?.Format;
+    /// <summary>
+    ///     The same, for a column rather than one of its cells: what an auto-sized column is measured
+    ///     against, where the row stripes make no difference.
+    /// </summary>
+    public static string? ColumnFormat(ExcelColumn column, ExcelStyleSheet styles)
+    {
+        return DateFormat(Cell(column, styles, ExcelConstants.DefaultDataStartRowIndex), column);
     }
 
     /// <summary>One style laid over another, either of which may be nothing at all.</summary>

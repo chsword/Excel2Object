@@ -266,8 +266,10 @@ public class ExcelExporter
         var valueType = column.Type == null ? null : TypeUtil.GetUnNullableType(column.Type);
         if (valueType != null && valueType != typeof(Expression) && valueType != typeof(string) && val.Length == 0)
         {
-            // null / missing values stay blank so formulas treat them as 0 instead of failing on ""
+            // null / missing values stay blank so formulas treat them as 0 instead of failing on "" - but
+            // they still take the look of the rows around them, or a striped table would have holes in it
             cell.SetBlank();
+            SetStyle(cell, styleFactory.Get(style));
             return;
         }
 
@@ -332,7 +334,7 @@ public class ExcelExporter
             }
             // a formula that yields a date needs a date format, or Excel shows the serial number
             SetStyle(cell, column.ResultType == typeof(DateTime)
-                ? styleFactory.Get(style, ExcelDateFormat.ToExcel(StyleResolver.DateFormat(column, options.Styles)))
+                ? styleFactory.Get(style, ExcelDateFormat.ToExcel(StyleResolver.DateFormat(style, column)))
                 : styleFactory.Get(style));
 
             return;
@@ -363,7 +365,7 @@ public class ExcelExporter
         ICell cell, DateTime date, string val, CellStyleFactory styleFactory)
     {
         var asText = options.DateTimeAsText;
-        var format = StyleResolver.DateFormat(column, options.Styles);
+        var format = StyleResolver.DateFormat(style, column);
 
         // Excel's calendar starts at 1900-01-01 (1904 in a workbook on the 1904 date system), so anything
         // earlier - default(DateTime) above all - can only be kept as text
@@ -417,10 +419,11 @@ public class ExcelExporter
                 var column = columns[i];
                 if (column.Title != null && item.TryGetValue(column.Title, out var value))
                 {
-                    // a date cell shows its column's format, which is what the width has to fit
+                    // a cell shows its column's format, which is what the width has to fit
+                    var format = StyleResolver.ColumnFormat(column, options.Styles);
                     var cellText = value is DateTime date
-                        ? DateToText(date, StyleResolver.DateFormat(column, options.Styles))
-                        : (value ?? "").ToString() ?? "";
+                        ? DateToText(date, format)
+                        : NumberToText(value, format) ?? (value ?? "").ToString() ?? "";
                     var textWidth = CalculateTextWidth(cellText);
                     if (textWidth > columnWidths[i])
                     {
@@ -438,6 +441,30 @@ public class ExcelExporter
         }
 
         return columnWidths;
+    }
+
+    /// <summary>
+    ///     What a number shows under its format, for the width of an auto-sized column. Excel's number
+    ///     formats and .NET's agree on the part people write - digits, a thousands separator, decimals, a
+    ///     percent sign - so that much is rendered; anything else Excel alone understands (colours,
+    ///     conditions, literals) is left to be measured as the plain number.
+    /// </summary>
+    private static string? NumberToText(object? value, string? format)
+    {
+        if (format == null || value == null || !IsNumeric(value.GetType())) return null;
+        foreach (var c in format)
+            if (!char.IsDigit(c) && c != '#' && c != '0' && c != '.' && c != ',' && c != '%' && c != ' ')
+                return null;
+
+        try
+        {
+            return Convert.ToDecimal(value, CultureInfo.InvariantCulture)
+                .ToString(format, CultureInfo.InvariantCulture);
+        }
+        catch (Exception e) when (e is FormatException or OverflowException or InvalidCastException)
+        {
+            return null;
+        }
     }
 
     /// <summary>

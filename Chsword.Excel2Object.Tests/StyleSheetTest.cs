@@ -224,6 +224,86 @@ public class StyleSheetTest : BaseExcelTest
         Assert.AreEqual((short) ExcelStyleColor.Red, sheet.GetRow(1).GetCell(0).CellStyle.GetFont(workbook).Color);
     }
 
+    /// <summary>A blank cell is still part of the table, stripes and borders included.</summary>
+    [TestMethod]
+    public void ABlankCellKeepsTheLookOfItsRow()
+    {
+        var rows = new List<Model> {new(), new() {Amount = 0}};
+        var sheet = Export(ExcelType.Xlsx, options =>
+        {
+            options.Styles.EvenRows(s => s.Background("#F2F2F2"));
+            options.Styles.Cells(s => s.Border("1px solid #CCC"));
+        }, out _, rows);
+
+        // a null in a nullable column would blank the cell; this model blanks it through an empty value
+        var blank = sheet.GetRow(2).GetCell(1);
+        Assert.AreEqual("#F2F2F2", Hex(((XSSFCellStyle) blank.CellStyle).FillForegroundColorColor));
+        Assert.AreEqual(BorderStyle.Thin, blank.CellStyle.BorderTop);
+    }
+
+    /// <summary>The width of an auto-sized column follows what the format makes of the number.</summary>
+    [TestMethod]
+    public void AutoColumnWidthFollowsTheNumberFormat()
+    {
+        var rows = new List<Model> {new() {Amount = 1000}};
+        var narrow = Export(ExcelType.Xlsx, options =>
+        {
+            options.AutoColumnWidth = true;
+            options.MinColumnWidth = 1;
+        }, out _, rows);
+        var wide = Export(ExcelType.Xlsx, options =>
+        {
+            options.AutoColumnWidth = true;
+            options.MinColumnWidth = 1;
+            options.Styles.Column("金额", s => s.Format("#,##0.00"));
+        }, out _, rows);
+
+        // "1000" against "1,000.00"
+        Assert.IsTrue(wide.GetColumnWidth(1) > narrow.GetColumnWidth(1),
+            $"{wide.GetColumnWidth(1)} vs {narrow.GetColumnWidth(1)}");
+    }
+
+    /// <summary>A header size written in the stylesheet is not undone by the legacy default.</summary>
+    [TestMethod]
+    public void TheStylesheetSetsTheHeaderSize()
+    {
+        var sheet = Export(ExcelType.Xlsx, options => options.Styles.Header(s => s.FontSize(20)),
+            out var workbook);
+
+        // 备注 declares [ExcelColumn] and names no header size of its own
+        Assert.AreEqual(20, sheet.GetRow(0).GetCell(2).CellStyle.GetFont(workbook).FontHeightInPoints);
+    }
+
+    /// <summary>A format written for every cell reaches a date column too.</summary>
+    [TestMethod]
+    public void ADateTakesAFormatFromAnyScope()
+    {
+        var bytes = new ExcelExporter().ObjectToExcelBytes(new List<Dated> {new()}, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.Styles.Cells(s => s.Format("yyyy-MM-dd"));
+        })!;
+        var sheet = WorkbookFactory.Create(new MemoryStream(bytes)).GetSheetAt(0);
+
+        Assert.AreEqual("yyyy-mm-dd", sheet.GetRow(1).GetCell(0).CellStyle.GetDataFormatString());
+    }
+
+    public class Dated
+    {
+        [ExcelTitle("日期")] public DateTime When { get; set; } = new(2026, 9, 13, 14, 30, 45);
+    }
+
+    /// <summary>CSS names a handful of colours, and a stylesheet may as well take them.</summary>
+    [TestMethod]
+    public void AColourCanBeNamed()
+    {
+        var sheet = Export(ExcelType.Xlsx, options => options.Styles.Cells(s => s.Border("2px dashed red")), out _);
+
+        var style = (XSSFCellStyle) sheet.GetRow(1).GetCell(0).CellStyle;
+        Assert.AreEqual(BorderStyle.MediumDashed, style.BorderTop);
+        Assert.AreEqual("#FF0000", Hex(style.TopBorderXSSFColor));
+    }
+
     [DataTestMethod]
     [DataRow("")]
     [DataRow("nope")]

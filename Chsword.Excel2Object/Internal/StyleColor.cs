@@ -43,13 +43,25 @@ internal readonly struct StyleColor : IEquatable<StyleColor>
         return new StyleColor(rgb[0], rgb[1], rgb[2], index);
     }
 
-    /// <summary>Reads <c>#RGB</c>, <c>#RRGGBB</c> or the bare digits of either.</summary>
+    /// <summary>The colour names CSS started with, which a stylesheet may as well accept.</summary>
+    private static readonly Dictionary<string, string> Named = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["black"] = "000000", ["silver"] = "C0C0C0", ["gray"] = "808080", ["grey"] = "808080",
+        ["white"] = "FFFFFF", ["maroon"] = "800000", ["red"] = "FF0000", ["purple"] = "800080",
+        ["fuchsia"] = "FF00FF", ["green"] = "008000", ["lime"] = "00FF00", ["olive"] = "808000",
+        ["yellow"] = "FFFF00", ["navy"] = "000080", ["blue"] = "0000FF", ["teal"] = "008080",
+        ["aqua"] = "00FFFF", ["cyan"] = "00FFFF", ["orange"] = "FFA500", ["pink"] = "FFC0CB"
+    };
+
+    /// <summary>Reads <c>#RGB</c>, <c>#RRGGBB</c>, the bare digits of either, or a CSS colour name.</summary>
     public static StyleColor Parse(string color)
     {
         if (string.IsNullOrWhiteSpace(color))
             throw new Excel2ObjectException("A colour cannot be empty; write one such as \"#4472C4\".");
 
-        var text = color.Trim().TrimStart('#');
+        var text = color.Trim();
+        if (Named.TryGetValue(text, out var named)) text = named;
+        text = text.TrimStart('#');
         if (text.Length == 3)
             text = new string(new[] {text[0], text[0], text[1], text[1], text[2], text[2]});
 
@@ -60,8 +72,8 @@ internal readonly struct StyleColor : IEquatable<StyleColor>
                              || !ushort.TryParse(text.Substring(4, 2), NumberStyles.HexNumber,
                                  CultureInfo.InvariantCulture, out var b))
             throw new Excel2ObjectException(
-                $"[{color}] is no colour. Write one as #RRGGBB or #RGB, e.g. \"#4472C4\", or pick an " +
-                $"{nameof(ExcelStyleColor)}.");
+                $"[{color}] is no colour. Write one as #RRGGBB or #RGB, e.g. \"#4472C4\", name one of " +
+                $"{string.Join(", ", Named.Keys)}, or pick an {nameof(ExcelStyleColor)}.");
 
         return new StyleColor((byte) r, (byte) g, (byte) b, 0);
     }
@@ -87,9 +99,9 @@ internal readonly struct StyleColor : IEquatable<StyleColor>
         {
             var rgb = entry.Value.RGB;
             var lab = Lab(rgb[0], rgb[1], rgb[2]);
-            var distance = (lab[0] - target[0]) * (lab[0] - target[0]) +
-                           (lab[1] - target[1]) * (lab[1] - target[1]) +
-                           (lab[2] - target[2]) * (lab[2] - target[2]);
+            var distance = ((lab[0] - target[0]) * (lab[0] - target[0])) +
+                           ((lab[1] - target[1]) * (lab[1] - target[1])) +
+                           ((lab[2] - target[2]) * (lab[2] - target[2]));
             if (distance >= bestDistance) continue;
             bestDistance = distance;
             best = (short) entry.Key;
@@ -105,11 +117,11 @@ internal readonly struct StyleColor : IEquatable<StyleColor>
         var green = Linear(g);
         var blue = Linear(b);
 
-        var x = (red * 0.4124 + green * 0.3576 + blue * 0.1805) / 0.95047;
-        var y = red * 0.2126 + green * 0.7152 + blue * 0.0722;
-        var z = (red * 0.0193 + green * 0.1192 + blue * 0.9505) / 1.08883;
+        var x = ((red * 0.4124) + (green * 0.3576) + (blue * 0.1805)) / 0.95047;
+        var y = (red * 0.2126) + (green * 0.7152) + (blue * 0.0722);
+        var z = ((red * 0.0193) + (green * 0.1192) + (blue * 0.9505)) / 1.08883;
 
-        return new[] {116 * F(y) - 16, 500 * (F(x) - F(y)), 200 * (F(y) - F(z))};
+        return new[] {(116 * F(y)) - 16, 500 * (F(x) - F(y)), 200 * (F(y) - F(z))};
     }
 
     private static double Linear(byte channel)
@@ -120,7 +132,7 @@ internal readonly struct StyleColor : IEquatable<StyleColor>
 
     private static double F(double value)
     {
-        return value > 0.008856 ? Math.Pow(value, 1.0 / 3) : 7.787 * value + 16.0 / 116;
+        return value > 0.008856 ? Math.Pow(value, 1.0 / 3) : (7.787 * value) + (16.0 / 116);
     }
 
     public bool Equals(StyleColor other)

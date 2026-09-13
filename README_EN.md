@@ -348,7 +348,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 });
 ```
 
-What a style can set: `Color` / `Background` (`#RRGGBB`, `#RGB` or an `ExcelStyleColor`), `Bold` / `Italic` / `Underline` / `Strikeout`, `FontFamily` / `FontSize`, `Left` / `Center` / `Right` / `Align` / `VerticalAlign`, `Wrap`, `Format`, and `Border` with `BorderTop` / `BorderRight` / `BorderBottom` / `BorderLeft` (written as CSS writes them: `1px solid #D0D0D0`, `2px dashed red`, `none`).
+What a style can set: `Color` / `Background` (`#RRGGBB`, `#RGB` or an `ExcelStyleColor`), `Bold` / `Italic` / `Underline` / `Strikeout`, `FontFamily` / `FontSize`, `Left` / `Center` / `Right` / `Align` / `VerticalAlign`, `Wrap`, `Format`, and `Border` with `BorderTop` / `BorderRight` / `BorderBottom` / `BorderLeft` (written as CSS writes them: `1px solid #D0D0D0`, `2px dashed red`, `none`; colours as hex or one of the basic CSS names such as `red`, `gray`, `navy`).
 
 **They layer** from the widest to the narrowest, and only the properties a style sets take part, so the layers add up rather than replace one another:
 

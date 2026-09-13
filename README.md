@@ -351,7 +351,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 });
 ```
 
-可写的属性：`Color` / `Background`（`#RRGGBB`、`#RGB` 或 `ExcelStyleColor`）、`Bold` / `Italic` / `Underline` / `Strikeout`、`FontFamily` / `FontSize`、`Left` / `Center` / `Right` / `Align` / `VerticalAlign`、`Wrap`、`Format`、`Border` 及 `BorderTop` / `BorderRight` / `BorderBottom` / `BorderLeft`（写法同 CSS：`1px solid #D0D0D0`、`2px dashed red`、`none`）。
+可写的属性：`Color` / `Background`（`#RRGGBB`、`#RGB` 或 `ExcelStyleColor`）、`Bold` / `Italic` / `Underline` / `Strikeout`、`FontFamily` / `FontSize`、`Left` / `Center` / `Right` / `Align` / `VerticalAlign`、`Wrap`、`Format`、`Border` 及 `BorderTop` / `BorderRight` / `BorderBottom` / `BorderLeft`（写法同 CSS：`1px solid #D0D0D0`、`2px dashed red`、`none`；颜色可用十六进制或 `red`、`gray`、`navy` 等 CSS 基本色名）。
 
 **层叠顺序**（从宽到窄，只有显式设置的属性参与，所以各层是叠加而不是互相覆盖）：
 
