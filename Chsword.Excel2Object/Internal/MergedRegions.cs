@@ -1,4 +1,3 @@
-using System.Globalization;
 using Chsword.Excel2Object.Options;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
@@ -102,40 +101,43 @@ internal static class MergedRegions
         var start = ExcelConstants.DefaultDataStartRowIndex;
         if (lastDataRowIndex <= start) return runs;
 
-        var previous = Text(sheet, start, column);
         for (var row = start + 1; row <= lastDataRowIndex + 1; row++)
         {
             // 多走一行，好让最后一段也能收尾
-            var current = row > lastDataRowIndex ? null : Text(sheet, row, column);
-            if (current != null && current == previous) continue;
+            if (row <= lastDataRowIndex && Same(Cell(sheet, start, column), Cell(sheet, row, column))) continue;
 
             if (row - start > 1) runs.Add(new CellRangeAddress(start, row - 1, column, column));
-            previous = current;
             start = row;
         }
 
         return runs;
     }
 
-    /// <summary>单元格写进去的内容，用于判断相邻两行是否相同。空单元格不参与合并。</summary>
-    private static string? Text(ISheet sheet, int rowIndex, int column)
+    private static ICell? Cell(ISheet sheet, int rowIndex, int column)
     {
-        var cell = sheet.GetRow(rowIndex)?.GetCell(column);
-        if (cell == null) return null;
+        return sheet.GetRow(rowIndex)?.GetCell(column);
+    }
 
-        switch (cell.CellType)
+    /// <summary>
+    ///     两个单元格是否装着同一个值。数值直接比较其值，不经由文本：.NET Framework 上 "R" 与 G17
+    ///     两种格式都可能把不同的数渲染成同一串字符，比较文本会把它们并成一格。空单元格一律不相同，
+    ///     因而不参与合并。
+    /// </summary>
+    private static bool Same(ICell? a, ICell? b)
+    {
+        if (a == null || b == null || a.CellType != b.CellType) return false;
+
+        switch (a.CellType)
         {
             case CellType.Numeric:
-                // G17 而非 "R"：这串文本只用于比较、不会写进文件，故不怕位数冗长；而 .NET Framework
-                // 的 "R" 对少数值无法往返，会让两个不同的数看起来相同而被并成一格
-                return cell.NumericCellValue.ToString("G17", CultureInfo.InvariantCulture);
+                return a.NumericCellValue.Equals(b.NumericCellValue);
             case CellType.String:
-                var text = cell.StringCellValue;
-                return string.IsNullOrEmpty(text) ? null : text;
+                var text = a.StringCellValue;
+                return !string.IsNullOrEmpty(text) && text == b.StringCellValue;
             case CellType.Boolean:
-                return cell.BooleanCellValue ? "TRUE" : "FALSE";
+                return a.BooleanCellValue == b.BooleanCellValue;
             default:
-                return null;
+                return false;
         }
     }
 
