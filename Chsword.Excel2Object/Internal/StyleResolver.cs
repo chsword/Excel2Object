@@ -99,7 +99,6 @@ internal static class StyleResolver
         return column.CellStyle?.Format;
     }
 
-
     /// <summary>One style laid over another, either of which may be nothing at all.</summary>
     private static ExcelStyle? Merge(ExcelStyle? over, ExcelStyle? under)
     {
