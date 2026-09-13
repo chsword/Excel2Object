@@ -354,7 +354,9 @@ What a style can set: `Color` / `Background` (`#RRGGBB`, `#RGB` or an `ExcelStyl
 
     Cells → OddRows / EvenRows → [ExcelColumn] attribute → Column("title")
 
-`Header(...)` sits under the attribute's `Header…` properties the same way.
+`Header(...)` sits under the attribute's `Header…` properties the same way. Once a header style is written the whole header row shares one size, rather than keeping the 10pt every `[ExcelColumn]` header used to carry.
+
+A `Format` written at a broad scope - `Cells`, the row stripes - only reaches the columns it can speak for: `#,##0.00` does not land on a date column and turn a date into `46278.00`; a date column takes a date format only.
 
 **Colours**: `.xlsx` stores a hex colour as it is. `.xls` has only its 56-colour palette, so the nearest one is picked by what the eye sees (CIELAB) - a light grey comes out grey rather than lavender - though a very pale colour such as `#F2F2F2` lands on white, so striping an `.xls` wants a deeper grey such as `#C0C0C0`. A colour picked from `ExcelStyleColor` is still written as its palette index in both formats.
 

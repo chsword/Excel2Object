@@ -293,6 +293,75 @@ public class StyleSheetTest : BaseExcelTest
         [ExcelTitle("日期")] public DateTime When { get; set; } = new(2026, 9, 13, 14, 30, 45);
     }
 
+    public enum Grade
+    {
+        A,
+        B
+    }
+
+    public class MixedModel
+    {
+        [ExcelTitle("等级")] public Grade Grade { get; set; } = Grade.A;
+        [ExcelTitle("编号")] public Guid Id { get; set; } = Guid.NewGuid();
+        [ExcelTitle("用时")] public TimeSpan Took { get; set; } = TimeSpan.FromMinutes(3);
+    }
+
+    /// <summary>
+    ///     Columns of a type the exporter writes as text - an enum, a Guid, a TimeSpan - are part of the
+    ///     table too, so they take its stripes and borders.
+    /// </summary>
+    [TestMethod]
+    public void EveryColumnTypeTakesTheStyle()
+    {
+        var bytes = new ExcelExporter().ObjectToExcelBytes(new List<MixedModel> {new()}, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.Styles.Cells(s => s.Background("#F2F2F2"));
+        })!;
+        var row = WorkbookFactory.Create(new MemoryStream(bytes)).GetSheetAt(0).GetRow(1);
+
+        for (var i = 0; i < 3; i++)
+            Assert.AreEqual("#F2F2F2", Hex(((XSSFCellStyle) row.GetCell(i).CellStyle).FillForegroundColorColor),
+                row.GetCell(i).ToString());
+    }
+
+    /// <summary>
+    ///     A format written for every cell is about the numbers; a date column keeps showing a date rather
+    ///     than the serial number underneath it.
+    /// </summary>
+    [TestMethod]
+    public void ANumberFormatDoesNotReachADateColumn()
+    {
+        var bytes = new ExcelExporter().ObjectToExcelBytes(new List<Dated> {new()}, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.Styles.Cells(s => s.Format("#,##0.00"));
+        })!;
+        var cell = WorkbookFactory.Create(new MemoryStream(bytes)).GetSheetAt(0).GetRow(1).GetCell(0);
+
+        Assert.AreEqual("yyyy-mm-dd hh:mm:ss", cell.CellStyle.GetDataFormatString());
+        Assert.IsTrue(DateUtil.IsCellDateFormatted(cell));
+    }
+
+    /// <summary>One header row, one size: the legacy default steps aside for a header style.</summary>
+    [TestMethod]
+    public void AStyledHeaderRowHasOneSize()
+    {
+        var sheet = Export(ExcelType.Xlsx, options => options.Styles.Header(s => s.Bold()), out var workbook);
+
+        var plain = sheet.GetRow(0).GetCell(0).CellStyle.GetFont(workbook).FontHeightInPoints;
+        var declared = sheet.GetRow(0).GetCell(2).CellStyle.GetFont(workbook).FontHeightInPoints;
+        Assert.AreEqual(plain, declared, "[ExcelTitle] and [ExcelColumn] headers");
+    }
+
+    /// <summary>Without a header style, an [ExcelColumn] header keeps the size it always had.</summary>
+    [TestMethod]
+    public void WithoutAHeaderStyleTheLegacySizeStands()
+    {
+        var sheet = Export(ExcelType.Xlsx, _ => { }, out var workbook);
+        Assert.AreEqual(10, sheet.GetRow(0).GetCell(2).CellStyle.GetFont(workbook).FontHeightInPoints);
+    }
+
     /// <summary>CSS names a handful of colours, and a stylesheet may as well take them.</summary>
     [TestMethod]
     public void AColourCanBeNamed()

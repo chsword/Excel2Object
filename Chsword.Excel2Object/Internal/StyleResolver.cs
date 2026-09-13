@@ -25,7 +25,9 @@ internal static class StyleResolver
     public static ExcelStyle? Header(ExcelColumn column, ExcelStyleSheet styles)
     {
         var resolved = Merge(FromHeader(column.HeaderStyle), styles.HeaderStyle);
-        return column.HeaderStyle == null ? resolved : Merge(resolved, LegacyHeaderSize);
+        // the legacy size applies to the columns it always applied to, and steps aside as soon as the
+        // export writes a header style of its own - one sheet should not mix sizes row by column
+        return column.HeaderStyle == null || styles.HeaderStyle != null ? resolved : Merge(resolved, LegacyHeaderSize);
     }
 
     public static ExcelStyle? Cell(ExcelColumn column, ExcelStyleSheet styles, int rowIndex)
@@ -88,17 +90,15 @@ internal static class StyleResolver
     /// </summary>
     public static string? DateFormat(ExcelStyle? resolved, ExcelColumn column)
     {
-        return resolved?.NumberFormat ?? column.CellStyle?.Format;
+        // a format written for every cell is usually about the numbers; only one that shows a date has
+        // anything to say to a date cell, or "#,##0.00" would turn it into 46,278.00
+        var format = resolved?.NumberFormat;
+        if (format != null && ExcelDateFormat.PartsShown(ExcelDateFormat.ToExcel(format)) != ExcelDateFormat.Parts.None)
+            return format;
+
+        return column.CellStyle?.Format;
     }
 
-    /// <summary>
-    ///     The same, for a column rather than one of its cells: what an auto-sized column is measured
-    ///     against, where the row stripes make no difference.
-    /// </summary>
-    public static string? ColumnFormat(ExcelColumn column, ExcelStyleSheet styles)
-    {
-        return DateFormat(Cell(column, styles, ExcelConstants.DefaultDataStartRowIndex), column);
-    }
 
     /// <summary>One style laid over another, either of which may be nothing at all.</summary>
     private static ExcelStyle? Merge(ExcelStyle? over, ExcelStyle? under)

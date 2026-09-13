@@ -351,6 +351,11 @@ public class ExcelExporter
             // text keeps what it holds verbatim - a leading zero, an identifier Excel would read as a number
             SetStyle(cell, styleFactory.Get(style, style?.NumberFormat ?? ExcelConstants.CellFormats.Text));
         }
+        else
+        {
+            // an enum, a Guid, a TimeSpan: written as the text it renders to, and styled like any other cell
+            SetStyle(cell, styleFactory.Get(style, style?.NumberFormat));
+        }
 
         cell.SetCellValue(val);
     }
@@ -411,6 +416,12 @@ public class ExcelExporter
             columnWidths[i] = CalculateTextWidth(headerText);
         }
 
+        // a cell is measured as it is shown, so the styles of its column decide the text; the stripes
+        // make no difference to that, and resolving once per column keeps it out of the row loop
+        var styles = columns
+            .Select(c => StyleResolver.Cell(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex))
+            .ToArray();
+
         // Calculate widths based on data content
         foreach (var item in data)
         {
@@ -419,11 +430,9 @@ public class ExcelExporter
                 var column = columns[i];
                 if (column.Title != null && item.TryGetValue(column.Title, out var value))
                 {
-                    // a cell shows its column's format, which is what the width has to fit
-                    var format = StyleResolver.ColumnFormat(column, options.Styles);
                     var cellText = value is DateTime date
-                        ? DateToText(date, format)
-                        : NumberToText(value, format) ?? (value ?? "").ToString() ?? "";
+                        ? DateToText(date, StyleResolver.DateFormat(styles[i], column))
+                        : NumberToText(value, styles[i]?.NumberFormat) ?? (value ?? "").ToString() ?? "";
                     var textWidth = CalculateTextWidth(cellText);
                     if (textWidth > columnWidths[i])
                     {

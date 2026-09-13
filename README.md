@@ -357,7 +357,9 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 
     Cells → OddRows / EvenRows → [ExcelColumn] 特性 → Column("标题")
 
-`Header(...)` 位于特性的 `Header*` 属性之下，规则相同。
+`Header(...)` 位于特性的 `Header*` 属性之下，规则相同；写了表头样式后，整行表头字号一致，不再受"带 `[ExcelColumn]` 的表头默认 10pt"这条历史行为影响。
+
+写在 `Cells` / 奇偶行这类大范围上的 `Format` 只作用于它说得上话的列：`#,##0.00` 不会落到日期列上把日期变成 `46278.00`，日期列只接受日期格式。
 
 **颜色**：`.xlsx` 原样保存十六进制颜色；`.xls` 只有 56 色调色板，会按人眼感知（CIELAB）挑最接近的一个——所以浅灰得到的是灰而不是淡紫，但非常浅的颜色（如 `#F2F2F2`）会落到白色，`.xls` 下想要隔行效果建议用深一点的灰（如 `#C0C0C0`）。用 `ExcelStyleColor` 指定的颜色在两种格式下都仍按调色板索引写入。
 
