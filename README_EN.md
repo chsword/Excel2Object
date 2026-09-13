@@ -64,7 +64,7 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 ### Release Notes
 
 * **2026.09.13** - v2.9.0
-- [x] ✨ **NEW:** Merged cells: `options.MergeRepeatedColumns.Add("Province")` merges consecutive equal values in that column into one cell (only adjacent equal rows, never blanks, each column judged on its own), and `options.MergedRegions.Add("A1:C1")` merges a range outright. The cells merged away keep their own values, so every row still imports in full; overlapping regions are refused at export time, naming the region they overlap
+- [x] ✨ **NEW:** Merged cells: `options.MergeRepeatedColumns.Add("Province")` merges consecutive equal values in that column into one cell (only adjacent equal rows, never blanks, each column judged on its own), and `options.MergedRegions.Add(new MergedRegion("Province", "City"))` merges a range named by column titles and data-row ordinals (an `"A1:C1"` address still works where the layout is known). The cells merged away keep their own values, so every row still imports in full; overlapping regions are refused at export time, naming the region they overlap
 
 * **2026.09.13** - v2.8.1
 - [x] 🐛 Fixed styles overwriting one another on .NET Framework: `string.Join(string, params object[])` returns an empty string there when the first element is `null`, and both the cell-style and font cache keys start with the font colour, so every style that set none shared one cell style. Since v2.7.0 this left striped rows, borders, bold, underline and the `[ExcelColumn]` cell styles without effect on .NET Framework; on .NET (Core) they have always been correct
@@ -389,10 +389,13 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
     options.MergeRepeatedColumns.Add("Province");
     options.MergeRepeatedColumns.Add("City");
 
-    // anything that rule does not cover, as a range
-    options.MergedRegions.Add("A1:C1");
+    // anything that rule does not cover: columns by title, rows by data-row ordinal
+    options.MergedRegions.Add(new MergedRegion("Province", "City"));                  // header row, two columns
+    options.MergedRegions.Add(new MergedRegion("Note") {FirstRow = 1, LastRow = 3});  // the first three rows
 });
 ```
+
+Columns are named by their title and rows by their data-row ordinal (counting from 1): where a column lands is decided by `Order`, the order the attributes are declared and where a formula column is inserted, and how many rows there are depends on the data, so neither is known while the export is being written. An address still works where the layout is known: `options.MergedRegions.Add("A1:C1")`.
 
 Only adjacent equal rows merge, blank cells never do, and each column is judged on its own. The cells merged away keep their own values - Excel shows only the top-left one - so **every row still imports in full**. Overlapping regions are refused at export time, naming the region they overlap.
 

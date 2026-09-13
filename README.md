@@ -66,7 +66,7 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 ### 发布说明
 
 * **2026.09.13** - v2.9.0
-- [x] ✨ **新增:** 合并单元格：`options.MergeRepeatedColumns.Add("省份")` 将该列中连续相同的值并成一格（仅相邻且相等的行参与，空单元格不参与，各列彼此独立判断），`options.MergedRegions.Add("A1:C1")` 直接指定区域。被并入的单元格仍保留各自的值，导回对象时每一行的数据依然完整；区域重叠会在导出时报错并指出与哪一个重叠 - 查看 [docs/versions/v2.9.0.md](docs/versions/v2.9.0.md)
+- [x] ✨ **新增:** 合并单元格：`options.MergeRepeatedColumns.Add("省份")` 将该列中连续相同的值并成一格（仅相邻且相等的行参与，空单元格不参与，各列彼此独立判断），`options.MergedRegions.Add(new MergedRegion("省份", "城市"))` 另行指定区域（列写标题、行写数据行序号，已知布局时也可直接写 `"A1:C1"`）。被并入的单元格仍保留各自的值，导回对象时每一行的数据依然完整；区域重叠会在导出时报错并指出与哪一个重叠 - 查看 [docs/versions/v2.9.0.md](docs/versions/v2.9.0.md)
 
 * **2026.09.13** - v2.8.1
 - [x] 🐛 修复 .NET Framework 上样式互相覆盖的问题：`string.Join(string, params object[])` 在该平台首个元素为 `null` 时返回空字符串，而样式与字体的缓存键均以字体色打头，未设字体色的样式因此共用同一个单元格样式。自 v2.7.0 起，隔行底色、边框、加粗、下划线以及 `[ExcelColumn]` 的单元格样式在 .NET Framework 上均不生效；.NET（Core）上的行为一直正确 - 查看 [docs/versions/v2.8.1.md](docs/versions/v2.8.1.md)
@@ -380,10 +380,13 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
     options.MergeRepeatedColumns.Add("省份");
     options.MergeRepeatedColumns.Add("城市");
 
-    // 上面这条规则覆盖不到的情形，直接指定区域
-    options.MergedRegions.Add("A1:C1");
+    // 上面这条规则覆盖不到的情形，另行指定区域：列写标题、行写数据行序号
+    options.MergedRegions.Add(new MergedRegion("省份", "城市"));                     // 表头行，跨两列
+    options.MergedRegions.Add(new MergedRegion("备注") {FirstRow = 1, LastRow = 3}); // 前三行数据
 });
 ```
+
+列以标题指定、行以数据行序号（自 1 计起）指定——列在表中的位置由 `Order`、特性顺序与公式列的插入位置决定，行数取决于数据条数，编写导出代码时都无从得知，故不必去数 A、B、C；确已知道布局时仍可直接写 `options.MergedRegions.Add("A1:C1")`。
 
 仅相邻且相等的行参与合并，空单元格不参与，各列彼此独立判断。被并入的单元格仍保留各自的值，Excel 只显示左上角那一个，因此**导回对象时每一行的数据依然完整**。区域重叠会在导出时报错并指出与哪一个重叠。
 

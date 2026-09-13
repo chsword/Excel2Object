@@ -127,11 +127,65 @@ public class MergedCellTest : BaseExcelTest
         Assert.AreEqual(0, sheet.NumMergedRegions);
     }
 
+    /// <summary>
+    ///     列以标题指定：列在表中的位置由 Order、特性顺序与公式列的插入位置决定，编写导出代码时
+    ///     无从得知，故不必数到 A、B、C。
+    /// </summary>
     [TestMethod]
-    public void AnExplicitRangeIsMerged()
+    public void ARegionIsWrittenWithColumnTitles()
+    {
+        var sheet = Export(ExcelType.Xlsx, options =>
+            options.MergedRegions.Add(new MergedRegion("省份", "金额")));
+
+        // 省略行即指表头行
+        CollectionAssert.AreEqual(new[] {"A1:C1"}, Regions(sheet));
+    }
+
+    /// <summary>行以数据行的序号指定，自 1 计起。</summary>
+    [TestMethod]
+    public void RowsAreWrittenAsDataRowOrdinals()
+    {
+        var sheet = Export(ExcelType.Xlsx, options =>
+            options.MergedRegions.Add(new MergedRegion("金额") {FirstRow = 1, LastRow = 3}));
+
+        CollectionAssert.AreEqual(new[] {"C2:C4"}, Regions(sheet));
+    }
+
+    /// <summary>单独一行也可以，省略结束行即可。</summary>
+    [TestMethod]
+    public void ASingleDataRowCanSpanColumns()
+    {
+        var sheet = Export(ExcelType.Xlsx, options =>
+            options.MergedRegions.Add(new MergedRegion("省份", "城市") {FirstRow = 2}));
+
+        CollectionAssert.AreEqual(new[] {"A3:B3"}, Regions(sheet));
+    }
+
+    /// <summary>确已知道布局时，仍可直接写地址。</summary>
+    [TestMethod]
+    public void AnAddressStillWorks()
     {
         var sheet = Export(ExcelType.Xlsx, options => options.MergedRegions.Add("A1:C1"));
         CollectionAssert.AreEqual(new[] {"A1:C1"}, Regions(sheet));
+    }
+
+    [TestMethod]
+    public void ARowBeyondTheDataSaysSo()
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            Export(ExcelType.Xlsx, options =>
+                options.MergedRegions.Add(new MergedRegion("金额") {FirstRow = 1, LastRow = 99})));
+
+        StringAssert.Contains(e.Message, "4 行数据");
+    }
+
+    [TestMethod]
+    public void ARowOrdinalBelowOneSaysSo()
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            Export(ExcelType.Xlsx, options => options.MergedRegions.Add(new MergedRegion("金额") {FirstRow = 0})));
+
+        StringAssert.Contains(e.Message, "自 1 计起");
     }
 
     [TestMethod]
@@ -160,7 +214,7 @@ public class MergedCellTest : BaseExcelTest
             Export(ExcelType.Xlsx, options =>
             {
                 options.MergeRepeatedColumns.Add("省份");
-                options.MergedRegions.Add("A3:A4");
+                options.MergedRegions.Add(new MergedRegion("省份") {FirstRow = 2, LastRow = 3});
             }));
 
         StringAssert.Contains(e.Message, "A2:A4");

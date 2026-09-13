@@ -75,9 +75,15 @@ public class ExcelExporterOptions
     public IList<string> MergeRepeatedColumns { get; set; } = new List<string>();
 
     /// <summary>
-    ///     直接指定要合并的区域，写作 <c>A1:C1</c> 这样的形式，用于上面那条规则覆盖不到的情形。
+    ///     另行指定要合并的区域，用于上面那条规则覆盖不到的情形。列以标题指定、行以数据行序号指定，
+    ///     无需知道单元格地址：
+    ///     <code>
+    /// options.MergedRegions.Add(new MergedRegion("省份", "城市"));                    // 表头行，跨两列
+    /// options.MergedRegions.Add(new MergedRegion("备注") {FirstRow = 1, LastRow = 3}); // 前三行数据
+    /// options.MergedRegions.Add("A1:C1");                                             // 已知布局时
+    ///     </code>
     /// </summary>
-    public IList<string> MergedRegions { get; set; } = new List<string>();
+    public IList<MergedRegion> MergedRegions { get; set; } = new List<MergedRegion>();
 
     /// <summary>
     ///     Freeze the header row, so it stays in view while the sheet is scrolled (default: false).

@@ -16,8 +16,43 @@ internal static class MergedRegions
         foreach (var title in options.MergeRepeatedColumns)
             MergeRepeated(sheet, IndexOf(columns, title), lastDataRowIndex);
 
-        foreach (var range in options.MergedRegions)
-            Add(sheet, Parse(range), range);
+        foreach (var region in options.MergedRegions)
+            Add(sheet, Resolve(region, columns, lastDataRowIndex), region.ToString());
+    }
+
+    /// <summary>把按标题与数据行序号写下的区域，换算成工作表中的坐标。</summary>
+    private static CellRangeAddress Resolve(MergedRegion region, ExcelColumn[] columns, int lastDataRowIndex)
+    {
+        if (region.Address != null) return Parse(region.Address);
+
+        if (string.IsNullOrEmpty(region.Column))
+            throw new Excel2ObjectException($"合并区域 [{region}] 没有指定列，请给出列标题或 A1:C1 这样的地址。");
+
+        var first = IndexOf(columns, region.Column!);
+        var last = region.LastColumn == null ? first : IndexOf(columns, region.LastColumn);
+        if (last < first) (first, last) = (last, first);
+
+        // 行以数据行的序号给出，自 1 计起；省略则指表头行
+        var firstRow = Row(region, region.FirstRow, lastDataRowIndex);
+        var lastRow = region.LastRow == null ? firstRow : Row(region, region.LastRow, lastDataRowIndex);
+        if (lastRow < firstRow) (firstRow, lastRow) = (lastRow, firstRow);
+
+        return new CellRangeAddress(firstRow, lastRow, first, last);
+    }
+
+    private static int Row(MergedRegion region, int? dataRow, int lastDataRowIndex)
+    {
+        if (dataRow == null) return ExcelConstants.DefaultHeaderRowIndex;
+        if (dataRow < 1)
+            throw new Excel2ObjectException($"合并区域 [{region}] 的行序号自 1 计起，1 即第一行数据。");
+
+        var rowIndex = ExcelConstants.DefaultDataStartRowIndex + dataRow.Value - 1;
+        if (rowIndex > lastDataRowIndex)
+            throw new Excel2ObjectException(
+                $"合并区域 [{region}] 超出了数据的范围，本次导出共 " +
+                $"{lastDataRowIndex - ExcelConstants.DefaultDataStartRowIndex + 1} 行数据。");
+
+        return rowIndex;
     }
 
     private static int IndexOf(ExcelColumn[] columns, string title)
