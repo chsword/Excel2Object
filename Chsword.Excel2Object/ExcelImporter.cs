@@ -75,7 +75,7 @@ public class ExcelImporter
             var model = new Dictionary<string, object>();
 
             foreach (var column in columns)
-                model[column.Key] = GetCellValue(row.GetCell(column.Value), context, datesAsText: true);
+                model[column.Key] = GetCellValue(row.GetCell(column.Value), context, datesAsText: true) ?? "";
 
             list.Add(model);
         }
@@ -151,12 +151,17 @@ public class ExcelImporter
         // a date cell reads as the date it shows into a string, and as the serial number Excel stores
         // into anything numeric
         var cellValue = GetCellValue(row.GetCell(columnIndex), context, type == typeof(string));
-        if (string.IsNullOrEmpty(cellValue)
+
+        // 读取失败（已上报）与读到空值不同：前者取该类型的默认值，不再尝试转换，否则会以
+        // Convert.ChangeType("") 抛出的 FormatException 掩盖真正的原因，并把同一格上报两次
+        if (cellValue == null) return DefaultOf(propType, type);
+
+        if (cellValue.Length == 0
             && propType != typeof(string)
             && propType.IsGenericType
             && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
             return null;
-            
+
         try
         {
             return Convert.ChangeType(cellValue, type);
@@ -167,6 +172,14 @@ public class ExcelImporter
             context.Report(row, columnIndex, e);
             throw;
         }
+    }
+
+    /// <summary>该属性类型在读取失败时取的值：可空与引用类型取 null，其余取其默认值。</summary>
+    private static object? DefaultOf(Type propType, Type type)
+    {
+        if (!propType.IsValueType) return null;
+        if (propType.IsGenericType && propType.GetGenericTypeDefinition() == typeof(Nullable<>)) return null;
+        return Activator.CreateInstance(type);
     }
 
     private static object? GetCellBoolean(IRow row, int key, ImportContext context)
@@ -206,7 +219,12 @@ public class ExcelImporter
                     // 序列号超出 Excel 日历时 DateCellValue 会抛出，此时该单元格取 null
                     return cell.DateCellValue;
                 case CellType.String:
-                    return GetDateTimeFromString(cell.StringCellValue);
+                    var text = cell.StringCellValue;
+                    var parsed = GetDateTimeFromString(text);
+                    if (parsed == null && !string.IsNullOrWhiteSpace(text))
+                        // 文本不是日期是最常见的导入失败，同样要让调用方知道
+                        context.Report(cell, new FormatException($"[{text}] 不是可识别的日期。"));
+                    return parsed;
                 default:
                     return null;
             }
@@ -239,7 +257,11 @@ public class ExcelImporter
     ///     Whether a date cell reads as the date it shows rather than as the serial number Excel stores;
     ///     what a string property or a dictionary wants, and what a numeric property cannot parse.
     /// </param>
-    private static string GetCellValue(ICell? cell, ImportContext context, bool datesAsText = false)
+    /// <returns>
+    ///     单元格的文本；<c>null</c> 表示读取失败——失败已经上报，调用方据此取默认值即可，不应再
+    ///     按空字符串继续转换。
+    /// </returns>
+    private static string? GetCellValue(ICell? cell, ImportContext context, bool datesAsText = false)
     {
         var result = string.Empty;
         if (cell == null) return result;
@@ -271,6 +293,7 @@ public class ExcelImporter
         catch (Exception e)
         {
             context.Report(cell, e);
+            return null;
         }
 
         return (result ?? "").Trim();
@@ -408,14 +431,9 @@ public class ExcelImporter
         if (string.IsNullOrEmpty(cellValue)) return null;
         if (Enum.GetNames(enumType).Contains(cellValue)) return Enum.Parse(enumType, cellValue);
 
-        try
-        {
-            return Enum.Parse(enumType, "0");
-        }
-        catch (Exception e)
-        {
-            context.Report(row, key, e);
-            throw;
-        }
+        // 取值不在枚举中：沿用既有行为取 0，但不再悄无声息
+        context.Report(row, key,
+            new FormatException($"[{cellValue}] 不是 {enumType.Name} 的取值，按 0 处理。"));
+        return Enum.ToObject(enumType, 0);
     }
 }

@@ -6,8 +6,9 @@ namespace Chsword.Excel2Object.Options;
 ///     某个单元格未能读取时的说明，通过 <see cref="ExcelImporterOptions.OnCellError" /> 报出。
 /// </summary>
 /// <remarks>
-///     导入不会因单个单元格失败而中止：该单元格取默认值，其余数据照常读取。若希望失败即中止，
-///     可在回调中抛出异常，例如 <c>options.OnCellError = e =&gt; throw e.Exception;</c>。
+///     读取失败时该单元格取默认值、其余数据照常读取，可在回调中抛出异常使其中止；值无法转换为目标
+///     类型时则在上报之后照旧抛出并中止导入。详见
+///     <see cref="ExcelImporterOptions.OnCellError" />。
 /// </remarks>
 public class ExcelImportError
 {

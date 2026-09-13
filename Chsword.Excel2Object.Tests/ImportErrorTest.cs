@@ -201,6 +201,98 @@ public class ImportErrorTest : BaseExcelTest
         Assert.AreEqual(0, caught.Data.Count, "异常的 Data 未被写入任何内容");
     }
 
+    public class CountModel
+    {
+        [ExcelTitle("数量")] public int Count { get; set; }
+    }
+
+    /// <summary>
+    ///     读取失败的单元格若对应不可空属性，取该类型的默认值并继续，且只上报一次——此前会以
+    ///     Convert.ChangeType("") 抛出的 FormatException 掩盖真正的原因，并把同一格上报两次。
+    /// </summary>
+    [TestMethod]
+    public void AReadFailureOnANonNullablePropertyIsReportedOnce()
+    {
+        // NPOI 未实现 WEBSERVICE，求值该公式时抛出，即一次真实的读取失败
+        var workbook = new XSSFWorkbook();
+        var sheet = workbook.CreateSheet("数据");
+        sheet.CreateRow(0).CreateCell(0).SetCellValue("数量");
+        sheet.CreateRow(1).CreateCell(0).SetCellFormula("WEBSERVICE(\"a\")");
+        var stream = new MemoryStream();
+        workbook.Write(stream, true);
+
+        var errors = new List<ExcelImportError>();
+        var list = new ExcelImporter()
+            .ExcelToObject<CountModel>(stream.ToArray(), options => options.OnCellError = errors.Add)
+            .ToArray();
+
+        Assert.AreEqual(1, list.Length);
+        Assert.AreEqual(0, list[0].Count, "读取失败的 int 属性取默认值");
+        Assert.AreEqual(1, errors.Count, "只上报一次");
+        Assert.AreEqual("A2", errors[0].CellReference);
+        Assert.IsInstanceOfType(errors[0].Exception, typeof(NotImplementedException),
+            "上报的应当是真正的原因，而非转换空字符串的失败");
+    }
+
+    public class TextDateModel
+    {
+        [ExcelTitle("日期")] public DateTime? When { get; set; }
+    }
+
+    /// <summary>文本不是日期是最常见的导入失败，同样要上报。</summary>
+    [TestMethod]
+    public void TextThatIsNoDateIsReported()
+    {
+        var workbook = new XSSFWorkbook();
+        var sheet = workbook.CreateSheet("数据");
+        sheet.CreateRow(0).CreateCell(0).SetCellValue("日期");
+        sheet.CreateRow(1).CreateCell(0).SetCellValue("待定");
+        var stream = new MemoryStream();
+        workbook.Write(stream, true);
+
+        var errors = new List<ExcelImportError>();
+        var list = new ExcelImporter()
+            .ExcelToObject<TextDateModel>(stream.ToArray(), options => options.OnCellError = errors.Add)
+            .ToArray();
+
+        Assert.IsNull(list[0].When);
+        Assert.AreEqual(1, errors.Count);
+        Assert.AreEqual("A2", errors[0].CellReference);
+        StringAssert.Contains(errors[0].Exception.Message, "待定");
+    }
+
+    public enum Grade
+    {
+        A,
+        B
+    }
+
+    public class GradeModel
+    {
+        [ExcelTitle("等级")] public Grade Grade { get; set; }
+    }
+
+    /// <summary>取值不在枚举中时沿用既有行为取 0，但会上报。</summary>
+    [TestMethod]
+    public void AValueOutsideTheEnumIsReported()
+    {
+        var workbook = new XSSFWorkbook();
+        var sheet = workbook.CreateSheet("数据");
+        sheet.CreateRow(0).CreateCell(0).SetCellValue("等级");
+        sheet.CreateRow(1).CreateCell(0).SetCellValue("Z");
+        var stream = new MemoryStream();
+        workbook.Write(stream, true);
+
+        var errors = new List<ExcelImportError>();
+        var list = new ExcelImporter()
+            .ExcelToObject<GradeModel>(stream.ToArray(), options => options.OnCellError = errors.Add)
+            .ToArray();
+
+        Assert.AreEqual(Grade.A, list[0].Grade, "沿用既有行为取 0");
+        Assert.AreEqual(1, errors.Count);
+        StringAssert.Contains(errors[0].Exception.Message, "Z");
+    }
+
     /// <summary>公式求值器按工作簿创建一次，不再逐单元格创建。</summary>
     [TestMethod]
     public void OneFormulaEvaluatorPerWorkbook()
