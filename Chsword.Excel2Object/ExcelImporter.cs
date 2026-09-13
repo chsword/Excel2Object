@@ -9,7 +9,7 @@ namespace Chsword.Excel2Object;
 
 public class ExcelImporter
 {
-    private static readonly Dictionary<Type, Func<IRow, int, object>> SpecialConvertDict =
+    private static readonly Dictionary<Type, Func<IRow, int, ImportContext, object?>> SpecialConvertDict =
         new()
         {
             [typeof(DateTime)] = GetCellDateTime,
@@ -39,11 +39,12 @@ public class ExcelImporter
     {
         var options = new ExcelImporterOptions();
         optionAction?.Invoke(options);
+        var context = new ImportContext(options);
         var result = GetDataRows(bytes, options);
         if (typeof(TModel) == typeof(Dictionary<string, object>))
-            return (InternalExcelToDictionary(result) as IEnumerable<TModel>)!;
+            return (InternalExcelToDictionary(result, context) as IEnumerable<TModel>)!;
 
-        var list = InternalExcelToObject<TModel>(result);
+        var list = InternalExcelToObject<TModel>(result, context);
         return list;
     }
 
@@ -53,7 +54,8 @@ public class ExcelImporter
         return ExcelToObject<TModel>(bytes, options => { options.SheetTitle = sheetTitle; });
     }
 
-    private static IEnumerable<Dictionary<string, object>> InternalExcelToDictionary(IEnumerator<IRow>? result)
+    private static IEnumerable<Dictionary<string, object>> InternalExcelToDictionary(IEnumerator<IRow>? result,
+        ImportContext context)
     {
         var list = new List<Dictionary<string, object>>();
 
@@ -73,7 +75,7 @@ public class ExcelImporter
             var model = new Dictionary<string, object>();
 
             foreach (var column in columns)
-                model[column.Key] = GetCellValue(row.GetCell(column.Value), datesAsText: true);
+                model[column.Key] = GetCellValue(row.GetCell(column.Value), context, datesAsText: true);
 
             list.Add(model);
         }
@@ -81,7 +83,8 @@ public class ExcelImporter
         return list;
     }
 
-    private static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator<IRow>? result)
+    private static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator<IRow>? result,
+        ImportContext context)
         where TModel : class, new()
     {
         if (result == null)
@@ -97,7 +100,7 @@ public class ExcelImporter
                 continue;
 
             var model = new TModel();
-            PopulateModelFromRow(model, row, dictColumns);
+            PopulateModelFromRow(model, row, dictColumns, context);
             yield return model;
         }
     }
@@ -120,8 +123,8 @@ public class ExcelImporter
         return dictColumns;
     }
 
-    private static void PopulateModelFromRow<TModel>(TModel model, IRow row, 
-        Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>> dictColumns)
+    private static void PopulateModelFromRow<TModel>(TModel model, IRow row,
+        Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>> dictColumns, ImportContext context)
         where TModel : class, new()
     {
         foreach (var pair in dictColumns)
@@ -129,24 +132,25 @@ public class ExcelImporter
             var propType = pair.Value.Key.PropertyType;
             var type = TypeUtil.GetUnNullableType(propType);
             
-            object? value = type.IsEnum 
-                ? GetEnum(row, pair.Key, type)
-                : GetCellValueByType(row, pair.Key, propType, type);
+            object? value = type.IsEnum
+                ? GetEnum(row, pair.Key, type, context)
+                : GetCellValueByType(row, pair.Key, propType, type, context);
                 
             pair.Value.Key.SetValue(model, value, null);
         }
     }
 
-    private static object? GetCellValueByType(IRow row, int columnIndex, Type propType, Type type)
+    private static object? GetCellValueByType(IRow row, int columnIndex, Type propType, Type type,
+        ImportContext context)
     {
-        if (SpecialConvertDict.ContainsKey(type))
+        if (SpecialConvertDict.TryGetValue(type, out var special))
         {
-            return SpecialConvertDict[type](row, columnIndex);
+            return special(row, columnIndex, context);
         }
 
         // a date cell reads as the date it shows into a string, and as the serial number Excel stores
         // into anything numeric
-        var cellValue = GetCellValue(row.GetCell(columnIndex), datesAsText: type == typeof(string));
+        var cellValue = GetCellValue(row.GetCell(columnIndex), context, type == typeof(string));
         if (string.IsNullOrEmpty(cellValue)
             && propType != typeof(string)
             && propType.IsGenericType
@@ -156,9 +160,9 @@ public class ExcelImporter
         return Convert.ChangeType(cellValue, type);
     }
 
-    private static object? GetCellBoolean(IRow row, int key)
+    private static object? GetCellBoolean(IRow row, int key, ImportContext context)
     {
-        var cellValue = GetCellValue(row, key);
+        var cellValue = GetCellValue(row.GetCell(key), context);
         if (string.IsNullOrEmpty(cellValue)) return null;
         if (bool.TryParse(cellValue, out var value)) return value;
         
@@ -171,58 +175,34 @@ public class ExcelImporter
         return Convert.ToBoolean(cellValue);
     }
 
-    private static object? GetCellDateTime(IRow row, int index)
+    private static object? GetCellDateTime(IRow row, int index, ImportContext context)
     {
-        DateTime? result = null;
+        var cell = row.GetCell(index);
         try
         {
-            var cell = row.GetCell(index);
-
-            var cellValue = GetCellValue(cell);
-            if (string.IsNullOrEmpty(cellValue)) return null;
+            if (string.IsNullOrEmpty(GetCellValue(cell, context))) return null;
 
             switch (cell.CellType)
             {
                 case CellType.Numeric:
-                    try
-                    {
-                        result = cell.DateCellValue;
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                    }
-
-                    break;
+                    // 序列号超出 Excel 日历时 DateCellValue 会抛出，此时该单元格取 null
+                    return cell.DateCellValue;
                 case CellType.String:
-                    var str = cell.StringCellValue;
-                    result = GetDateTimeFromString(str);
-                    break;
-                case CellType.Blank:
-                    break;
-                case CellType._None:
-                    break;
-                case CellType.Formula:
-                    break;
-                case CellType.Boolean:
-                    break;
-                case CellType.Error:
-                    break;
+                    return GetDateTimeFromString(cell.StringCellValue);
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    return null;
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            context.Report(cell, e);
+            return null;
         }
-
-        return result;
     }
 
-    private static object? GetCellUri(IRow row, int key)
+    private static object? GetCellUri(IRow row, int key, ImportContext context)
     {
-        var cellValue = GetCellValue(row, key);
+        var cellValue = GetCellValue(row.GetCell(key), context);
         return string.IsNullOrEmpty(cellValue) ? null : new Uri(cellValue);
     }
 
@@ -231,7 +211,7 @@ public class ExcelImporter
     ///     Whether a date cell reads as the date it shows rather than as the serial number Excel stores;
     ///     what a string property or a dictionary wants, and what a numeric property cannot parse.
     /// </param>
-    private static string GetCellValue(ICell? cell, bool datesAsText = false)
+    private static string GetCellValue(ICell? cell, ImportContext context, bool datesAsText = false)
     {
         var result = string.Empty;
         if (cell == null) return result;
@@ -250,8 +230,9 @@ public class ExcelImporter
                     result = string.Empty;
                     break;
                 case CellType.Formula:
-                    var evaluator = WorkbookFactory.CreateFormulaEvaluator(cell.Sheet.Workbook);
-                    result = GetCellValue(evaluator.EvaluateInCell(cell), datesAsText);
+                    // 求值器按工作簿创建一次，不再逐单元格创建
+                    result = GetCellValue(context.Evaluator(cell.Sheet.Workbook).EvaluateInCell(cell), context,
+                        datesAsText);
                     break;
                 default:
                     // Boolean ("TRUE"/"FALSE"), Error and _None all render acceptably through ToString.
@@ -261,15 +242,10 @@ public class ExcelImporter
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            context.Report(cell, e);
         }
 
         return (result ?? "").Trim();
-    }
-
-    private static string GetCellValue(IRow row, int index)
-    {
-        return GetCellValue(row.GetCell(index));
     }
 
     /// <summary>
@@ -398,9 +374,9 @@ public class ExcelImporter
         return null;
     }
 
-    private static object? GetEnum(IRow row, int key, Type enumType)
+    private static object? GetEnum(IRow row, int key, Type enumType, ImportContext context)
     {
-        var cellValue = GetCellValue(row, key);
+        var cellValue = GetCellValue(row.GetCell(key), context);
         if (string.IsNullOrEmpty(cellValue)) return null;
         if (Enum.GetNames(enumType).Contains(cellValue)) return Enum.Parse(enumType, cellValue);
 
