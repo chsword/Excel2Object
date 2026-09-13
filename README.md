@@ -65,6 +65,11 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 
 ### 发布说明
 
+* **2026.09.13** - v2.7.1
+- [x] 🐛 修复样式表中 `Format` 的作用范围：写在 `Column("标题")` 上的现在会盖过特性上的 `Format`（此前 `Cells` 上的格式反而能盖掉特性，导致 `[ExcelColumn(Format = "yyyy-MM-dd HH:mm:ss")]` 的时分秒被丢掉）；写在 `Cells` / 奇偶行上的只落到说得上话的列——日期格式不再把 `12.5` 显示成 `1900-01-12`，数字格式也不再顶掉文本列的 `@`（前导零保护）
+- [x] ✨ **改进:** 边框宽度支持 CSS 关键字 `thin` / `medium` / `thick`，写法错误时的报错会指出是哪一段不认识
+- [x] ✨ **改进:** 每列每种行（奇/偶）的样式只解析一次而不是每个单元格一次，大表导出少掉数百万次样式合并与键拼接
+
 * **2026.09.13** - v2.7.0
 - [x] ✨ **新增:** 样式表 `options.Styles`：按作用范围写样式而不是抄在每个 `[ExcelColumn]` 上 —— `Header` / `Cells` / `Column("标题")` / `OddRows` / `EvenRows`，层叠顺序为 `Cells → 奇偶行 → [ExcelColumn] → Column`，只有显式设置的属性参与叠加
 - [x] ✨ **新增:** 单元格背景色与边框（此前完全不支持）：`Background("#4472C4")`、`Border("1px solid #D0D0D0")`，以及 `Wrap`、`VerticalAlign`、`FontSize` 等
@@ -351,7 +356,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 });
 ```
 
-可写的属性：`Color` / `Background`（`#RRGGBB`、`#RGB` 或 `ExcelStyleColor`）、`Bold` / `Italic` / `Underline` / `Strikeout`、`FontFamily` / `FontSize`、`Left` / `Center` / `Right` / `Align` / `VerticalAlign`、`Wrap`、`Format`、`Border` 及 `BorderTop` / `BorderRight` / `BorderBottom` / `BorderLeft`（写法同 CSS：`1px solid #D0D0D0`、`2px dashed red`、`none`；颜色可用十六进制或 `red`、`gray`、`navy` 等 CSS 基本色名）。
+可写的属性：`Color` / `Background`（`#RRGGBB`、`#RGB` 或 `ExcelStyleColor`）、`Bold` / `Italic` / `Underline` / `Strikeout`、`FontFamily` / `FontSize`、`Left` / `Center` / `Right` / `Align` / `VerticalAlign`、`Wrap`、`Format`、`Border` 及 `BorderTop` / `BorderRight` / `BorderBottom` / `BorderLeft`（写法同 CSS：`1px solid #D0D0D0`、`medium dashed red`、`none`；宽度可用像素或 `thin` / `medium` / `thick`，颜色可用十六进制或 `red`、`gray`、`navy` 等 CSS 基本色名）。
 
 **层叠顺序**（从宽到窄，只有显式设置的属性参与，所以各层是叠加而不是互相覆盖）：
 
@@ -359,7 +364,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 
 `Header(...)` 位于特性的 `Header*` 属性之下，规则相同；写了表头样式后，整行表头字号一致，不再受"带 `[ExcelColumn]` 的表头默认 10pt"这条历史行为影响。
 
-写在 `Cells` / 奇偶行这类大范围上的 `Format` 只作用于它说得上话的列：`#,##0.00` 不会落到日期列上把日期变成 `46278.00`，日期列只接受日期格式。
+`Format` 按写在哪一层决定作用范围：写在 `Column("标题")` 上是对这一列的明确意图，照单执行（数字、文本、日期列都生效，也会盖过特性上的 `Format`）；写在 `Cells` / 奇偶行这类大范围上则是兜底默认，只落到说得上话的列——数字格式不会把日期变成 `46278.00`，日期格式不会把 `12.5` 变成 `1900-01-12`，也不会顶掉文本列用于保住前导零的 `@`。
 
 **颜色**：`.xlsx` 原样保存十六进制颜色；`.xls` 只有 56 色调色板，会按人眼感知（CIELAB）挑最接近的一个——所以浅灰得到的是灰而不是淡紫，但非常浅的颜色（如 `#F2F2F2`）会落到白色，`.xls` 下想要隔行效果建议用深一点的灰（如 `#C0C0C0`）。用 `ExcelStyleColor` 指定的颜色在两种格式下都仍按调色板索引写入。
 

@@ -362,6 +362,120 @@ public class StyleSheetTest : BaseExcelTest
         Assert.AreEqual(10, sheet.GetRow(0).GetCell(2).CellStyle.GetFont(workbook).FontHeightInPoints);
     }
 
+    public class Timed
+    {
+        [ExcelColumn("时间", Format = "yyyy-MM-dd HH:mm:ss")]
+        public DateTime When { get; set; } = new(2026, 9, 13, 14, 30, 45);
+
+        [ExcelTitle("金额")] public decimal Amount { get; set; } = 12.5m;
+        [ExcelTitle("编号")] public string No { get; set; } = "00123";
+    }
+
+    private static ISheet ExportTimed(Action<ExcelExporterOptions> configure)
+    {
+        var bytes = new ExcelExporter().ObjectToExcelBytes(new List<Timed> {new()}, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            configure(options);
+        })!;
+        return WorkbookFactory.Create(new MemoryStream(bytes)).GetSheetAt(0);
+    }
+
+    /// <summary>
+    ///     A format written for every cell is a default. The column's own - here the attribute's - is the
+    ///     more specific statement and keeps its time of day.
+    /// </summary>
+    [TestMethod]
+    public void AColumnsOwnFormatOutranksTheSheetWideOne()
+    {
+        var sheet = ExportTimed(options => options.Styles.Cells(s => s.Format("yyyy-MM-dd")));
+        Assert.AreEqual("yyyy-mm-dd hh:mm:ss", sheet.GetRow(1).GetCell(0).CellStyle.GetDataFormatString());
+    }
+
+    /// <summary>And the stylesheet's own Column(...) outranks the attribute in turn.</summary>
+    [TestMethod]
+    public void AColumnStyleOutranksTheAttributesFormat()
+    {
+        var sheet = ExportTimed(options => options.Styles.Column("时间", s => s.Format("yyyy-MM-dd")));
+        Assert.AreEqual("yyyy-mm-dd", sheet.GetRow(1).GetCell(0).CellStyle.GetDataFormatString());
+    }
+
+    /// <summary>A date format written for every cell has nothing to say to a number column.</summary>
+    [TestMethod]
+    public void ADateFormatDoesNotReachANumberColumn()
+    {
+        var sheet = ExportTimed(options => options.Styles.Cells(s => s.Format("yyyy-MM-dd")));
+
+        var amount = sheet.GetRow(1).GetCell(1);
+        Assert.AreEqual(CellType.Numeric, amount.CellType);
+        Assert.AreEqual(0, amount.CellStyle.DataFormat, "12.5 would show as 1900-01-12");
+    }
+
+    /// <summary>Nor does a number format take the text format away from a string column.</summary>
+    [TestMethod]
+    public void ASheetWideNumberFormatLeavesTextAlone()
+    {
+        var sheet = ExportTimed(options => options.Styles.Cells(s => s.Format("#,##0.00")));
+        Assert.AreEqual("@", sheet.GetRow(1).GetCell(2).CellStyle.GetDataFormatString());
+    }
+
+    /// <summary>A format written for that column reaches it whatever it holds.</summary>
+    [TestMethod]
+    public void AColumnStyleFormatReachesATextColumn()
+    {
+        var sheet = ExportTimed(options => options.Styles.Column("编号", s => s.Format("000000")));
+        Assert.AreEqual("000000", sheet.GetRow(1).GetCell(2).CellStyle.GetDataFormatString());
+    }
+
+    /// <summary>
+    ///     A date column given a number format shows the serial number Excel stores, and an auto-sized
+    ///     column is measured as what it shows rather than as the date underneath.
+    /// </summary>
+    [TestMethod]
+    public void AutoColumnWidthFollowsADateShownAsANumber()
+    {
+        byte[] Export(Action<ExcelExporterOptions> configure)
+        {
+            return new ExcelExporter().ObjectToExcelBytes(new List<Timed> {new()}, options =>
+            {
+                options.ExcelType = ExcelType.Xlsx;
+                options.AutoColumnWidth = true;
+                options.MinColumnWidth = 1;
+                configure(options);
+            })!;
+        }
+
+        var asDate = WorkbookFactory.Create(new MemoryStream(Export(_ => { }))).GetSheetAt(0);
+        var asNumber = WorkbookFactory
+            .Create(new MemoryStream(Export(o => o.Styles.Column("时间", s => s.Format("#,##0.00")))))
+            .GetSheetAt(0);
+
+        // "2026-09-13 14:30:45" (19 characters) against the serial "46,278.60" (9)
+        Assert.IsTrue(asNumber.GetColumnWidth(0) < asDate.GetColumnWidth(0),
+            $"{asNumber.GetColumnWidth(0)} vs {asDate.GetColumnWidth(0)}");
+    }
+
+    /// <summary>CSS measures a border in pixels or names its width.</summary>
+    [DataTestMethod]
+    [DataRow("thin solid #CCC", BorderStyle.Thin)]
+    [DataRow("medium solid #CCC", BorderStyle.Medium)]
+    [DataRow("thick solid #CCC", BorderStyle.Thick)]
+    public void ABorderWidthCanBeNamed(string border, BorderStyle expected)
+    {
+        var sheet = Export(ExcelType.Xlsx, options => options.Styles.Cells(s => s.Border(border)), out _);
+        Assert.AreEqual(expected, sheet.GetRow(1).GetCell(0).CellStyle.BorderTop);
+    }
+
+    [TestMethod]
+    public void ABorderThatIsNoneSaysWhatIsWrong()
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            Export(ExcelType.Xlsx, options => options.Styles.Cells(s => s.Border("1px solid chartreuse")), out _));
+
+        StringAssert.Contains(e.Message, "chartreuse");
+        StringAssert.Contains(e.Message, "1px solid #D0D0D0");
+    }
+
     /// <summary>CSS names a handful of colours, and a stylesheet may as well take them.</summary>
     [TestMethod]
     public void AColourCanBeNamed()
