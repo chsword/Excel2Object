@@ -63,6 +63,10 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 ### Release Notes
 
+* **2026.09.13** - v2.8.0
+- [x] 🐛 Fixed how a failed cell read is handled on import: `ExcelImporter` used to catch the exception in three places, write it to standard output and carry on, leaving the caller with an empty value and no explanation. Nothing is written to standard output any more; failures are reported through the `ExcelImporterOptions.OnCellError` callback, which receives the sheet name, the row and column indexes, the cell reference and the original exception. A cell that cannot be read (a date serial outside Excel's calendar, say) takes its default value and the import continues, as before, and throwing from the callback stops it; a value that cannot be converted to the property type (the text `abc` into an `int`, say) is reported and then still throws, aborting the import as it always has. Text that is no date and a value outside its enum used to pass silently; both are now reported
+- [x] ✨ **IMPROVED:** The formula evaluator is created once per workbook and reused throughout the import, instead of once per formula cell
+
 * **2026.09.13** - v2.7.1
 - [x] 🐛 Fixed which cells a stylesheet `Format` reaches: one written for a column now outranks the attribute's own (a format written for every cell used to win instead, dropping the time of day of `[ExcelColumn(Format = "yyyy-MM-dd HH:mm:ss")]`), and one written for every cell or for the row stripes only reaches the columns it can speak for - a date format no longer shows `12.5` as `1900-01-12`, and a number format no longer takes the `@` that keeps a leading zero away from a text column
 - [x] ✨ **IMPROVED:** A border width can be named `thin` / `medium` / `thick` as CSS names it, and a border that cannot be read says which part of it was not understood
