@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Chsword.Excel2Object.Options;
 using NPOI.SS.UserModel;
 
@@ -30,20 +31,38 @@ internal sealed class ImportContext
         return _evaluator;
     }
 
+    /// <summary>标记回调自身抛出的异常，使其在向外传播途中不被再次当作读取失败上报。</summary>
+    private const string AbortKey = "Chsword.Excel2Object.AbortingFromCallback";
+
     /// <summary>
     ///     上报某个单元格的读取失败。未设置回调时不作任何输出——类库不应向标准输出写日志。
     /// </summary>
+    /// <remarks>
+    ///     读取路径有嵌套：读取日期单元格会先取其文本，取文本又可能递归求值公式。回调若抛出异常
+    ///     （即调用方选择中止导入），该异常会途经外层的 catch，若不加区分将被再次上报，回调也就被
+    ///     调用了两次。因此回调抛出的异常在此标记，再次经过时原样抛出，既不重复上报，也不会被外层
+    ///     的 catch 吞掉。
+    /// </remarks>
     public void Report(ICell? cell, Exception exception)
     {
-        if (_options.OnCellError == null) return;
-        _options.OnCellError(new ExcelImportError(cell?.Sheet?.SheetName, cell?.RowIndex ?? -1,
-            cell?.ColumnIndex ?? -1, exception));
+        Report(cell?.Sheet?.SheetName, cell?.RowIndex ?? -1, cell?.ColumnIndex ?? -1, exception);
     }
 
-    public void Report(IRow? row, int columnIndex, Exception exception)
+    private void Report(string? sheetTitle, int rowIndex, int columnIndex, Exception exception)
     {
         if (_options.OnCellError == null) return;
-        _options.OnCellError(new ExcelImportError(row?.Sheet?.SheetName, row?.RowNum ?? -1, columnIndex,
-            exception));
+
+        if (exception.Data.Contains(AbortKey))
+            ExceptionDispatchInfo.Capture(exception).Throw();
+
+        try
+        {
+            _options.OnCellError(new ExcelImportError(sheetTitle, rowIndex, columnIndex, exception));
+        }
+        catch (Exception fromCallback)
+        {
+            if (!fromCallback.Data.IsReadOnly) fromCallback.Data[AbortKey] = true;
+            throw;
+        }
     }
 }

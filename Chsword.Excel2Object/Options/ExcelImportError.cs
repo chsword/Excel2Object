@@ -22,7 +22,10 @@ public class ExcelImportError
     /// <summary>所在工作表的名称。</summary>
     public string? SheetTitle { get; }
 
-    /// <summary>所在行的序号，自 0 计起（0 为标题行）。</summary>
+    /// <summary>
+    ///     所在行在工作表中的序号，自 0 计起。标题行的位置取决于
+    ///     <see cref="ExcelImporterOptions.TitleSkipLine" />，并不必然是第 0 行。
+    /// </summary>
     public int RowIndex { get; }
 
     /// <summary>所在列的序号，自 0 计起。</summary>

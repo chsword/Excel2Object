@@ -178,10 +178,11 @@ public class ExcelImporter
     private static object? GetCellDateTime(IRow row, int index, ImportContext context)
     {
         var cell = row.GetCell(index);
+        // 取文本的这一步自行上报失败，放在 try 之外，同一次失败才不会被上报两次
+        if (string.IsNullOrEmpty(GetCellValue(cell, context))) return null;
+
         try
         {
-            if (string.IsNullOrEmpty(GetCellValue(cell, context))) return null;
-
             switch (cell.CellType)
             {
                 case CellType.Numeric:

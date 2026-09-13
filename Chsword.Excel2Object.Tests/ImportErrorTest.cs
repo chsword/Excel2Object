@@ -97,6 +97,27 @@ public class ImportErrorTest : BaseExcelTest
         Assert.IsNotNull(e.InnerException);
     }
 
+    /// <summary>
+    ///     回调抛出异常以中止导入时，回调只应被调用一次：读取路径有嵌套，异常向外传播时会途经外层的
+    ///     catch，若不加区分便会被再次当作读取失败上报。
+    /// </summary>
+    [TestMethod]
+    public void TheCallbackRunsOnceWhenItAborts()
+    {
+        var calls = 0;
+        var e = Assert.ThrowsException<InvalidOperationException>(() =>
+            new ExcelImporter()
+                .ExcelToObject<Model>(WorkbookWithBrokenDate(), options => options.OnCellError = error =>
+                {
+                    calls++;
+                    throw new InvalidOperationException(error.CellReference);
+                })
+                .ToArray());
+
+        Assert.AreEqual("B3", e.Message);
+        Assert.AreEqual(1, calls, "回调被调用的次数");
+    }
+
     /// <summary>公式求值器按工作簿创建一次，不再逐单元格创建。</summary>
     [TestMethod]
     public void OneFormulaEvaluatorPerWorkbook()
