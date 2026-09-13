@@ -118,6 +118,89 @@ public class ImportErrorTest : BaseExcelTest
         Assert.AreEqual(1, calls, "回调被调用的次数");
     }
 
+    public class TypedModel
+    {
+        [ExcelTitle("数量")] public int Count { get; set; }
+        [ExcelTitle("网址")] public Uri? Site { get; set; }
+    }
+
+    private static byte[] WorkbookWithBadValues()
+    {
+        var workbook = new XSSFWorkbook();
+        var sheet = workbook.CreateSheet("数据");
+        var header = sheet.CreateRow(0);
+        header.CreateCell(0).SetCellValue("数量");
+        header.CreateCell(1).SetCellValue("网址");
+
+        var row = sheet.CreateRow(1);
+        row.CreateCell(0).SetCellValue("abc");
+        row.CreateCell(1).SetCellValue("https://example.com");
+
+        var stream = new MemoryStream();
+        workbook.Write(stream, true);
+        return stream.ToArray();
+    }
+
+    /// <summary>
+    ///     值无法转换为目标类型时照旧抛出并中止导入（与既有版本一致），但回调会先告知是哪一个单元格。
+    /// </summary>
+    [TestMethod]
+    public void AConversionFailureIsReportedBeforeItThrows()
+    {
+        var errors = new List<ExcelImportError>();
+
+        Assert.ThrowsException<FormatException>(() =>
+            new ExcelImporter()
+                .ExcelToObject<TypedModel>(WorkbookWithBadValues(), options => options.OnCellError = errors.Add)
+                .ToArray());
+
+        Assert.AreEqual(1, errors.Count);
+        Assert.AreEqual("A2", errors[0].CellReference);
+        Assert.IsInstanceOfType(errors[0].Exception, typeof(FormatException));
+    }
+
+    /// <summary>Uri 列亦然。</summary>
+    [TestMethod]
+    public void AnInvalidUriIsReportedBeforeItThrows()
+    {
+        var workbook = new XSSFWorkbook();
+        var sheet = workbook.CreateSheet("数据");
+        var header = sheet.CreateRow(0);
+        header.CreateCell(0).SetCellValue("网址");
+        sheet.CreateRow(1).CreateCell(0).SetCellValue("不是网址");
+        var stream = new MemoryStream();
+        workbook.Write(stream, true);
+
+        var errors = new List<ExcelImportError>();
+        Assert.ThrowsException<UriFormatException>(() =>
+            new ExcelImporter()
+                .ExcelToObject<UriModel>(stream.ToArray(), options => options.OnCellError = errors.Add)
+                .ToArray());
+
+        Assert.AreEqual(1, errors.Count);
+        Assert.AreEqual("A2", errors[0].CellReference);
+    }
+
+    public class UriModel
+    {
+        [ExcelTitle("网址")] public Uri? Site { get; set; }
+    }
+
+    /// <summary>中止用的异常不被改动：调用方拿到的异常与其抛出时一致。</summary>
+    [TestMethod]
+    public void TheAbortingExceptionIsNotModified()
+    {
+        var thrown = new InvalidOperationException("中止");
+
+        var caught = Assert.ThrowsException<InvalidOperationException>(() =>
+            new ExcelImporter()
+                .ExcelToObject<Model>(WorkbookWithBrokenDate(), options => options.OnCellError = _ => throw thrown)
+                .ToArray());
+
+        Assert.AreSame(thrown, caught);
+        Assert.AreEqual(0, caught.Data.Count, "异常的 Data 未被写入任何内容");
+    }
+
     /// <summary>公式求值器按工作簿创建一次，不再逐单元格创建。</summary>
     [TestMethod]
     public void OneFormulaEvaluatorPerWorkbook()

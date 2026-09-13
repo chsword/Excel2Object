@@ -157,7 +157,16 @@ public class ExcelImporter
             && propType.GetGenericTypeDefinition() == typeof(Nullable<>))
             return null;
             
-        return Convert.ChangeType(cellValue, type);
+        try
+        {
+            return Convert.ChangeType(cellValue, type);
+        }
+        catch (Exception e)
+        {
+            // 转换失败照旧向外抛出并中止导入，上报只是让调用方知道是哪一个单元格
+            context.Report(row, columnIndex, e);
+            throw;
+        }
     }
 
     private static object? GetCellBoolean(IRow row, int key, ImportContext context)
@@ -172,7 +181,15 @@ public class ExcelImporter
         if (ExcelConstants.BooleanValues.FalseValues.Any(v => v.Equals(lowerValue, StringComparison.OrdinalIgnoreCase)))
             return false;
             
-        return Convert.ToBoolean(cellValue);
+        try
+        {
+            return Convert.ToBoolean(cellValue);
+        }
+        catch (Exception e)
+        {
+            context.Report(row, key, e);
+            throw;
+        }
     }
 
     private static object? GetCellDateTime(IRow row, int index, ImportContext context)
@@ -204,7 +221,17 @@ public class ExcelImporter
     private static object? GetCellUri(IRow row, int key, ImportContext context)
     {
         var cellValue = GetCellValue(row.GetCell(key), context);
-        return string.IsNullOrEmpty(cellValue) ? null : new Uri(cellValue);
+        if (string.IsNullOrEmpty(cellValue)) return null;
+
+        try
+        {
+            return new Uri(cellValue);
+        }
+        catch (Exception e)
+        {
+            context.Report(row, key, e);
+            throw;
+        }
     }
 
     /// <param name="cell">The cell to read.</param>
@@ -381,6 +408,14 @@ public class ExcelImporter
         if (string.IsNullOrEmpty(cellValue)) return null;
         if (Enum.GetNames(enumType).Contains(cellValue)) return Enum.Parse(enumType, cellValue);
 
-        return Enum.Parse(enumType, "0");
+        try
+        {
+            return Enum.Parse(enumType, "0");
+        }
+        catch (Exception e)
+        {
+            context.Report(row, key, e);
+            throw;
+        }
     }
 }
