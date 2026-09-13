@@ -233,7 +233,9 @@ public class DateCellExportTest : BaseExcelTest
         var bytes = stream.ToArray();
 
         var numbers = ExcelHelper.ExcelToObject<NumberModel>(bytes).Single();
-        Assert.AreEqual(DateUtil.GetExcelDate(When), numbers.Serial);
+        // 容差取 1e-9 天（约 0.1 毫秒）：NPOI 在 .NET Framework 与 .NET 上写入序列号的低位略有出入，
+        // 而 Excel 本身只保留 15 位有效数字，此处要验证的是「取到的是序列号而非日期文本」
+        Assert.AreEqual(DateUtil.GetExcelDate(When), numbers.Serial, 1e-9);
         Assert.AreEqual(1.5m, numbers.Hours);
         Assert.AreEqual("14:30:45", numbers.Clock);
 
