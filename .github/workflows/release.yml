@@ -130,12 +130,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v7
 
-    # 10.0 的 SDK 可以编译 net472 / net6.0 / net8.0 / net9.0 的目标，测试只跑 net10.0
-    # The 10.0 SDK builds the net472 / net6.0 / net8.0 / net9.0 targets; the tests run on net10.0 only
+    # 10.0 的 SDK 足以编译全部目标；测试还要在 net8.0 上运行，故一并装上 8.0 的运行时
+    # The 10.0 SDK builds every target; the tests also run on net8.0, so that runtime is installed too
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: 10.0.x
+        dotnet-version: |
+          8.0.x
+          10.0.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v6
@@ -149,14 +151,14 @@ jobs:
       run: dotnet build --configuration Release
 
     - name: Test
-      run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+      run: dotnet test --configuration Release --no-build --verbosity normal --logger trx
 
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v7
       with:
         name: test-results
-        path: "**/test-results.trx"
+        path: "**/TestResults/*.trx"
 
     - name: Pack NuGet package
       run: dotnet pack --configuration Release --no-build --output ./artifacts
