@@ -407,6 +407,7 @@ In ASP.NET MVC models, the `DisplayAttribute` can be supported like `ExcelTitleA
 
 ## Document
 
+- [docs/](docs/README.md) - Documentation index: **per-version feature notes** (in Chinese) and topic guides
 - [ExcelFunctions.md](ExcelFunctions.md) - Formula columns: built-in functions, references by column title or model property, cross-sheet references
 - [DateTimeFormats.md](DateTimeFormats.md) - Supported date/time formats and parsing rules
 - [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md) - The `excel2obj` command-line tool

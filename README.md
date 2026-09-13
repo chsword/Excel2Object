@@ -66,119 +66,119 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 ### 发布说明
 
 * **2026.09.13** - v2.7.1
-- [x] 🐛 修复样式表中 `Format` 的作用范围：写在 `Column("标题")` 上的现在会盖过特性上的 `Format`（此前 `Cells` 上的格式反而能盖掉特性，导致 `[ExcelColumn(Format = "yyyy-MM-dd HH:mm:ss")]` 的时分秒被丢掉）；写在 `Cells` / 奇偶行上的只落到说得上话的列——日期格式不再把 `12.5` 显示成 `1900-01-12`，数字格式也不再顶掉文本列的 `@`（前导零保护）
-- [x] ✨ **改进:** 边框宽度支持 CSS 关键字 `thin` / `medium` / `thick`，写法错误时的报错会指出是哪一段不认识
-- [x] ✨ **改进:** 每列每种行（奇/偶）的样式只解析一次而不是每个单元格一次，大表导出少掉数百万次样式合并与键拼接
+- [x] 🐛 修复样式表中 `Format` 的作用范围：为某一列声明的格式（`Column("标题")`）现优先于特性上的 `Format`（此前 `Cells` 上声明的格式反而会覆盖特性，致使 `[ExcelColumn(Format = "yyyy-MM-dd HH:mm:ss")]` 的时分秒丢失）；在 `Cells` 与奇偶行上声明的格式仅作用于类型相符的列——日期格式不再使 `12.5` 显示为 `1900-01-12`，数字格式亦不再覆盖文本列的 `@`（前导零保护）
+- [x] ✨ **改进:** 边框宽度支持 CSS 关键字 `thin` / `medium` / `thick`；写法无法识别时，异常信息将指出未能识别的片段
+- [x] ✨ **改进:** 样式改为按「列 × 行奇偶」解析一次并在整表复用，不再逐单元格解析；大表导出可减少数百万次样式合并与缓存键构造
 
 * **2026.09.13** - v2.7.0
-- [x] ✨ **新增:** 样式表 `options.Styles`：按作用范围写样式而不是抄在每个 `[ExcelColumn]` 上 —— `Header` / `Cells` / `Column("标题")` / `OddRows` / `EvenRows`，层叠顺序为 `Cells → 奇偶行 → [ExcelColumn] → Column`，只有显式设置的属性参与叠加
-- [x] ✨ **新增:** 单元格背景色与边框（此前完全不支持）：`Background("#4472C4")`、`Border("1px solid #D0D0D0")`，以及 `Wrap`、`VerticalAlign`、`FontSize` 等
-- [x] ✨ **新增:** 颜色支持十六进制（`#RRGGBB` / `#RGB`），不再局限于 56 色枚举。`.xlsx` 原样保存；`.xls` 按 CIELAB 感知距离挑调色板最近色（浅灰得到灰而非淡紫）；用 `ExcelStyleColor` 指定的颜色在两种格式下仍按索引写入
-- [x] ✨ **改进:** 样式写在 `Column("标题")` 上时对任何列类型生效，包括给数字列设 `Format("#,##0.00")`（特性上的 `Format` 仍只作用于日期列，保持兼容）
-- [x] ✨ **改进:** 外观相同的单元格共用一个 cell style，隔行底色等不会撑爆 `.xls` 的 4000 样式上限
+- [x] ✨ **新增:** 样式表 `options.Styles`：样式按作用范围声明，无需在每个 `[ExcelColumn]` 上重复书写 —— `Header` / `Cells` / `Column("标题")` / `OddRows` / `EvenRows`，层叠顺序为 `Cells → 奇偶行 → [ExcelColumn] → Column`，仅显式设置的属性参与叠加
+- [x] ✨ **新增:** 单元格背景色与边框（此前不支持）：`Background("#4472C4")`、`Border("1px solid #D0D0D0")`，以及 `Wrap`、`VerticalAlign`、`FontSize` 等
+- [x] ✨ **新增:** 颜色支持十六进制（`#RRGGBB` / `#RGB`），不再局限于 56 色枚举。`.xlsx` 直接保存所写的颜色；`.xls` 按 CIELAB 感知距离选取调色板中最接近的一色（浅灰匹配为灰而非淡紫）；以 `ExcelStyleColor` 指定的颜色在两种格式下仍按调色板索引写入
+- [x] ✨ **改进:** 在 `Column("标题")` 上声明的样式适用于任何列类型，数值列由此可设置 `Format("#,##0.00")`（特性上的 `Format` 仍仅作用于日期列，以保持兼容）
+- [x] ✨ **改进:** 外观相同的单元格共用同一个单元格样式，隔行底色等场景不会突破 `.xls` 的 4000 个样式上限
 
 * **2026.09.12** - v2.6.0
-- [x] ✨ **新增:** 条件格式 `options.ConditionalFormats`：按列写规则（`Operator` + `Value`，`Between` 用 `Value2`，或直接给 `Formula`），命中时改字体颜色、加粗、倾斜、填充背景色；`WholeRow = true` 可整行高亮。规则由 Excel 求值，数据编辑后颜色跟着变，同一列可挂多条，`.xls` / `.xlsx` 都支持
+- [x] ✨ **新增:** 条件格式 `options.ConditionalFormats`：以列为单位声明规则（`Operator` 与 `Value`，`Between` 另需 `Value2`，亦可直接给出 `Formula`），命中时改变字体颜色、加粗、倾斜与填充背景色；`WholeRow = true` 可高亮整行。规则由 Excel 求值，数据被编辑后颜色随之变化；同一列可声明多条规则，`.xls` 与 `.xlsx` 均受支持
 
 * **2026.09.12** - v2.5.0
-- [x] ✨ **新增:** `ExcelExporterOptions.FreezeHeader` 冻结首行，滚动时表头常驻；`ExcelExporterOptions.AutoFilter` 给表头挂上筛选下拉，范围覆盖本次写入的数据行。两项默认关闭，`.xls` / `.xlsx` 都支持
-- [x] ✨ **新增:** `AppendObjectToExcelBytes` 增加接受 options 的重载，追加 sheet 时也能设置冻结、筛选与下拉
-- [x] ✨ **新增:** 数据验证（下拉列表）：固定取值写在 `[ExcelColumn("状态", Dropdown = new[] {"启用", "停用"})]`，运行时取值走 `options.Dropdowns["列标题"] = values`（优先于特性）。Excel 会拒绝列表之外的输入；列表总长超过 255 字符或取值含逗号/引号时自动改用隐藏 sheet 承载（此前这种列表在 `.xls` 上会直接抛异常），空导出也会在首行挂上下拉以便做填写模板
+- [x] ✨ **新增:** `ExcelExporterOptions.FreezeHeader` 冻结首行，滚动时表头保持可见；`ExcelExporterOptions.AutoFilter` 为表头附加筛选下拉，范围覆盖本次写入的数据行。两项默认关闭，`.xls` 与 `.xlsx` 均受支持
+- [x] ✨ **新增:** `AppendObjectToExcelBytes` 新增接受 options 的重载，追加工作表时同样可设置冻结、筛选与下拉
+- [x] ✨ **新增:** 数据验证（下拉列表）：固定取值声明于 `[ExcelColumn("状态", Dropdown = new[] {"启用", "停用"})]`，运行时方可确定的取值通过 `options.Dropdowns["列标题"] = values` 传入（优先于特性）。Excel 将拒绝列表之外的输入；列表总长超过 255 字符，或取值含有逗号、引号时，改由隐藏工作表承载（此前该类列表在 `.xls` 上会直接抛出异常）；无数据的导出同样在首行附带下拉，便于作为填写模板
 
 * **2026.09.11** - v2.4.0
-- [x] ✨ **新增:** 导出时 `DateTime` / `DateTime?` 列写成真正的日期单元格（序列号 + 日期格式），Excel 可以排序、筛选、参与计算，`null` 写成空单元格；`Dictionary<string, object>` 与 `DataTable` 导出中的 `DateTime` 值同样处理 - 查看 [DateTimeFormats.md](DateTimeFormats.md)
+- [x] ✨ **新增:** 导出时 `DateTime` 与 `DateTime?` 列写为日期单元格（序列号与日期格式），可在 Excel 中排序、筛选并参与计算，`null` 写为空白单元格；`Dictionary<string, object>` 与 `DataTable` 导出中的 `DateTime` 值同样处理 - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] ✨ **新增:** `[ExcelColumn(Format = ...)]` 的 .NET 日期格式串自动翻译成对应的 Excel 数字格式（`yyyy-MM-dd HH:mm:ss` → `yyyy-mm-dd hh:mm:ss`，`yyyy年MM月dd日` → `yyyy"年"mm"月"dd"日"`），未指定时为 `yyyy-mm-dd hh:mm:ss`；已经是 Excel 拼写的格式（`m/d/yy`、`[$-409]d-mmm-yy`、`yyyy/m/d;@`）原样使用
-- [x] ✨ **新增:** `ExcelExporterOptions.DateTimeAsText`，恢复 v2.3 及之前把日期写成文本的导出方式；`DataTable` 导出新增接受 options 的重载 `ObjectToExcelBytes(DataTable, Action<ExcelExporterOptions>)`
-- [x] 🐛 修复公式列接管带自定义 `Format` 的 `DateTime` 列时公式被丢弃、改写成模型值文本的问题：现在保留公式并套用日期格式（公式若返回数字而非日期，用 `FormulaResultType` 声明）
-- [x] 🐛 修复日期单元格读进 `string` 属性或 `Dictionary<string, object>` 时得到 `46276.6` 这类序列号的问题：现按单元格格式渲染成 `yyyy-MM-dd`、`HH:mm:ss` 或两者，`[h]:mm` 这类经过时间仍按数字读；数值属性（`double`、`decimal` 等）始终取原始数字
-- [x] ⚠️ **行为变更:** Excel 日历不覆盖 1900 年之前（1904 日期系统的工作簿为 1904 年之前），这类日期（尤其 `default(DateTime)`）仍按 `Format` 渲染成文本写入；`hh` 不带 `tt` 时显示 24 小时制，Excel 没有不带 AM/PM 标记的 12 小时制
+- [x] ✨ **新增:** `ExcelExporterOptions.DateTimeAsText`，恢复 v2.3 及之前按文本导出日期的方式；`DataTable` 导出新增接受 options 的重载 `ObjectToExcelBytes(DataTable, Action<ExcelExporterOptions>)`
+- [x] 🐛 修复公式列接管带自定义 `Format` 的 `DateTime` 列时公式被丢弃、改写为模型自身值的文本的问题：现保留公式并套用日期格式（公式若返回数值而非日期，请以 `FormulaResultType` 声明）
+- [x] 🐛 修复日期单元格读入 `string` 属性或 `Dictionary<string, object>` 时得到 `46276.6` 一类序列号的问题：现按单元格格式渲染为 `yyyy-MM-dd`、`HH:mm:ss` 或两者；`[h]:mm` 一类的经过时间仍按数值读取；数值属性（`double`、`decimal` 等）始终取原始数值
+- [x] ⚠️ **行为变更:** Excel 的日历不覆盖 1900 年之前（采用 1904 日期系统的工作簿为 1904 年之前），此类日期（尤以未赋值的 `default(DateTime)` 为常见）仍按 `Format` 渲染为文本写入；`hh` 不带 `tt` 时显示 24 小时制，Excel 没有不带 AM/PM 标记的 12 小时制
 
 * **2026.09.11** - v2.3.0
-- [x] ✨ **新增:** 公式内置函数库从 34 个扩充到 **334 个** Excel 函数，分 10 类：数学与三角（73）、统计（80）、逻辑（11）、查找与引用（33）、日期时间（25）、文本（39）、信息（20）、财务（21）、工程（20）、数据库（12）。信息 / 财务 / 工程 / 数据库为全新分类，入口为 `ExcelFunctions.Information`、`.Financial`、`.Engineering`、`.Database` - 查看 [ExcelFunctions.md](ExcelFunctions.md)
-- [x] 🐛 修复 Excel 2007 之后新增的函数写入后打开显示 `#NAME?` 的问题：xlsx 格式要求这类函数存成 `_xlfn.IFS`、`_xlfn.STDEV.P`（`SORT`/`FILTER` 为 `_xlfn._xlws.`），现已自动加前缀；此前已有的 `DAYS` 即受此影响
-- [x] 🐛 修复公式中的数字按当前区域性格式化的问题：`de-DE` 等区域下 `1.5` 会写成 `1,5` 导致公式无法解析，现统一使用不变区域性
-- [x] 🐛 修复文本字面量中的双引号未按 Excel 规则转义（`"` 需写成 `""`）的问题
-- [x] ✨ **新增:** 公式中可直接书写更多普通 C#：`%`（MOD）、`^`（乘幂）、`&&` / `||` / `!`（AND / OR / NOT）、三元表达式（IF）、`Math.*`、`string` 成员（`ToUpper`、`Substring`、`Length`、`Contains` 等；语义与 Excel 不完全一致的 `Math.Round`、`string.Trim` 等不翻译，需显式调用对应的 `ExcelFunctions` 函数）、`DateTime` 成员与 `AddDays` / `AddMonths` / `AddYears`、可空属性的 `.HasValue`
-- [x] ✨ **新增:** 公式中可引用 lambda 捕获的局部变量与 `new DateTime(...)` 等常量表达式，自动求值后写成字面量（此前会生成无效公式）
-- [x] ✨ **改进:** 区间（`c.Matrix(...)`、`c.Columns(...)`）可隐式用于接受单值的参数位置，`SUM` 等函数可混合传入单元格与区间
-- [x] 🐛 修复 `[ExcelColumn]` 的单元格样式被静默忽略的问题：样式缓存键与分支判断不匹配，`CellBold` / `CellFontColor` / `CellAlignment` 等此前完全没有写进单元格；另修复一列声明 `CellAlignment` 会改到工作簿默认样式、导致其他列跟着变的外溢问题（#47）
-- [x] 🐛 修复 `FormulaResultType = typeof(DateTime)` 的公式列没有日期格式、在 Excel 里显示成 `46282.6` 这类序列号的问题（#47）
-- [x] ⚠️ **不兼容变更:** `IStatisticsFunction.Sum` 由 `params ColumnMatrix[]` 改为 `params ColumnValue[]`，`IMathFunction` 多个方法的返回值由 `int` / `double` 统一为 `ColumnValue`。源码级兼容（现有公式无需修改即可编译），但二进制不兼容，升级后需重新编译
+- [x] ✨ **新增:** 公式内置函数库由 34 个扩充至 **334 个** Excel 函数，分为 10 类：数学与三角（73）、统计（80）、逻辑（11）、查找与引用（33）、日期时间（25）、文本（39）、信息（20）、财务（21）、工程（20）、数据库（12）。其中信息、财务、工程、数据库为新增分类，入口分别为 `ExcelFunctions.Information`、`.Financial`、`.Engineering`、`.Database` - 查看 [ExcelFunctions.md](ExcelFunctions.md)
+- [x] 🐛 修复 Excel 2007 之后新增的函数写入后打开显示 `#NAME?` 的问题：xlsx 格式要求此类函数存为 `_xlfn.IFS`、`_xlfn.STDEV.P`（`SORT` 与 `FILTER` 为 `_xlfn._xlws.`），现已自动添加前缀；此前已支持的 `DAYS` 即受此影响
+- [x] 🐛 修复公式中的数值按当前区域性格式化的问题：`de-DE` 等区域下 `1.5` 会写为 `1,5`，导致公式无法解析，现统一使用不变区域性
+- [x] 🐛 修复文本字面量中的双引号未按 Excel 规则转义（`"` 应写为 `""`）的问题
+- [x] ✨ **新增:** 公式中可直接书写更多常规 C# 写法：`%`（MOD）、`^`（乘幂）、`&&` / `||` / `!`（AND / OR / NOT）、三元表达式（IF）、`Math.*`、`string` 成员（`ToUpper`、`Substring`、`Length`、`Contains` 等；语义与 Excel 不完全一致的 `Math.Round`、`string.Trim` 等不翻译，需显式调用对应的 `ExcelFunctions` 函数）、`DateTime` 成员与 `AddDays` / `AddMonths` / `AddYears`，以及可空属性的 `.HasValue`
+- [x] ✨ **新增:** 公式中可引用 lambda 捕获的局部变量与 `new DateTime(...)` 等常量表达式，求值后写为字面量（此前会生成无效公式）
+- [x] ✨ **改进:** 区间（`c.Matrix(...)`、`c.Columns(...)`）可隐式用于接受单值的参数位置，`SUM` 等函数可混合传入单元格与区间引用
+- [x] 🐛 修复 `[ExcelColumn]` 的单元格样式被静默忽略的问题：样式缓存键与分支判断不匹配，`CellBold` / `CellFontColor` / `CellAlignment` 等此前未写入单元格；同时修复某列声明 `CellAlignment` 会改动工作簿默认样式、导致其他列一并变化的问题（#47）
+- [x] 🐛 修复 `FormulaResultType = typeof(DateTime)` 的公式列缺少日期格式、在 Excel 中显示为 `46282.6` 一类序列号的问题（#47）
+- [x] ⚠️ **不兼容变更:** `IStatisticsFunction.Sum` 由 `params ColumnMatrix[]` 改为 `params ColumnValue[]`，`IMathFunction` 多个方法的返回值由 `int` / `double` 统一为 `ColumnValue`。该变更为源码级兼容（现有公式无需修改即可编译），但二进制不兼容，升级后需重新编译
 
 * **2026.09.11** - v2.2.1
-- [x] 🔧 修复命令行工具包体超过 NuGet 250 MB 上限导致 2.2.0 未能发布的问题：CLI 仅保留 net8.0 并剔除原生 `.pdb`（库代码无变更）
+- [x] 🔧 修复命令行工具包体超过 NuGet 250 MB 上限、致使 2.2.0 未能发布的问题：命令行工具仅保留 net8.0 并剔除本机 `.pdb` 文件（库代码无变更）
 
 * **2026.09.11** - v2.2.0
 - [x] ✨ **新增:** 命令行工具 `excel2obj`（`dotnet tool install -g Chsword.Excel2Object.Cli`）：Excel ↔ JSON 转换、批量转换、由表头生成带 `[ExcelTitle]` 的模型类 - 查看 [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md)（#9）
-- [x] ✨ **新增:** 公式列可通过模型属性引用列：`options.FormulaColumns.Add<Order>("Total", (c, m) => m.Price * m.Qty)`，编译期检查属性名，引用未导出的属性会抛出异常 - 查看 [ExcelFunctions.md](ExcelFunctions.md)（#22）
-- [x] ✨ **改进:** 导出时数值列写成数字单元格、bool 列写成布尔单元格、null/DBNull 写成空白单元格（此前一律写成文本）；字符串列仍为文本，前导零不会丢失
-- [x] 🐛 修复公式中运算符优先级导致缺少括号的问题，如 `c["A"] * (c["B"] + c["C"])` 此前生成 `A2*B2+C2`
-- [x] ✨ **改进:** 公式中引用当前 sheet 不存在的列标题时抛出 `Excel2ObjectException`，不再静默回退
+- [x] ✨ **新增:** 公式列可通过模型属性引用列：`options.FormulaColumns.Add<Order>("Total", (c, m) => m.Price * m.Qty)`，属性名在编译期检查，引用未导出的属性将抛出异常 - 查看 [ExcelFunctions.md](ExcelFunctions.md)（#22）
+- [x] ✨ **改进:** 导出时数值列写为数字单元格，`bool` 列写为布尔单元格，`null` 与 `DBNull` 写为空白单元格（此前一律写为文本）；字符串列仍为文本，前导零不会丢失
+- [x] 🐛 修复公式中运算符优先级导致括号缺失的问题：`c["A"] * (c["B"] + c["C"])` 此前生成 `A2*B2+C2`
+- [x] ✨ **改进:** 公式中引用当前工作表不存在的列标题时抛出 `Excel2ObjectException`，不再静默回退
 
 * **2026.09.08** - v2.1.0
-- [x] ✨ **新增:** 公式列支持跨 sheet 引用：`c.Sheet("Products")["Price", 2]`、`.Matrix(...)`、`.Columns(...)`，可直接用于 `VLOOKUP` 等函数；另新增当前 sheet 的整列引用 `c.Columns("A列", "D列")` - 查看 [ExcelFunctions.md](ExcelFunctions.md)
-- [x] ✨ **改进:** 公式中引用不存在的列或 sheet 时抛出 `Excel2ObjectException`（附公式列名），不再生成无效公式
-- [x] ✨ **更新:** NPOI 到 2.8.0（NPOI 2.8 起附带 OSMF EULA，本库已在 csproj 中声明接受；源代码仍为 Apache-2.0）
-- [x] 🔒 修复传递依赖 System.Security.Cryptography.Xml 的安全漏洞（钉到 8.0.4）
-- [x] 🧹 移除未使用的 SixLabors.ImageSharp 依赖；补全 `FormulaColumnsCollection.CopyTo`；`ColumnValue.Equals/GetHashCode` 不再抛异常
-- [x] 🔧 CI 与测试迁移到 .NET 10；修复发布流程中 GitHub Release 创建失败的问题
+- [x] ✨ **新增:** 公式列支持跨工作表引用：`c.Sheet("Products")["Price", 2]`、`.Matrix(...)`、`.Columns(...)`，可直接用于 `VLOOKUP` 等函数；另新增当前工作表的整列引用 `c.Columns("A列", "D列")` - 查看 [ExcelFunctions.md](ExcelFunctions.md)
+- [x] ✨ **改进:** 公式中引用不存在的列或工作表时抛出 `Excel2ObjectException`（附公式列名），不再生成无效公式
+- [x] ✨ **更新:** NPOI 更新至 2.8.0（NPOI 自 2.8 起附带 OSMF EULA，本库已在项目文件中声明接受；源代码仍为 Apache-2.0 许可）
+- [x] 🔒 修复传递依赖 System.Security.Cryptography.Xml 的安全漏洞（版本钉至 8.0.4）
+- [x] 🧹 移除未使用的 SixLabors.ImageSharp 依赖；补全 `FormulaColumnsCollection.CopyTo`；`ColumnValue.Equals` 与 `GetHashCode` 不再抛出异常
+- [x] 🔧 持续集成与测试迁移至 .NET 10；修复发布流程中 GitHub Release 创建失败的问题
 
 * **2025.10.11** - v2.0.5
-- [x] 🔧 `release.ps1` 支持自动递增补丁版本号与 `-Help`（库代码无变更）
+- [x] 🔧 `release.ps1` 支持自动递增补丁版本号，并新增 `-Help` 参数（库代码无变更）
 
 * **2025.10.11** - v2.0.4
-- [x] ℹ️ 自 2.0.0.211 之后首个发布到 NuGet 的 2.0.x 版本（v2.0.1–v2.0.3 未曾发布），包含以下全部改动：
-- [x] ✨ **新增:** 基于内容的自动列宽调整
-  - 自动计算最优列宽
-  - 支持最小和最大宽度限制
-  - 正确处理中文/Unicode 字符
+- [x] ℹ️ 本版本为 2.0.0.211 之后首个发布至 NuGet 的 2.0.x 版本（v2.0.1 至 v2.0.3 未曾发布），包含此期间的全部改动：
+- [x] ✨ **新增:** 基于内容的自动列宽
+  - 依据内容计算列宽
+  - 支持最小与最大宽度限制
+  - 正确处理中文及其他 Unicode 字符的显示宽度
   - 可通过 `ExcelExporterOptions` 配置
-- [x] ✨ **新增:** 全面的日期/时间格式支持（56 种格式）- 查看 [DateTimeFormats.md](DateTimeFormats.md)
-  - ISO 8601 格式（支持时区和毫秒）
+- [x] ✨ **新增:** 全面的日期时间格式支持（56 种格式）- 查看 [DateTimeFormats.md](DateTimeFormats.md)
+  - ISO 8601 格式（含时区与毫秒）
   - 多种日期分隔符（横线、斜线、点号）
-  - 12 小时制和 24 小时制时间格式
-  - 仅时间格式
-  - 区域格式支持（美国、欧洲等）
-  - 向后兼容现有的中文日期格式（年月日）
-- [x] ✨ **更新:** NPOI 到 2.7.5
-- [x] ✨ **更新:** SixLabors.ImageSharp 到 3.1.11（修复安全漏洞）
-- [x] 🔧 GitHub Actions CI 取代 AppVeyor；新增 tag 触发的自动发布流程与 `release.ps1` 一键发布脚本
+  - 12 小时制与 24 小时制时间格式
+  - 仅时间的格式
+  - 区域写法支持（美国、欧洲等）
+  - 向后兼容既有的中文日期格式（年月日）
+- [x] ✨ **更新:** NPOI 更新至 2.7.5
+- [x] ✨ **更新:** SixLabors.ImageSharp 更新至 3.1.11（修复安全漏洞）
+- [x] 🔧 以 GitHub Actions 取代 AppVeyor；新增由 tag 触发的自动发布流程与 `release.ps1` 一键发布脚本
 
 * **2024.10.21**
-- [x] 更新 SixLabors.ImageSharp 到 2.1.9
-- [x] 测试 .NET 8.0
+- [x] SixLabors.ImageSharp 更新至 2.1.9
+- [x] 补充 .NET 8.0 的测试
 
 * **2024.05.10**
-- [x] 支持 .NET 8.0 / .NET 6.0 / .NET Standard 2.1 / .NET Standard 2.0 / .NET Framework 4.7.2
+- [x] 支持 .NET 8.0、.NET 6.0、.NET Standard 2.1、.NET Standard 2.0 与 .NET Framework 4.7.2
 - [x] 清理已弃用的库
 
 * **2023.11.02**
-- [x] 支持列标题映射 - [Issue39DynamicMappingTitle.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue39DynamicMappingTitle.cs)
+- [x] 支持列标题映射，可在导入时将工作表中的标题动态映射至模型属性 - [Issue39DynamicMappingTitle.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue39DynamicMappingTitle.cs)
 
 * **2023.07.31**
-- [x] 支持 DateTime 和 Nullable<DateTime> 格式，如 `[ExcelColumn("Title",Format="yyyy-MM-dd HH:mm:ss")]`
+- [x] 支持 `DateTime` 与 `Nullable<DateTime>` 的格式声明，例如 `[ExcelColumn("Title", Format = "yyyy-MM-dd HH:mm:ss")]`
 
 * **2023.03.26**
-- [x] 支持列标题中的特殊符号 #37 - [Issue37SpecialCharTest.cs](https://github.com/chsword/Excel2Object/commit/273122275e724367bb6154e03df61702fcec81b3#diff-5f0f5f7558bf7d4207cfa752a4506c4df89d9b491e2501e4862aff0c2276bd61)
+- [x] 支持列标题中的特殊符号（#37）- [Issue37SpecialCharTest.cs](https://github.com/chsword/Excel2Object/commit/273122275e724367bb6154e03df61702fcec81b3#diff-5f0f5f7558bf7d4207cfa752a4506c4df89d9b491e2501e4862aff0c2276bd61)
 
 * **2023.02.20**
-- [x] 支持平台：.NET Standard 2.0/2.1、.NET 6.0、.NET Framework 4.7.2
+- [x] 支持的平台确定为 .NET Standard 2.0 与 2.1、.NET 6.0、.NET Framework 4.7.2
 
 * **2022.03.19**
-- [x] 支持 ExcelImporterOptions，跳过行 - [Issue32SkipLineImport.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue32SkipLineImport.cs)
-- [x] 修复超类属性 bug - [Issue31SuperClass.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue31SuperClass.cs)
+- [x] 新增 `ExcelImporterOptions`，可通过 `TitleSkipLine` 跳过标题行之前的若干行 - [Issue32SkipLineImport.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue32SkipLineImport.cs)
+- [x] 修复超类属性未被识别的问题 - [Issue31SuperClass.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Issue31SuperClass.cs)
 
 * **2021.11.4**
-- [x] 多 sheet 支持 - [Pr28MultipleSheetTest.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Pr28MultipleSheetTest.cs)
+- [x] 支持多工作表导出 - [Pr28MultipleSheetTest.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Pr28MultipleSheetTest.cs)
 
 * **2021.10.23**
-- [x] 修复 Nullable DateTime bug @SunBrook
+- [x] 修复可空 `DateTime` 的缺陷（由 @SunBrook 贡献）
 
 * **2021.10.22**
-- [x] 支持 Nullable 类型 - [Pr24NullableTest.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Pr24NullableTest.cs) @SunBrook
+- [x] 支持可空类型 - [Pr24NullableTest.cs](https://github.com/chsword/Excel2Object/blob/main/Chsword.Excel2Object.Tests/Pr24NullableTest.cs)（由 @SunBrook 贡献）
 
 * **2021.5.28**
-- [x] 支持表头和单元格样式，新增列的 [ExcelColumnAttribute] 
+- [x] 支持表头与单元格样式，新增 `[ExcelColumnAttribute]`
 - [x] 支持公式 - [ExcelFunctions.md](./ExcelFunctions.md)
 
 ```C#
@@ -217,33 +217,22 @@ public class Pr20Model
 ```
 
 * **v2.0.0.113**
-```
-convert project to netstandard2.0 and .net452
-fixbug #12 #13
-```
+- [x] 项目迁移至 .NET Standard 2.0 与 .NET Framework 4.5.2
+- [x] 修复 #12 与 #13
 
 * **v1.0.0.80**
-
-- [x] support simple formula
-- [x] support standard excel model
-  - [x] excel & JSON convert
-  - [x] excel & Dictionary<string,object> convert
-
-```
-Support Uri to a hyperlink cell
-And also support text cell to Uri Type
-```
+- [x] 支持简单公式
+- [x] 支持标准的 Excel 模型
+  - [x] Excel 与 JSON 互转
+  - [x] Excel 与 `Dictionary<string, object>` 互转
+- [x] 支持将 `Uri` 写为超链接单元格，并支持将文本单元格读为 `Uri` 类型
 
 * **v1.0.0.43**
-```
-Support xlsx [thanks Soar360]
-Support complex Boolean type
-```
+- [x] 支持 xlsx 格式（由 Soar360 贡献）
+- [x] 支持复合布尔类型
 
 * **v1.0.0.36**
-```
-Add ExcelToObject<T>(bytes)
-```
+- [x] 新增 `ExcelToObject<T>(bytes)`
 
 
 ## 示例代码
@@ -410,6 +399,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 
 ## 文档
 
+- [docs/](docs/README.md) - 文档索引：**各版本特性说明**与专题文档
 - [ExcelFunctions.md](ExcelFunctions.md) - 公式列：内置函数、按列标题/模型属性引用、跨 sheet 引用
 - [DateTimeFormats.md](DateTimeFormats.md) - 支持的日期时间格式与解析规则
 - [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md) - 命令行工具 `excel2obj` 用法
