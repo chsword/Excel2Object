@@ -23,25 +23,22 @@ public class TempDiagnosticTest
     [TestMethod]
     public void DumpStyles()
     {
-        // 完全复刻 RowsStripe：只设偶数行底色
-        var bytes = new ExcelExporter().ObjectToExcelBytes(new List<Model> {new(), new(), new()}, o =>
-        {
-            o.ExcelType = ExcelType.Xlsx;
-            o.Styles.EvenRows(s => s.Background("#F2F2F2"));
-        })!;
+        // 绕开导出流程，直接看 DSL 与解析器的中间结果
+        var sheet = new Chsword.Excel2Object.Styles.ExcelStyleSheet();
+        sheet.EvenRows(s => s.Background("#F2F2F2"));
 
-        var workbook = (XSSFWorkbook) WorkbookFactory.Create(new MemoryStream(bytes));
-        var sheet = workbook.GetSheetAt(0);
-        var dump = "";
-        for (var r = 0; r <= 3; r++)
-        {
-            var style = (XSSFCellStyle) sheet.GetRow(r).GetCell(0).CellStyle;
-            var rgb = style.FillForegroundColorColor?.RGB;
-            dump += $"row{r}:idx={style.Index},pattern={style.FillPattern}," +
-                    $"fill={(rgb == null ? "null" : string.Join("-", rgb))},fmt={style.GetDataFormatString()} ";
-        }
+        var even = sheet.EvenRowsStyle;
+        var parsed = Chsword.Excel2Object.Internal.StyleColor.Parse("#F2F2F2");
 
-        Assert.Fail($"DIAG styleCount={workbook.NumCellStyles} {dump}");
+        var column = new Chsword.Excel2Object.ExcelColumn {Title = "城市", Type = typeof(string)};
+        var odd = Chsword.Excel2Object.Internal.StyleResolver.Resolve(column, sheet, 1);
+        var evenResolved = Chsword.Excel2Object.Internal.StyleResolver.Resolve(column, sheet, 2);
+
+        Assert.Fail(
+            $"DIAG parse={parsed} evenNull={even == null} evenIsEmpty={even?.IsEmpty} " +
+            $"evenFill={even?.FillColor?.ToString() ?? "null"} evenKey=[{even?.Key()}] " +
+            $"oddResolvedNull={odd.Style == null} evenResolvedNull={evenResolved.Style == null} " +
+            $"evenResolvedKey=[{evenResolved.Style?.Key()}]");
     }
 
     private static string Fragment(string xml, string tag)
