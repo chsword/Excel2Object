@@ -298,11 +298,41 @@ public class StreamingExportTest
     [TestMethod]
     public void TheRowWindowMustBePositive()
     {
-        using var output = new MemoryStream();
-        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
-            new ExcelExporter().ObjectToExcelStream(Rows(10), output, options => options.StreamingRowWindow = 0));
+        // .xls 那条路上虽用不着这个值，取值不合法同样说明调用方想要的与得到的并不一致
+        foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
+        {
+            using var output = new MemoryStream();
+            var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+                new ExcelExporter().ObjectToExcelStream(Rows(10), output, options =>
+                {
+                    options.ExcelType = excelType;
+                    options.StreamingRowWindow = 0;
+                }), excelType.ToString());
 
-        StringAssert.Contains(e.Message, "StreamingRowWindow");
+            StringAssert.Contains(e.Message, "StreamingRowWindow");
+            Assert.AreEqual(0, output.Length, excelType.ToString());
+        }
+    }
+
+    [TestMethod]
+    public void TheSourceIsReleasedWhenTheExportNeverStarts()
+    {
+        // 字典入口为取列名要先读一行，枚举器因而在写入开始之前即已打开。写入若根本没能开始，
+        // 它也须被释放——数据库游标之类的东西正是这样悬着的。
+        var badWindow = new TrackedDictionaries();
+        Assert.ThrowsException<Excel2ObjectException>(() =>
+            new ExcelExporter().ObjectToExcelStream(badWindow, new MemoryStream(),
+                options => options.StreamingRowWindow = 0));
+        Assert.IsTrue(badWindow.Disposed, "行窗口不合法时");
+
+        var badSource = new TrackedDictionaries();
+        Assert.ThrowsException<Excel2ObjectException>(() =>
+            new ExcelExporter().ObjectToExcelStream(badSource, new MemoryStream(), options =>
+            {
+                options.StreamingRowWindow = Window;
+                options.SourceExcelBytes = new byte[] {1, 2, 3};
+            }));
+        Assert.IsTrue(badSource.Disposed, "源工作簿读不出来时");
     }
 
     [TestMethod]
@@ -413,6 +443,56 @@ public class StreamingExportTest
         // 表名含非 ASCII 字符，读回时 NPOI 会给它加上引号
         Assert.AreEqual("C2-'上月'!C2", sheet.GetRow(1).GetCell(5).CellFormula);
         Assert.AreEqual(10, workbook.GetSheet("上月").LastRowNum, "原有的表应原样保留");
+    }
+
+    /// <summary>记下自己有没有被释放：字典入口会预先取走一行，那个枚举器的归属正是要验的东西。</summary>
+    private sealed class TrackedDictionaries : IEnumerable<Dictionary<string, object>>
+    {
+        public bool Disposed { get; private set; }
+
+        public IEnumerator<Dictionary<string, object>> GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        private sealed class Enumerator : IEnumerator<Dictionary<string, object>>
+        {
+            private readonly TrackedDictionaries _owner;
+            private int _index;
+
+            public Enumerator(TrackedDictionaries owner)
+            {
+                _owner = owner;
+            }
+
+            public Dictionary<string, object> Current { get; private set; } = new();
+
+            object IEnumerator.Current => Current;
+
+            public bool MoveNext()
+            {
+                if (_index >= 3) return false;
+
+                Current = new Dictionary<string, object> {{"省份", "省" + _index}, {"金额", 100 + _index}};
+                _index++;
+                return true;
+            }
+
+            public void Reset()
+            {
+                _index = 0;
+            }
+
+            public void Dispose()
+            {
+                _owner.Disposed = true;
+            }
+        }
     }
 
     /// <summary>记下被遍历的次数，遍历第二遍即失败——流式导出只应过一遍数据。</summary>

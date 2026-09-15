@@ -149,11 +149,15 @@ public class ExcelExporter
     /// <summary>写出整个工作簿；源工作簿读不出来时返回 false。</summary>
     private bool Write(ExcelModel excel, ExcelExporterOptions options, Stream output, bool streaming)
     {
-        var workbook = OpenWorkbook(options, streaming);
-        if (workbook == null) return false;
-
+        IWorkbook? workbook = null;
         try
         {
+            // 建立工作簿这一步本身也会失败（选项不合法、源工作簿读不出来、缺少 SkiaSharp），
+            // 故一并放在 try 之内：字典入口为取列名已先读了一行，那个枚举器无论如何都要释放
+            var window = streaming ? Window(options) : 0;
+            workbook = OpenWorkbook(options, streaming, window);
+            if (workbook == null) return false;
+
             var mapColumn = options.MappingColumnAction ?? ((title, _) => title);
             var styleFactory = new CellStyleFactory(workbook);
 
@@ -175,15 +179,16 @@ public class ExcelExporter
     }
 
     /// <summary>
-    ///     建立或读入工作簿。流式导出用 SXSSF：它只在内存中保留最近的若干行，其余写入临时文件。
+    ///     建立或读入工作簿。流式导出用 SXSSF：它只在内存中保留最近的 <paramref name="window" /> 行，
+    ///     其余写入临时文件。
     /// </summary>
-    private static IWorkbook? OpenWorkbook(ExcelExporterOptions options, bool streaming)
+    private static IWorkbook? OpenWorkbook(ExcelExporterOptions options, bool streaming, int window)
     {
         IWorkbook workbook;
         if (options.SourceExcelBytes == null)
         {
             workbook = streaming && options.ExcelType == ExcelType.Xlsx
-                ? new SXSSFWorkbook(Window(options))
+                ? new SXSSFWorkbook(window)
                 : Workbook(options.ExcelType);
         }
         else
@@ -199,13 +204,17 @@ public class ExcelExporter
             }
 
             // .xls 无从流式写入，续写时就按原样在内存中完成
-            if (streaming && workbook is XSSFWorkbook xssf) workbook = new SXSSFWorkbook(xssf, Window(options));
+            if (streaming && workbook is XSSFWorkbook xssf) workbook = new SXSSFWorkbook(xssf, window);
         }
 
         if (workbook is SXSSFWorkbook streamed) StreamingSupport.Ensure(streamed);
         return workbook;
     }
 
+    /// <summary>
+    ///     内存中保留的行数。无论哪种格式都要校验：`.xls` 那条路上虽用不着这个值，取值不合法却同样
+    ///     说明调用方想要的与得到的并不一致。
+    /// </summary>
     private static int Window(ExcelExporterOptions options)
     {
         if (options.StreamingRowWindow > 0) return options.StreamingRowWindow;
@@ -331,14 +340,6 @@ public class ExcelExporter
         };
 
         return obj;
-    }
-
-    private static byte[] ToBytes(IWorkbook workbook)
-    {
-        using var output = new MemoryStream();
-        workbook.Write(output, true);
-        var bytes = output.ToArray();
-        return bytes;
     }
 
     private static IWorkbook Workbook(ExcelType excelType)
