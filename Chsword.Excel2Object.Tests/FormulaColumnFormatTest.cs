@@ -123,6 +123,24 @@ public class FormulaColumnFormatTest : BaseExcelTest
         StringAssert.Contains(e.Message, "标题");
     }
 
+    /// <summary>
+    ///     集合与 FormulaColumn.Title 都是公开可写的，加入之后仍可改回空，故导出时会再确认一次。
+    /// </summary>
+    [TestMethod]
+    public void ATitleClearedAfterBeingAddedIsStillRefused()
+    {
+        var column = new FormulaColumn {Title = "合计", Formula = c => c["姓名"]};
+
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            new ExcelExporter().ObjectToExcelBytes(new List<Model> {new()}, options =>
+            {
+                options.FormulaColumns.Add(column);
+                column.Title = null; // 加入之后再改
+            }));
+
+        StringAssert.Contains(e.Message, "标题");
+    }
+
     [TestMethod]
     public void WithoutACustomFormatTheFormulaIsWritten()
     {

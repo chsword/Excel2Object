@@ -16,12 +16,7 @@ internal static class TypeConvert
         var list = data.ToList();
         var title = list.FirstOrDefault();
         if (title == null) return excel;
-        var columns = title.Keys.Select((c, i) => new ExcelColumn
-        {
-            Order = i,
-            Title = c,
-            Type = typeof(string)
-        }).ToList();
+        var columns = title.Keys.Select((c, i) => new ExcelColumn(c, typeof(string)) {Order = i}).ToList();
 
         sheet.Columns = AttachColumns(columns, options);
         sheet.Rows = list;
@@ -50,12 +45,7 @@ internal static class TypeConvert
         for (var i = 0; i < objKeysArray.Length; i++)
         {
             var titleAttr = objKeysArray[i].Value;
-            var column = new ExcelColumn
-            {
-                Title = titleAttr.Title,
-                Type = objKeysArray[i].Key.PropertyType,
-                Order = i
-            };
+            var column = new ExcelColumn(titleAttr.Title, objKeysArray[i].Key.PropertyType) {Order = i};
             if (titleAttr is ExcelColumnAttribute excelColumnAttr)
             {
                 column.CellStyle = excelColumnAttr;
@@ -91,13 +81,8 @@ internal static class TypeConvert
         excel.Sheets.Add(sheet);
         var dataSetColumnArray = dt.Columns.Cast<DataColumn>().ToArray();
 
-        var columns = dataSetColumnArray.Select((item, i) =>
-            new ExcelColumn
-            {
-                Order = i,
-                Title = item.ColumnName,
-                Type = item.DataType
-            }).ToList();
+        var columns = dataSetColumnArray
+            .Select((item, i) => new ExcelColumn(item.ColumnName, item.DataType) {Order = i}).ToList();
         sheet.Columns = AttachColumns(columns, options);
 
         var data = dt.Rows.Cast<DataRow>().ToArray();
@@ -117,15 +102,18 @@ internal static class TypeConvert
         columns = columns.OrderBy(c => c.Order).ToList();
         foreach (var formulaColumn in options.FormulaColumns)
         {
-            var excelColumn = columns.FirstOrDefault(c => c.Title == formulaColumn.Title);
+            // FormulaColumns 加入时已校验标题，但该集合与 FormulaColumn.Title 都是公开可写的，
+            // 加入之后仍可改回 null，故在此处消费前再确认一次
+            var title = formulaColumn.Title;
+            if (title == null || title.Trim().Length == 0)
+                throw new Excel2ObjectException("公式列必须有标题：它既是表头上的名字，也是与模型列对应的依据。");
+
+            var excelColumn = columns.FirstOrDefault(c => c.Title == title);
             if (excelColumn == null)
             {
-                excelColumn = new ExcelColumn
+                excelColumn = new ExcelColumn(title, typeof(Expression))
                 {
-                    // 标题在加入 FormulaColumns 时已校验非空
-                    Title = formulaColumn.Title!,
                     Order = 0,
-                    Type = typeof(Expression),
                     Formula = formulaColumn.ModelFormula ?? formulaColumn.Formula,
                     ResultType = ResultTypeOf(formulaColumn, null)
                 };
