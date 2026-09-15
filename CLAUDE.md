@@ -47,6 +47,10 @@ dotnet test Chsword.Excel2Object.Tests     # 不指定框架，逐个运行
 应让其类型如实反映（例如把内部模型的属性定为非空），并在真正可能为空的入口处校验。注意 `string.IsNullOrEmpty`
 在较早的目标框架上没有 `NotNullWhen` 标注，需显式判空才能各框架一致。
 
+测试项目引用了 `SkiaSharp` 与 `SkiaSharp.NativeAssets.Linux.NoDependencies`：流式导出走 NPOI 的 SXSSF，后者
+把行刷出内存时要用它测量字符宽度，而 NPOI 把该依赖标为不随包传递。库本身不引用它，使用方亦须自行引用，
+故不可将其加入 `Chsword.Excel2Object.csproj`。
+
 各目标框架须使用同一语言版本（`LangVersion`）：否则低版本框架会退回较早的 C#，同一份测试代码可能
 在一处编译通过、在另一处失败。
 

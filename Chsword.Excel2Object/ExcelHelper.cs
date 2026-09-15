@@ -111,6 +111,20 @@ public static class ExcelHelper
         return excelExporter.ObjectToExcelBytes(data, optionsAction);
     }
 
+    /// <inheritdoc cref="ExcelExporter.ObjectToExcelStream{TModel}(IEnumerable{TModel}, Stream, Action{ExcelExporterOptions})" />
+    public static void ObjectToExcelStream<TModel>(IEnumerable<TModel> data, Stream output,
+        Action<ExcelExporterOptions>? optionsAction = null)
+    {
+        new ExcelExporter().ObjectToExcelStream(data, output, optionsAction);
+    }
+
+    /// <inheritdoc cref="ExcelExporter.ObjectToExcelStream{TModel}(IEnumerable{TModel}, Stream, Action{ExcelExporterOptions})" />
+    public static void ObjectToExcelStream(DataTable dt, Stream output,
+        Action<ExcelExporterOptions>? optionsAction = null)
+    {
+        new ExcelExporter().ObjectToExcelStream(dt, output, optionsAction);
+    }
+
     private static void WriteExcelBytesToFile(byte[]? bytes, string path)
     {
         if (bytes != null) 

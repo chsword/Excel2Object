@@ -1,5 +1,6 @@
 using System.Data;
 using System.Linq.Expressions;
+using System.Reflection;
 using Chsword.Excel2Object.Options;
 
 namespace Chsword.Excel2Object.Internal;
@@ -13,13 +14,31 @@ internal static class TypeConvert
         var excel = new ExcelModel {Sheets = new List<SheetModel>()};
         var sheet = SheetModel.Create(sheetTitle);
         excel.Sheets.Add(sheet);
-        var list = data.ToList();
-        var title = list.FirstOrDefault();
-        if (title == null) return excel;
-        var columns = title.Keys.Select((c, i) => new ExcelColumn(c, typeof(string)) {Order = i}).ToList();
+        // 列由首行的键决定，故首行须先取出；其余各行留待写入时逐行取用，以免整份数据都进内存
+        var rows = data.GetEnumerator();
+        bool any;
+        try
+        {
+            any = rows.MoveNext();
+        }
+        catch
+        {
+            rows.Dispose();
+            throw;
+        }
+
+        if (!any)
+        {
+            rows.Dispose();
+            return excel;
+        }
+
+        var first = rows.Current;
+        var columns = first.Keys.Select((c, i) => new ExcelColumn(c, typeof(string)) {Order = i}).ToList();
 
         sheet.Columns = AttachColumns(columns, options);
-        sheet.Rows = list;
+        sheet.Rows = FirstThenRest(first, rows);
+        excel.RowSource = rows;
 
         return excel;
     }
@@ -57,18 +76,7 @@ internal static class TypeConvert
         }
 
         sheet.Columns = AttachColumns(columns, options);
-        foreach (var item in data.Where(c => c != null))
-        {
-            var row = new Dictionary<string, object>();
-            foreach (var column in objKeysArray)
-            {
-                // 值为 null 的属性不入字典：导出时取不到值与取到 null 同样写成空白单元格
-                var value = column.Key.GetValue(item, null);
-                if (value != null) row[column.Value.Title] = value;
-            }
-
-            sheet.Rows.Add(row);
-        }
+        sheet.Rows = ToRows(data, objKeysArray);
 
         return excel;
     }
@@ -85,16 +93,53 @@ internal static class TypeConvert
             .Select((item, i) => new ExcelColumn(item.ColumnName, item.DataType) {Order = i}).ToList();
         sheet.Columns = AttachColumns(columns, options);
 
-        var data = dt.Rows.Cast<DataRow>().ToArray();
-        foreach (var item in data.Where(c => c != null))
-        {
-            var row = new Dictionary<string, object>();
-            foreach (var column in dataSetColumnArray) row[column.ColumnName] = item[column.ColumnName];
-
-            sheet.Rows.Add(row);
-        }
+        sheet.Rows = ToRows(dt, dataSetColumnArray);
 
         return excel;
+    }
+
+    /// <summary>逐行取值，写一行取一行，而非先把整份数据摊成字典列表。</summary>
+    private static IEnumerable<Dictionary<string, object>> ToRows<TModel>(IEnumerable<TModel> data,
+        KeyValuePair<PropertyInfo, ExcelTitleAttribute>[] columns)
+    {
+        foreach (var item in data)
+        {
+            if (item == null) continue;
+
+            var row = new Dictionary<string, object>();
+            foreach (var column in columns)
+            {
+                // 值为 null 的属性不入字典：导出时取不到值与取到 null 同样写成空白单元格
+                var value = column.Key.GetValue(item, null);
+                if (value != null) row[column.Value.Title] = value;
+            }
+
+            yield return row;
+        }
+    }
+
+    private static IEnumerable<Dictionary<string, object>> ToRows(DataTable dt, DataColumn[] columns)
+    {
+        foreach (DataRow item in dt.Rows)
+        {
+            if (item == null) continue;
+
+            var row = new Dictionary<string, object>();
+            foreach (var column in columns) row[column.ColumnName] = item[column.ColumnName];
+
+            yield return row;
+        }
+    }
+
+    /// <summary>把已取出的首行与余下各行接回一条序列，并在遍历结束时释放枚举器。</summary>
+    private static IEnumerable<Dictionary<string, object>> FirstThenRest(Dictionary<string, object> first,
+        IEnumerator<Dictionary<string, object>> rest)
+    {
+        using (rest)
+        {
+            yield return first;
+            while (rest.MoveNext()) yield return rest.Current;
+        }
     }
 
     private static List<ExcelColumn> AttachColumns(List<ExcelColumn> columns, ExcelExporterOptions options)
