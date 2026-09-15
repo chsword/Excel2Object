@@ -264,21 +264,38 @@ public class MergedCellTest : BaseExcelTest
         Assert.IsTrue(watch.ElapsedMilliseconds < 20000, $"耗时 {watch.ElapsedMilliseconds} ms");
     }
 
+    public class DoubleModel
+    {
+        [ExcelTitle("数值")] public double Value { get; set; }
+    }
+
     /// <summary>
-    ///     数值按其值比较，不经由可能有损的文本表示：.NET Framework 上 "R" 格式对少数值无法往返，
-    ///     会让两个不同的数看起来相同。
+    ///     数值直接比较其值，不经由文本：.NET Framework 上 "R" 与 G17 两种格式都可能把两个不同的数
+    ///     渲染成同一串字符。
+    ///     <para>
+    ///     两个取值选在 13 位有效数字上，而非相邻的两个 double：decimal 转 double、以及 NPOI 把
+    ///     double 写进 XML，在 .NET Framework 上都只保留约 15 位有效数字，需要 17 位才能分辨的两个数
+    ///     在文件里就已经相同，那样测到的便不是本意了。
+    ///     </para>
     /// </summary>
     [TestMethod]
     public void NumbersThatOnlyLookAlikeDoNotMerge()
     {
-        var rows = new List<Model>
+        var rows = new List<DoubleModel>
         {
-            new() {Province = "甲", City = "A", Amount = 1.0000000000000002m},
-            new() {Province = "乙", City = "B", Amount = 1.0000000000000004m},
-            new() {Province = "丙", City = "C", Amount = 2}
+            new() {Value = 1.000000000001d},
+            new() {Value = 1.000000000002d},
+            new() {Value = 2d}
         };
-        var sheet = Export(ExcelType.Xlsx, options => options.MergeRepeatedColumns.Add("金额"), rows);
+        var bytes = new ExcelExporter().ObjectToExcelBytes(rows, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.MergeRepeatedColumns.Add("数值");
+        })!;
+        var sheet = WorkbookFactory.Create(new MemoryStream(bytes)).GetSheetAt(0);
 
+        Assert.AreNotEqual(sheet.GetRow(1).GetCell(0).NumericCellValue,
+            sheet.GetRow(2).GetCell(0).NumericCellValue, "前提：两个单元格装的确实是不同的数");
         Assert.AreEqual(0, sheet.NumMergedRegions, "两个数并不相同，不应合并");
     }
 

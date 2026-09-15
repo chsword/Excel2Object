@@ -397,7 +397,7 @@ var bytes = ExcelHelper.ObjectToExcelBytes(models, options =>
 
 Columns are named by their title and rows by their data-row ordinal (counting from 1): where a column lands is decided by `Order`, the order the attributes are declared and where a formula column is inserted, and how many rows there are depends on the data, so neither is known while the export is being written. An address still works where the layout is known: `options.MergedRegions.Add("A1:C1")`.
 
-Only adjacent equal rows merge, blank cells never do, and each column is judged on its own. The cells merged away keep their own values - Excel shows only the top-left one - so **every row of the file this library writes still imports in full**. Whether those values survive a round trip through Excel itself, once someone edits and saves the workbook, is up to Excel and should not be relied on. Overlapping regions are refused at export time, naming the region they overlap.
+Only adjacent equal rows merge, blank cells never do, each column is judged on its own, and numbers are compared by value rather than by their text. The cells merged away keep their own values - Excel shows only the top-left one - so **every row of the file this library writes still imports in full**. Whether those values survive a round trip through Excel itself, once someone edits and saves the workbook, is up to Excel and should not be relied on. Overlapping regions are refused at export time, naming the region they overlap.
 
 A formula column cannot merge by value: the cell holds a formula whose result Excel works out when the file is opened, so there is nothing to compare at export time, and the attempt is refused rather than silently comparing formula text.
 
