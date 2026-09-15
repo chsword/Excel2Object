@@ -188,6 +188,59 @@ public class StreamingExportTest
     }
 
     [TestMethod]
+    public void ALongDropdownGoesToItsOwnListSheetWhenAppending()
+    {
+        // 源工作簿里已有一张写着长列表的隐藏表。流式写入无从往那张表里再添一列——它的行不在流式
+        // 这一层里，既读不回也无从从首行重写——故应另起一张，原有的列表原样保留。
+        var existing = Enumerable.Range(0, 60).Select(i => "旧选项" + i).ToArray();
+        var added = Enumerable.Range(0, 70).Select(i => "新选项" + i).ToArray();
+
+        var first = new ExcelExporter().ObjectToExcelBytes(Rows(5), options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.SheetTitle = "上月";
+            options.Dropdowns["省份"] = existing;
+        });
+
+        using var output = new MemoryStream();
+        new ExcelExporter().ObjectToExcelStream(Rows(20), output, options =>
+        {
+            options.ExcelType = ExcelType.Xlsx;
+            options.StreamingRowWindow = Window;
+            options.SheetTitle = "本月";
+            options.SourceExcelBytes = first;
+            options.Dropdowns["城市"] = added;
+        });
+
+        var workbook = WorkbookFactory.Create(new MemoryStream(output.ToArray()));
+        var old = workbook.GetSheet("_excel2object_lists");
+        var fresh = workbook.GetSheet("_excel2object_lists2");
+        Assert.IsNotNull(fresh, "应另起一张列表工作表");
+        Assert.AreEqual(existing[0], old.GetRow(0).GetCell(0).StringCellValue, "原有的列表应原样保留");
+        Assert.AreEqual(existing[59], old.GetRow(59).GetCell(0).StringCellValue, "原有的列表应原样保留");
+        Assert.AreEqual(added[0], fresh.GetRow(0).GetCell(0).StringCellValue);
+        Assert.AreEqual(added[69], fresh.GetRow(69).GetCell(0).StringCellValue);
+        Assert.AreEqual(SheetVisibility.Hidden, workbook.GetSheetVisibility(workbook.GetSheetIndex(fresh)));
+
+        // 两张列表各有自己的定义名称，先前那个仍指向原处
+        Assert.AreEqual("_excel2object_lists!$A$1:$A$60", workbook.GetName("_excel2object_list1").RefersToFormula);
+        Assert.AreEqual("_excel2object_lists2!$A$1:$A$70", workbook.GetName("_excel2object_list2").RefersToFormula);
+    }
+
+    [TestMethod]
+    public void ManyMergedRegionsAreWrittenOnAStreamedSheet()
+    {
+        // 分组表的合并区域数量与行数同阶：2000 行、每 5 行一组即 400 个区域。流式工作表同样绕开
+        // NPOI 自带的两两比对，否则这一步会退化为平方级。
+        var sheet = Streamed(Rows(2000), options => options.MergeRepeatedColumns.Add("城市"), 100);
+
+        var regions = Regions(sheet);
+        Assert.AreEqual(400, regions.Length);
+        Assert.AreEqual("B2:B6", regions[0]);
+        Assert.AreEqual("B1997:B2001", regions[399]);
+    }
+
+    [TestMethod]
     public void AutoColumnWidthMatchesTheInMemoryExport()
     {
         var rows = Rows(60);

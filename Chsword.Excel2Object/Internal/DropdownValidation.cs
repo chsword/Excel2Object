@@ -1,5 +1,6 @@
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
+using NPOI.XSSF.Streaming;
 
 namespace Chsword.Excel2Object.Internal;
 
@@ -131,6 +132,19 @@ internal static class DropdownValidation
         return names;
     }
 
+    /// <summary>
+    ///     该表还能不能再添一列。流式写入的表只能自上而下写一遍，而随源工作簿带进来的表，其行并不在
+    ///     流式这一层里：既读不回，也无从从首行重写。此时另起一张列表表，原有的列表与指向它的定义
+    ///     名称原样保留。
+    /// </summary>
+    private static bool Extendable(IWorkbook workbook, ISheet sheet)
+    {
+        if (workbook is not SXSSFWorkbook streamed) return true;
+
+        var underlying = streamed.XssfWorkbook.GetSheet(sheet.SheetName);
+        return underlying == null || underlying.PhysicalNumberOfRows == 0;
+    }
+
     private static string FreeName(IWorkbook workbook)
     {
         for (var i = 1;; i++)
@@ -158,7 +172,8 @@ internal static class DropdownValidation
                 return sheet;
             }
 
-            if (workbook.GetSheetVisibility(workbook.GetSheetIndex(existing)) != SheetVisibility.Visible)
+            if (workbook.GetSheetVisibility(workbook.GetSheetIndex(existing)) != SheetVisibility.Visible &&
+                Extendable(workbook, existing))
                 return existing;
 
             name = ListSheetName + suffix;

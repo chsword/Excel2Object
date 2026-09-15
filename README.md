@@ -60,7 +60,7 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 - [x] 条件格式 ✅ **v2.6.0 新增**
 - [x] 样式表（CSS 风格）：背景色、边框、隔行底色、表头样式 ✅ **v2.7.0 新增**
 - [x] 合并单元格：按列合并连续相同值、指定区域 ✅ **v2.9.1 新增**
-- [x] 大文件流式导出：边取边写，内存不随行数增长 ✅ **v2.10.0 新增** - 查看 [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
+- [x] 大文件流式导出：内存不随行数增长 ✅ **v2.10.0 新增** - 查看 [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
 - [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增**，导出为真正的日期单元格 ✅ **v2.4.0 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 - [x] 公式内置函数库 ✅ **v2.3.0 新增** - 334 个 Excel 函数，10 个类别 - 查看 [ExcelFunctions.md](ExcelFunctions.md)
@@ -68,7 +68,7 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 ### 发布说明
 
 * **2026.09.15** - v2.10.0
-- [x] ✨ **新增:** 流式导出：`ExcelHelper.ObjectToExcelStream(data, stream, options => ...)` 边取数据边写入调用方给出的流，内存中只保留 `StreamingRowWindow` 指定的若干行（默认 100），占用不再随行数增长。实测二十万行五列：内存导出峰值 710 MB / 6.4 秒，流式导出 89 MB / 3.7 秒。冻结、筛选、下拉、条件格式、样式表、公式列与合并单元格在流式导出下同样生效；仅 `.xlsx` 能够流式写入，`.xls` 的格式决定了必须先在内存中建好。流式写入基于 NPOI 的 SXSSF，后者刷行时要用 SkiaSharp 测量字符宽度，而 NPOI 把该依赖标为不随包传递，故应用需自行引用 `SkiaSharp`（Linux 上另需 `SkiaSharp.NativeAssets.Linux.NoDependencies`），缺失时会在写出任何内容之前报错说明 - 查看 [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
+- [x] ✨ **新增:** 流式导出：`ExcelHelper.ObjectToExcelStream(data, stream, options => ...)` 逐行取数据并写出，内存中只保留 `StreamingRowWindow` 指定的若干行（默认 100），占用不再随行数增长（省下的是内存而非等待时间：写过的行落到临时文件，最终的包在数据取完后一次写入调用方的流）。实测二十万行五列：内存导出峰值 710 MB / 6.4 秒，流式导出 89 MB / 3.7 秒。冻结、筛选、下拉、条件格式、样式表、公式列与合并单元格在流式导出下同样生效；仅 `.xlsx` 能够流式写入，`.xls` 的格式决定了必须先在内存中建好。流式写入基于 NPOI 的 SXSSF，后者刷行时要用 SkiaSharp 测量字符宽度，而 NPOI 把该依赖标为不随包传递，故应用需自行引用 `SkiaSharp`（Linux 上另需 `SkiaSharp.NativeAssets.Linux.NoDependencies`），缺失时会在写出任何内容之前报错说明 - 查看 [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
 - [x] 🔧 自动列宽与按值合并改在写入过程中算出，不再回看数据：流式导出得以成立，内存导出亦少走一遍数据。开启 `AutoColumnWidth` 时不再把数据源遍历两遍，只能遍历一次的序列因而也可用
 
 

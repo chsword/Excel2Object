@@ -38,6 +38,7 @@ internal static class TypeConvert
 
         sheet.Columns = AttachColumns(columns, options);
         sheet.Rows = FirstThenRest(first, rows);
+        excel.RowSource = rows;
 
         return excel;
     }

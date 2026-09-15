@@ -2,6 +2,7 @@ using Chsword.Excel2Object.Options;
 using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
+using NPOI.XSSF.Streaming;
 using NPOI.XSSF.UserModel;
 
 namespace Chsword.Excel2Object.Internal;
@@ -90,6 +91,9 @@ internal sealed class MergedRegions
     {
         switch (sheet)
         {
+            case SXSSFSheet streamed:
+                streamed.AddMergedRegionUnsafe(range);
+                break;
             case XSSFSheet xssf:
                 xssf.AddMergedRegionUnsafe(range);
                 break;

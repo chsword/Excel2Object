@@ -81,11 +81,15 @@ public class ExcelExporter
     }
 
     /// <summary>
-    ///     边取数据边写入 <paramref name="output" />，内存中只保留
-    ///     <see cref="ExcelExporterOptions.StreamingRowWindow" /> 指定的若干行，适用于行数多到不宜先在
-    ///     内存中建好整个工作簿的导出。
+    ///     逐行取数据并写出，内存中只保留 <see cref="ExcelExporterOptions.StreamingRowWindow" /> 指定的
+    ///     若干行，适用于行数多到不宜先在内存中建好整个工作簿的导出。
     /// </summary>
     /// <remarks>
+    ///     <para>
+    ///         省下的是内存，不是等待时间：写过的行随即离开内存，落到临时文件，而最终的 <c>.xlsx</c>
+    ///         包要等数据取完才一次写入 <paramref name="output" />。因此调用方的流在导出过程中并不会
+    ///         陆续收到内容。
+    ///     </para>
     ///     <para>
     ///         仅 <see cref="ExcelType.Xlsx" /> 能够流式写入；<see cref="ExcelType.Xls" /> 的格式决定了
     ///         必须先在内存中建好再写出，此时本方法只是把结果写进 <paramref name="output" />，并不省内存
@@ -150,12 +154,12 @@ public class ExcelExporter
 
         try
         {
-            if (options.MappingColumnAction == null) options.MappingColumnAction = (s, _) => s;
+            var mapColumn = options.MappingColumnAction ?? ((title, _) => title);
             var styleFactory = new CellStyleFactory(workbook);
 
             if (excel.Sheets != null)
                 foreach (var excelSheet in excel.Sheets)
-                    WriteSheet(workbook, excelSheet, options, styleFactory);
+                    WriteSheet(workbook, excelSheet, options, styleFactory, mapColumn);
 
             // 调用方给的流由调用方关闭
             workbook.Write(output, true);
@@ -165,6 +169,8 @@ public class ExcelExporter
         {
             // SXSSF 把刷出内存的行写在临时文件里，不释放则留在磁盘上
             (workbook as SXSSFWorkbook)?.Dispose();
+            // 数据尚未取完即告失败时，取数据的枚举器也要释放
+            excel.RowSource?.Dispose();
         }
     }
 
@@ -209,7 +215,7 @@ public class ExcelExporter
     }
 
     private static void WriteSheet(IWorkbook workbook, SheetModel excelSheet, ExcelExporterOptions options,
-        CellStyleFactory styleFactory)
+        CellStyleFactory styleFactory, Func<string, Type, string> mapColumn)
     {
         var sheet = string.IsNullOrWhiteSpace(excelSheet.Title)
             ? workbook.CreateSheet()
@@ -221,7 +227,7 @@ public class ExcelExporter
         var merges = new MergedRegions(columns, options);
         var layout = new SheetLayout(columns, options);
 
-        WriteHeader(sheet, layout, options, styleFactory);
+        WriteHeader(sheet, layout, options, styleFactory, mapColumn);
         var lastRowIndex = WriteRows(sheet, excelSheet.Rows, layout, options, styleFactory,
             BuildSheetColumnsResolver(workbook, sheet, layout.Titles), merges);
         ApplyColumnWidths(sheet, layout, options);
@@ -233,12 +239,12 @@ public class ExcelExporter
     }
 
     private static void WriteHeader(ISheet sheet, SheetLayout layout, ExcelExporterOptions options,
-        CellStyleFactory styleFactory)
+        CellStyleFactory styleFactory, Func<string, Type, string> mapColumn)
     {
         var row = sheet.CreateRow(ExcelConstants.DefaultHeaderRowIndex);
         for (var i = 0; i < layout.Columns.Length; i++)
         {
-            var title = options.MappingColumnAction!(layout.Columns[i].Title, layout.Columns[i].Type);
+            var title = mapColumn(layout.Columns[i].Title, layout.Columns[i].Type);
             var cell = row.CreateCell(i);
             cell.SetCellType(CellType.String);
             cell.SetCellValue(title);
