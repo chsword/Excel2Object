@@ -2,7 +2,9 @@
 	<PropertyGroup>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<LangVersion>14.0</LangVersion>
-		<Nullable>annotations</Nullable>
+		<Nullable>enable</Nullable>
+		<!-- nullable 警告视为错误：此前为 annotations，标注形同虚设，改 enable 后须防其悄悄退回 -->
+		<WarningsAsErrors>nullable</WarningsAsErrors>
 		<!-- NPOI 2.8.0+ requires explicit acknowledgement of the Open Source Maintenance Fee
 		     EULA. The source stays Apache-2.0; the fee applies only to revenue-generating
 		     users with annual gross revenue of US$10,000 or more. -->

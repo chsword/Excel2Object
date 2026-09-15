@@ -107,6 +107,22 @@ public class FormulaColumnFormatTest : BaseExcelTest
         Assert.AreEqual("yyyy-mm-dd hh:mm:ss", cell.CellStyle.GetDataFormatString());
     }
 
+    /// <summary>
+    ///     标题既是公式列在表头上的名字，也是它与模型列对应的依据，缺了便无从落位：加入时即拒绝，
+    ///     而非到导出时才写出一个无名的列。
+    /// </summary>
+    [DataTestMethod]
+    [DataRow(null)]
+    [DataRow("")]
+    [DataRow("   ")]
+    public void AFormulaColumnWithoutATitleIsRefused(string? title)
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            new FormulaColumnsCollection().Add(new FormulaColumn {Title = title, Formula = c => c["姓名"]}));
+
+        StringAssert.Contains(e.Message, "标题");
+    }
+
     [TestMethod]
     public void WithoutACustomFormatTheFormulaIsWritten()
     {

@@ -15,6 +15,10 @@ public class FormulaColumnsCollection : ICollection<FormulaColumn>
     {
         if (item == null) throw new Excel2ObjectException("item must not null");
 
+        // 标题是公式列与模型列的唯一对应方式，也是它在表头上的名字，缺了便无从落位
+        if (string.IsNullOrWhiteSpace(item.Title))
+            throw new Excel2ObjectException("公式列必须有标题：它既是表头上的名字，也是与模型列对应的依据。");
+
         if (FormulaColumns.Any(c => c.Title == item.Title))
             throw new Excel2ObjectException("same title has existed in options.FormulaColumns");
 

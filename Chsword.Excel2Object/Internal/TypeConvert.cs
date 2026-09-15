@@ -72,8 +72,9 @@ internal static class TypeConvert
             var row = new Dictionary<string, object>();
             foreach (var column in objKeysArray)
             {
-                var prop = column.Key;
-                row[column.Value.Title] = prop.GetValue(item, null);
+                // 值为 null 的属性不入字典：导出时取不到值与取到 null 同样写成空白单元格
+                var value = column.Key.GetValue(item, null);
+                if (value != null) row[column.Value.Title] = value;
             }
 
             sheet.Rows.Add(row);
@@ -121,7 +122,8 @@ internal static class TypeConvert
             {
                 excelColumn = new ExcelColumn
                 {
-                    Title = formulaColumn.Title,
+                    // 标题在加入 FormulaColumns 时已校验非空
+                    Title = formulaColumn.Title!,
                     Order = 0,
                     Type = typeof(Expression),
                     Formula = formulaColumn.ModelFormula ?? formulaColumn.Formula,
@@ -153,7 +155,7 @@ internal static class TypeConvert
 
         // after the formula columns are in, so a column a formula added can carry a dropdown too
         foreach (var column in columns)
-            if (column.Title != null && options.Dropdowns.TryGetValue(column.Title, out var values))
+            if (options.Dropdowns.TryGetValue(column.Title, out var values))
                 column.Dropdown = values;
 
         for (var i = 0; i < columns.Count; i++) columns[i].Order = i * 10;
