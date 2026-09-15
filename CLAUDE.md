@@ -43,6 +43,10 @@ dotnet test Chsword.Excel2Object.Tests     # 不指定框架，逐个运行
 （命令行工具只发布 net8.0，`.NET Framework` 无法引用，该目标框架下不含其测试）。`netstandard2.0` 与
 `netstandard2.1` 不是可运行的目标框架，其产物由编译保证。
 
+库项目为 `<Nullable>enable</Nullable>`，且 nullable 警告视为错误。新增代码不应以 `!` 掩盖警告：若某处确实不可能为空，
+应让其类型如实反映（例如把内部模型的属性定为非空），并在真正可能为空的入口处校验。注意 `string.IsNullOrEmpty`
+在较早的目标框架上没有 `NotNullWhen` 标注，需显式判空才能各框架一致。
+
 各目标框架须使用同一语言版本（`LangVersion`）：否则低版本框架会退回较早的 C#，同一份测试代码可能
 在一处编译通过、在另一处失败。
 

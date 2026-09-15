@@ -107,6 +107,40 @@ public class FormulaColumnFormatTest : BaseExcelTest
         Assert.AreEqual("yyyy-mm-dd hh:mm:ss", cell.CellStyle.GetDataFormatString());
     }
 
+    /// <summary>
+    ///     标题既是公式列在表头上的名字，也是它与模型列对应的依据，缺了便无从落位：加入时即拒绝，
+    ///     而非到导出时才写出一个无名的列。
+    /// </summary>
+    [DataTestMethod]
+    [DataRow(null)]
+    [DataRow("")]
+    [DataRow("   ")]
+    public void AFormulaColumnWithoutATitleIsRefused(string? title)
+    {
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            new FormulaColumnsCollection().Add(new FormulaColumn {Title = title, Formula = c => c["姓名"]}));
+
+        StringAssert.Contains(e.Message, "标题");
+    }
+
+    /// <summary>
+    ///     集合与 FormulaColumn.Title 都是公开可写的，加入之后仍可改回空，故导出时会再确认一次。
+    /// </summary>
+    [TestMethod]
+    public void ATitleClearedAfterBeingAddedIsStillRefused()
+    {
+        var column = new FormulaColumn {Title = "合计", Formula = c => c["姓名"]};
+
+        var e = Assert.ThrowsException<Excel2ObjectException>(() =>
+            new ExcelExporter().ObjectToExcelBytes(new List<Model> {new()}, options =>
+            {
+                options.FormulaColumns.Add(column);
+                column.Title = null; // 加入之后再改
+            }));
+
+        StringAssert.Contains(e.Message, "标题");
+    }
+
     [TestMethod]
     public void WithoutACustomFormatTheFormulaIsWritten()
     {

@@ -16,12 +16,7 @@ internal static class TypeConvert
         var list = data.ToList();
         var title = list.FirstOrDefault();
         if (title == null) return excel;
-        var columns = title.Keys.Select((c, i) => new ExcelColumn
-        {
-            Order = i,
-            Title = c,
-            Type = typeof(string)
-        }).ToList();
+        var columns = title.Keys.Select((c, i) => new ExcelColumn(c, typeof(string)) {Order = i}).ToList();
 
         sheet.Columns = AttachColumns(columns, options);
         sheet.Rows = list;
@@ -50,12 +45,7 @@ internal static class TypeConvert
         for (var i = 0; i < objKeysArray.Length; i++)
         {
             var titleAttr = objKeysArray[i].Value;
-            var column = new ExcelColumn
-            {
-                Title = titleAttr.Title,
-                Type = objKeysArray[i].Key.PropertyType,
-                Order = i
-            };
+            var column = new ExcelColumn(titleAttr.Title, objKeysArray[i].Key.PropertyType) {Order = i};
             if (titleAttr is ExcelColumnAttribute excelColumnAttr)
             {
                 column.CellStyle = excelColumnAttr;
@@ -72,8 +62,9 @@ internal static class TypeConvert
             var row = new Dictionary<string, object>();
             foreach (var column in objKeysArray)
             {
-                var prop = column.Key;
-                row[column.Value.Title] = prop.GetValue(item, null);
+                // 值为 null 的属性不入字典：导出时取不到值与取到 null 同样写成空白单元格
+                var value = column.Key.GetValue(item, null);
+                if (value != null) row[column.Value.Title] = value;
             }
 
             sheet.Rows.Add(row);
@@ -90,13 +81,8 @@ internal static class TypeConvert
         excel.Sheets.Add(sheet);
         var dataSetColumnArray = dt.Columns.Cast<DataColumn>().ToArray();
 
-        var columns = dataSetColumnArray.Select((item, i) =>
-            new ExcelColumn
-            {
-                Order = i,
-                Title = item.ColumnName,
-                Type = item.DataType
-            }).ToList();
+        var columns = dataSetColumnArray
+            .Select((item, i) => new ExcelColumn(item.ColumnName, item.DataType) {Order = i}).ToList();
         sheet.Columns = AttachColumns(columns, options);
 
         var data = dt.Rows.Cast<DataRow>().ToArray();
@@ -116,14 +102,18 @@ internal static class TypeConvert
         columns = columns.OrderBy(c => c.Order).ToList();
         foreach (var formulaColumn in options.FormulaColumns)
         {
-            var excelColumn = columns.FirstOrDefault(c => c.Title == formulaColumn.Title);
+            // FormulaColumns 加入时已校验标题，但该集合与 FormulaColumn.Title 都是公开可写的，
+            // 加入之后仍可改回 null，故在此处消费前再确认一次
+            var title = formulaColumn.Title;
+            if (title == null || title.Trim().Length == 0)
+                throw new Excel2ObjectException("公式列必须有标题：它既是表头上的名字，也是与模型列对应的依据。");
+
+            var excelColumn = columns.FirstOrDefault(c => c.Title == title);
             if (excelColumn == null)
             {
-                excelColumn = new ExcelColumn
+                excelColumn = new ExcelColumn(title, typeof(Expression))
                 {
-                    Title = formulaColumn.Title,
                     Order = 0,
-                    Type = typeof(Expression),
                     Formula = formulaColumn.ModelFormula ?? formulaColumn.Formula,
                     ResultType = ResultTypeOf(formulaColumn, null)
                 };
@@ -153,7 +143,7 @@ internal static class TypeConvert
 
         // after the formula columns are in, so a column a formula added can carry a dropdown too
         foreach (var column in columns)
-            if (column.Title != null && options.Dropdowns.TryGetValue(column.Title, out var values))
+            if (options.Dropdowns.TryGetValue(column.Title, out var values))
                 column.Dropdown = values;
 
         for (var i = 0; i < columns.Count; i++) columns[i].Order = i * 10;

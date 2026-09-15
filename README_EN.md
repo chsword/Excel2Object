@@ -65,6 +65,8 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 * **2026.09.13** - v2.9.0
 - [x] ✨ **NEW:** Merged cells: `options.MergeRepeatedColumns.Add("Province")` merges consecutive equal values in that column into one cell (only adjacent equal rows, never blanks, each column judged on its own), and `options.MergedRegions.Add(new MergedRegion("Province", "City"))` merges a range named by column titles and data-row ordinals (an `"A1:C1"` address still works where the layout is known). The cells merged away keep their own values, so every row still imports in full; overlapping regions are refused at export time, naming the region they overlap
+- [x] 🔧 Null checking moved from `annotations` to `enable`, with nullable warnings treated as errors. Several things surfaced and were fixed: a formula column without a title is now refused when it is added to `options.FormulaColumns` rather than silently exported as a nameless column; the internal column model's `Title` and `Type` became non-nullable; a property whose value is `null` no longer enters the row dictionary (no change in behaviour)
+
 
 * **2026.09.13** - v2.8.1
 - [x] 🐛 Fixed styles overwriting one another on .NET Framework: `string.Join(string, params object[])` returns an empty string there when the first element is `null`, and both the cell-style and font cache keys start with the font colour, so every style that set none shared one cell style. Since v2.7.0 this left striped rows, borders, bold, underline and the `[ExcelColumn]` cell styles without effect on .NET Framework; on .NET (Core) they have always been correct

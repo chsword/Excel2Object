@@ -185,7 +185,8 @@ public class ExcelImporter
     private static object? GetCellBoolean(IRow row, int key, ImportContext context)
     {
         var cellValue = GetCellValue(row.GetCell(key), context);
-        if (string.IsNullOrEmpty(cellValue)) return null;
+        // 显式判空而非 string.IsNullOrEmpty：后者在较早的目标框架上没有 NotNullWhen 标注
+        if (cellValue == null || cellValue.Length == 0) return null;
         if (bool.TryParse(cellValue, out var value)) return value;
         
         var lowerValue = cellValue.ToLower();
@@ -208,8 +209,11 @@ public class ExcelImporter
     private static object? GetCellDateTime(IRow row, int index, ImportContext context)
     {
         var cell = row.GetCell(index);
+        if (cell == null) return null;
+
         // 取文本的这一步自行上报失败，放在 try 之外，同一次失败才不会被上报两次
-        if (string.IsNullOrEmpty(GetCellValue(cell, context))) return null;
+        var cellText = GetCellValue(cell, context);
+        if (cellText == null || cellText.Length == 0) return null;
 
         try
         {
@@ -239,7 +243,7 @@ public class ExcelImporter
     private static object? GetCellUri(IRow row, int key, ImportContext context)
     {
         var cellValue = GetCellValue(row.GetCell(key), context);
-        if (string.IsNullOrEmpty(cellValue)) return null;
+        if (cellValue == null || cellValue.Length == 0) return null;
 
         try
         {
@@ -445,7 +449,7 @@ public class ExcelImporter
     private static object? GetEnum(IRow row, int key, Type enumType, ImportContext context)
     {
         var cellValue = GetCellValue(row.GetCell(key), context);
-        if (string.IsNullOrEmpty(cellValue)) return null;
+        if (cellValue == null || cellValue.Length == 0) return null;
         if (Enum.GetNames(enumType).Contains(cellValue)) return Enum.Parse(enumType, cellValue);
 
         // 取值不在枚举中：沿用既有行为取 0，但不再悄无声息
