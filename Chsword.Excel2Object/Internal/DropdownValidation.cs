@@ -31,15 +31,31 @@ internal static class DropdownValidation
         var lastRow = Math.Max(lastDataRowIndex, ExcelConstants.DefaultDataStartRowIndex);
         var helper = sheet.GetDataValidationHelper();
 
+        // 放不进验证本身的列先收齐，好把隐藏表一次写完：流式导出的工作表只能自上而下写一遍，
+        // 回头往写过的行上补一列会丢掉那些值
+        var longLists = new List<string[]>();
+        var listIndexes = new Dictionary<int, int>();
         for (var i = 0; i < columns.Length; i++)
         {
             var values = columns[i].Dropdown;
             if (values == null || values.Length == 0) continue;
             Validate(values, columns[i].Title);
+            if (FitsInline(values)) continue;
 
-            var constraint = FitsInline(values)
-                ? helper.CreateExplicitListConstraint(values)
-                : helper.CreateFormulaListConstraint(WriteToListSheet(sheet.Workbook, values));
+            listIndexes[i] = longLists.Count;
+            longLists.Add(values);
+        }
+
+        var names = WriteToListSheet(sheet.Workbook, longLists);
+
+        for (var i = 0; i < columns.Length; i++)
+        {
+            var values = columns[i].Dropdown;
+            if (values == null || values.Length == 0) continue;
+
+            var constraint = listIndexes.TryGetValue(i, out var list)
+                ? helper.CreateFormulaListConstraint(names[list])
+                : helper.CreateExplicitListConstraint(values);
 
             var validation = helper.CreateValidation(constraint,
                 new CellRangeAddressList(ExcelConstants.DefaultDataStartRowIndex, lastRow, i, i));
@@ -72,34 +88,47 @@ internal static class DropdownValidation
     }
 
     /// <summary>
-    ///     Puts the values in their own column on the hidden sheet and returns the defined name covering
-    ///     them. A validation reads the name rather than the range itself, because the .xls format has no
-    ///     way to point a validation at another sheet directly.
+    ///     Puts each list in its own column on the hidden sheet and returns the defined name covering it.
+    ///     A validation reads the name rather than the range itself, because the .xls format has no way to
+    ///     point a validation at another sheet directly.
     /// </summary>
-    private static string WriteToListSheet(IWorkbook workbook, string[] values)
+    /// <remarks>
+    ///     所有列表一并写入，逐行填满各列，而非一列写完再写下一列：流式导出的工作表写过的行会被刷出
+    ///     内存，回头再写即告丢失。
+    /// </remarks>
+    private static string[] WriteToListSheet(IWorkbook workbook, List<string[]> lists)
     {
+        if (lists.Count == 0) return [];
+
         var sheet = ListSheet(workbook);
 
-        // the sheet grows to the right, one column per list, so lists written earlier keep their range
-        var column = 0;
+        // 该表向右增长，一列一张列表，先前写下的列表因而保有其区域
+        var first = 0;
         var header = sheet.GetRow(0);
-        if (header != null) column = header.LastCellNum < 0 ? 0 : header.LastCellNum;
+        if (header != null) first = header.LastCellNum < 0 ? 0 : header.LastCellNum;
 
-        for (var i = 0; i < values.Length; i++)
+        var rows = lists.Max(values => values.Length);
+        for (var i = 0; i < rows; i++)
         {
             var row = sheet.GetRow(i) ?? sheet.CreateRow(i);
-            row.CreateCell(column).SetCellValue(values[i]);
+            for (var list = 0; list < lists.Count; list++)
+                if (i < lists[list].Length)
+                    row.CreateCell(first + list).SetCellValue(lists[list][i]);
         }
 
-        var letter = CellReference.ConvertNumToColString(column);
-        // the sheet name needs no quoting, which matters: xlsx keeps the formula as written while xls
-        // reparses it
-        var range = $"{sheet.SheetName}!${letter}$1:${letter}${values.Length}";
+        var names = new string[lists.Count];
+        for (var list = 0; list < lists.Count; list++)
+        {
+            var letter = CellReference.ConvertNumToColString(first + list);
+            // the sheet name needs no quoting, which matters: xlsx keeps the formula as written while xls
+            // reparses it
+            var name = workbook.CreateName();
+            name.NameName = FreeName(workbook);
+            name.RefersToFormula = $"{sheet.SheetName}!${letter}$1:${letter}${lists[list].Length}";
+            names[list] = name.NameName;
+        }
 
-        var name = workbook.CreateName();
-        name.NameName = FreeName(workbook);
-        name.RefersToFormula = range;
-        return name.NameName;
+        return names;
     }
 
     private static string FreeName(IWorkbook workbook)

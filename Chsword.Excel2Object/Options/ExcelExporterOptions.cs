@@ -98,6 +98,13 @@ public class ExcelExporterOptions
     public IDictionary<string, string[]> Dropdowns { get; set; } = new Dictionary<string, string[]>();
 
     /// <summary>
+    ///     流式导出时内存中保留的数据行数（默认 100），仅
+    ///     <see cref="ExcelExporter.ObjectToExcelStream{TModel}" /> 用得到。行一旦被刷出内存即写入临时
+    ///     文件，此后不再能读回，因此该值并非越小越好：它同时决定了写入过程中可回看的范围。
+    /// </summary>
+    public int StreamingRowWindow { get; set; } = 100;
+
+    /// <summary>
     ///     Put Excel's filter dropdowns on the header row, over the data written in this export
     ///     (default: false).
     /// </summary>

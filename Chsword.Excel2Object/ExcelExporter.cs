@@ -8,6 +8,7 @@ using NPOI.HSSF.UserModel;
 using NPOI.SS.Formula;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
+using NPOI.XSSF.Streaming;
 using NPOI.XSSF.UserModel;
 using HorizontalAlignment = Chsword.Excel2Object.Styles.HorizontalAlignment;
 
@@ -79,15 +80,110 @@ public class ExcelExporter
         return ObjectToExcelBytes(excel, options);
     }
 
+    /// <summary>
+    ///     边取数据边写入 <paramref name="output" />，内存中只保留
+    ///     <see cref="ExcelExporterOptions.StreamingRowWindow" /> 指定的若干行，适用于行数多到不宜先在
+    ///     内存中建好整个工作簿的导出。
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         仅 <see cref="ExcelType.Xlsx" /> 能够流式写入；<see cref="ExcelType.Xls" /> 的格式决定了
+    ///         必须先在内存中建好再写出，此时本方法只是把结果写进 <paramref name="output" />，并不省内存
+    ///         （该格式至多 65,536 行，本也不适合大文件）。
+    ///     </para>
+    ///     <para>
+    ///         流式写入依赖 NPOI 的 SXSSF，后者在把行刷出内存时要测量默认字符宽度，为此需要 SkiaSharp，
+    ///         而 NPOI 把该依赖标为不随包传递。缺少时本方法会在写入开始前抛出
+    ///         <see cref="Excel2ObjectException" /> 并说明需要引用哪些包。
+    ///     </para>
+    ///     <para><paramref name="output" /> 由调用方负责关闭，本方法不会关闭它。</para>
+    /// </remarks>
+    /// <example>
+    ///     <code>
+    /// using var file = File.Create("orders.xlsx");
+    /// new ExcelExporter().ObjectToExcelStream(ReadOrders(), file, options =>
+    /// {
+    ///     options.ExcelType = ExcelType.Xlsx;
+    ///     options.FreezeHeader = true;
+    /// });
+    ///     </code>
+    /// </example>
+    public void ObjectToExcelStream<TModel>(IEnumerable<TModel> data, Stream output,
+        Action<ExcelExporterOptions>? optionsAction = null)
+    {
+        var options = new ExcelExporterOptions();
+        optionsAction?.Invoke(options);
+        var excel = data is IEnumerable<Dictionary<string, object>> models
+            ? TypeConvert.ConvertDictionaryToExcelModel(models, options)
+            : TypeConvert.ConvertObjectToExcelModel(data, options);
+
+        ObjectToExcelStream(excel, options, output);
+    }
+
+    /// <inheritdoc cref="ObjectToExcelStream{TModel}(IEnumerable{TModel}, Stream, Action{ExcelExporterOptions})" />
+    public void ObjectToExcelStream(DataTable dt, Stream output,
+        Action<ExcelExporterOptions>? optionsAction = null)
+    {
+        var options = new ExcelExporterOptions();
+        optionsAction?.Invoke(options);
+        ObjectToExcelStream(TypeConvert.ConvertDataSetToExcelModel(dt, options), options, output);
+    }
+
+    private void ObjectToExcelStream(ExcelModel excel, ExcelExporterOptions options, Stream output)
+    {
+        if (output == null) throw new ArgumentNullException(nameof(output));
+
+        // 字节数组那两个入口在源工作簿读不出来时返回 null，此处没有 null 可返回，故如实报错
+        if (!Write(excel, options, output, true))
+            throw new Excel2ObjectException("SourceExcelBytes 不是能够打开的工作簿。");
+    }
+
     private byte[]? ObjectToExcelBytes(ExcelModel excel, ExcelExporterOptions options)
     {
-        var excelType = options.ExcelType;
+        using var output = new MemoryStream();
+        return Write(excel, options, output, false) ? output.ToArray() : null;
+    }
 
+    /// <summary>写出整个工作簿；源工作簿读不出来时返回 false。</summary>
+    private bool Write(ExcelModel excel, ExcelExporterOptions options, Stream output, bool streaming)
+    {
+        var workbook = OpenWorkbook(options, streaming);
+        if (workbook == null) return false;
+
+        try
+        {
+            if (options.MappingColumnAction == null) options.MappingColumnAction = (s, _) => s;
+            var styleFactory = new CellStyleFactory(workbook);
+
+            if (excel.Sheets != null)
+                foreach (var excelSheet in excel.Sheets)
+                    WriteSheet(workbook, excelSheet, options, styleFactory);
+
+            // 调用方给的流由调用方关闭
+            workbook.Write(output, true);
+            return true;
+        }
+        finally
+        {
+            // SXSSF 把刷出内存的行写在临时文件里，不释放则留在磁盘上
+            (workbook as SXSSFWorkbook)?.Dispose();
+        }
+    }
+
+    /// <summary>
+    ///     建立或读入工作簿。流式导出用 SXSSF：它只在内存中保留最近的若干行，其余写入临时文件。
+    /// </summary>
+    private static IWorkbook? OpenWorkbook(ExcelExporterOptions options, bool streaming)
+    {
         IWorkbook workbook;
         if (options.SourceExcelBytes == null)
-            workbook = Workbook(excelType);
+        {
+            workbook = streaming && options.ExcelType == ExcelType.Xlsx
+                ? new SXSSFWorkbook(Window(options))
+                : Workbook(options.ExcelType);
+        }
         else
-            // read work book
+        {
             try
             {
                 using var memoryStream = new MemoryStream(options.SourceExcelBytes);
@@ -98,84 +194,102 @@ public class ExcelExporter
                 return null;
             }
 
-        if (options.MappingColumnAction == null) options.MappingColumnAction = (s, _) => s;
-        var styleFactory = new CellStyleFactory(workbook);
-        
-        if (excel.Sheets != null)
-            foreach (var excelSheet in excel.Sheets)
+            // .xls 无从流式写入，续写时就按原样在内存中完成
+            if (streaming && workbook is XSSFWorkbook xssf) workbook = new SXSSFWorkbook(xssf, Window(options));
+        }
+
+        if (workbook is SXSSFWorkbook streamed) StreamingSupport.Ensure(streamed);
+        return workbook;
+    }
+
+    private static int Window(ExcelExporterOptions options)
+    {
+        if (options.StreamingRowWindow > 0) return options.StreamingRowWindow;
+
+        throw new Excel2ObjectException(
+            $"StreamingRowWindow 为 {options.StreamingRowWindow}：内存中保留的行数须为正数。");
+    }
+
+    private void WriteSheet(IWorkbook workbook, SheetModel excelSheet, ExcelExporterOptions options,
+        CellStyleFactory styleFactory)
+    {
+        var sheet = string.IsNullOrWhiteSpace(excelSheet.Title)
+            ? workbook.CreateSheet()
+            : workbook.CreateSheet(excelSheet.Title);
+        sheet.ForceFormulaRecalculation = true;
+        var columns = excelSheet.Columns.OrderBy(c => c.Order).ToArray();
+
+        // 要合并哪些列在此处即解析：写入尚未开始，列名写错也就不会留下写了一半的工作表
+        var merges = new MergedRegions(columns, options);
+        var tracking = merges.TracksAnyColumn;
+
+        // 自动列宽按内容而定，故边写边量，量完再设；数据只经过一遍，流式导出也就无需回看
+        var widths = options.AutoColumnWidth ? new int[columns.Length] : null;
+        if (widths == null)
+            for (var i = 0; i < columns.Length; i++)
+                sheet.SetColumnWidth(i, options.DefaultColumnWidth * ExcelConstants.DefaultColumnWidthMultiplier);
+
+        var headerRow = sheet.CreateRow(ExcelConstants.DefaultHeaderRowIndex);
+        for (var i = 0; i < columns.Length; i++)
+        {
+            var title = options.MappingColumnAction!(columns[i].Title, columns[i].Type);
+            var cell = headerRow.CreateCell(i);
+            cell.SetCellType(CellType.String);
+            cell.SetCellValue(title);
+            var headerStyle = styleFactory.Get(StyleResolver.Header(columns[i], options.Styles));
+            if (headerStyle != null) cell.CellStyle = headerStyle;
+            if (widths != null) widths[i] = CalculateTextWidth(title);
+        }
+
+        // one look per column per kind of row, rather than one worked out per cell
+        var oddStyles = columns
+            .Select(c => StyleResolver.Resolve(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex))
+            .ToArray();
+        var evenStyles = columns
+            .Select(c => StyleResolver.Resolve(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex + 1))
+            .ToArray();
+
+        var columnTitles = columns.Select(c => c.Title).ToArray();
+        var sheetColumnsResolver = BuildSheetColumnsResolver(workbook, sheet, columnTitles);
+        var rowNumber = ExcelConstants.DefaultDataStartRowIndex;
+        foreach (var item in excelSheet.Rows)
+        {
+            var row = sheet.CreateRow(rowNumber++);
+            var rowStyles = (row.RowNum - ExcelConstants.DefaultDataStartRowIndex) % 2 == 0
+                ? oddStyles
+                : evenStyles;
+            for (var i = 0; i < columns.Length; i++)
             {
-                var sheet = string.IsNullOrWhiteSpace(excelSheet.Title)
-                    ? workbook.CreateSheet()
-                    : workbook.CreateSheet(excelSheet.Title);
-                sheet.ForceFormulaRecalculation = true;
-                var columns = excelSheet.Columns.OrderBy(c => c.Order).ToArray();
+                var column = columns[i];
+                var cell = row.CreateCell(i);
+                var raw = item.TryGetValue(column.Title, out var value) ? value : null;
+                if (raw is DBNull) raw = null;
+                var val = raw?.ToString() ?? "";
+                SetCellValue(options, column, rowStyles[i], cell, raw, val, columnTitles,
+                    sheetColumnsResolver, styleFactory);
 
-                // Calculate column widths
-                if (options.AutoColumnWidth)
+                // 一格量一次宽：单元格显示成什么样由所在列的样式决定，隔行底色于此无关，
+                // 故一律按奇数行那一套来量，与逐列解析一次的做法一致
+                if (widths != null)
                 {
-                    var columnWidths = CalculateColumnWidths(columns, excelSheet.Rows, options, options.MappingColumnAction);
-                    for (var i = 0; i < columns.Length; i++)
-                    {
-                        sheet.SetColumnWidth(i, columnWidths[i] * ExcelConstants.DefaultColumnWidthMultiplier);
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < columns.Length; i++)
-                    {
-                        sheet.SetColumnWidth(i, options.DefaultColumnWidth * ExcelConstants.DefaultColumnWidthMultiplier);
-                    }
-                }
-                
-                var headerRow = sheet.CreateRow(ExcelConstants.DefaultHeaderRowIndex);
-                for (var i = 0; i < columns.Length; i++)
-                {
-                    var cell = headerRow.CreateCell(i);
-                    cell.SetCellType(CellType.String);
-                    cell.SetCellValue(options.MappingColumnAction(columns[i].Title, columns[i].Type));
-                    var headerStyle = styleFactory.Get(StyleResolver.Header(columns[i], options.Styles));
-                    if (headerStyle != null) cell.CellStyle = headerStyle;
+                    var width = CalculateTextWidth(CellText(raw, oddStyles[i]));
+                    if (width > widths[i]) widths[i] = width;
                 }
 
-                // one look per column per kind of row, rather than one worked out per cell
-                var oddStyles = columns
-                    .Select(c => StyleResolver.Resolve(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex))
-                    .ToArray();
-                var evenStyles = columns
-                    .Select(c => StyleResolver.Resolve(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex + 1))
-                    .ToArray();
-
-                var columnTitles = columns.Select(c => c.Title).ToArray();
-                var sheetColumnsResolver = BuildSheetColumnsResolver(workbook, sheet, columnTitles!);
-                var rowNumber = ExcelConstants.DefaultDataStartRowIndex;
-                var data = excelSheet.Rows;
-                foreach (var item in data)
-                {
-                    var row = sheet.CreateRow(rowNumber++);
-                    var rowStyles = (row.RowNum - ExcelConstants.DefaultDataStartRowIndex) % 2 == 0
-                        ? oddStyles
-                        : evenStyles;
-                    for (var i = 0; i < columns.Length; i++)
-                    {
-                        var column = columns[i];
-                        var cell = row.CreateCell(i);
-                        var raw = column.Title != null && item.TryGetValue(column.Title, out var value)
-                            ? value
-                            : null;
-                        if (raw is DBNull) raw = null;
-                        var val = raw?.ToString() ?? "";
-                        SetCellValue(options, column, rowStyles[i], cell, raw, val, columnTitles,
-                            sheetColumnsResolver, styleFactory);
-                    }
-                }
-
-                ApplyHeaderView(sheet, options, columns.Length, rowNumber - 1);
-                DropdownValidation.Apply(sheet, columns, rowNumber - 1);
-                ConditionalFormatting.Apply(sheet, columns, rowNumber - 1, options.ConditionalFormats);
-                MergedRegions.Apply(sheet, columns, rowNumber - 1, options);
+                if (tracking && merges.Tracks(i)) merges.Observe(i, row.RowNum, cell);
             }
+        }
 
-        return ToBytes(workbook);
+        if (widths != null)
+            for (var i = 0; i < columns.Length; i++)
+                sheet.SetColumnWidth(i,
+                    Math.Max(options.MinColumnWidth, Math.Min(options.MaxColumnWidth, widths[i])) *
+                    ExcelConstants.DefaultColumnWidthMultiplier);
+
+        ApplyHeaderView(sheet, options, columns.Length, rowNumber - 1);
+        DropdownValidation.Apply(sheet, columns, rowNumber - 1);
+        ConditionalFormatting.Apply(sheet, columns, rowNumber - 1, options.ConditionalFormats);
+        merges.Apply(sheet, rowNumber - 1);
     }
 
     /// <summary>
@@ -257,7 +371,7 @@ public class ExcelExporter
                 var other = workbook.GetSheet(sheetTitle) ?? throw new Excel2ObjectException(
                     $"refers to sheet [{sheetTitle}], which is not in the workbook. " +
                     "Write that sheet first, e.g. via AppendObjectToExcelBytes.");
-                var header = other.GetRow(ExcelConstants.DefaultHeaderRowIndex);
+                var header = HeaderRow(workbook, sheetTitle, other);
                 if (header != null)
                     // GetCell(i) rather than Cells: the latter skips blank cells and would shift indexes.
                     titles = Enumerable.Range(0, header.LastCellNum)
@@ -268,6 +382,18 @@ public class ExcelExporter
             cache[sheetTitle] = titles;
             return titles;
         };
+    }
+
+    /// <summary>
+    ///     另一张表的表头行。流式导出时 SXSSF 只是在工作簿外面套了一层：随源工作簿带进来的表，其行
+    ///     并不在这一层里，须向底下的 XSSF 去取。
+    /// </summary>
+    private static IRow? HeaderRow(IWorkbook workbook, string sheetTitle, ISheet sheet)
+    {
+        var header = sheet.GetRow(ExcelConstants.DefaultHeaderRowIndex);
+        if (header != null || workbook is not SXSSFWorkbook streamed) return header;
+
+        return streamed.XssfWorkbook.GetSheet(sheetTitle)?.GetRow(ExcelConstants.DefaultHeaderRowIndex);
     }
 
     private void SetCellValue(ExcelExporterOptions options, ExcelColumn column, ResolvedColumnStyle resolved,
@@ -412,55 +538,6 @@ public class ExcelExporter
     private static void SetStyle(ICell cell, ICellStyle? style)
     {
         if (style != null) cell.CellStyle = style;
-    }
-
-    /// <summary>
-    /// Calculate optimal column widths based on content
-    /// </summary>
-    private int[] CalculateColumnWidths(ExcelColumn[] columns, IEnumerable<Dictionary<string, object>> data, 
-        ExcelExporterOptions options, Func<string, Type, string> mappingColumnAction)
-    {
-        var columnWidths = new int[columns.Length];
-        
-        // Initialize with header widths
-        for (var i = 0; i < columns.Length; i++)
-        {
-            var headerText = mappingColumnAction(columns[i].Title ?? "", columns[i].Type);
-            columnWidths[i] = CalculateTextWidth(headerText);
-        }
-
-        // a cell is measured as it is shown, so the styles of its column decide the text; the stripes
-        // make no difference to that, and resolving once per column keeps it out of the row loop
-        var styles = columns
-            .Select(c => StyleResolver.Resolve(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex))
-            .ToArray();
-
-        // Calculate widths based on data content
-        foreach (var item in data)
-        {
-            for (var i = 0; i < columns.Length; i++)
-            {
-                var column = columns[i];
-                if (column.Title != null && item.TryGetValue(column.Title, out var value))
-                {
-                    var cellText = CellText(value, styles[i]);
-                    var textWidth = CalculateTextWidth(cellText);
-                    if (textWidth > columnWidths[i])
-                    {
-                        columnWidths[i] = textWidth;
-                    }
-                }
-            }
-        }
-
-        // Apply min/max constraints
-        for (var i = 0; i < columnWidths.Length; i++)
-        {
-            columnWidths[i] = Math.Max(options.MinColumnWidth, 
-                Math.Min(options.MaxColumnWidth, columnWidths[i]));
-        }
-
-        return columnWidths;
     }
 
     /// <summary>

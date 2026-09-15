@@ -9,25 +9,63 @@ namespace Chsword.Excel2Object.Internal;
 /// <summary>
 ///     合并单元格：把某列中连续相同的值并成一格，以及合并调用方另行指定的区域。
 /// </summary>
-internal static class MergedRegions
+/// <remarks>
+///     各段是在写入过程中逐格记下的，而非事后回看工作表：流式导出会把先前的行刷出内存，届时已无从读回。
+/// </remarks>
+internal sealed class MergedRegions
 {
-    public static void Apply(ISheet sheet, ExcelColumn[] columns, int lastDataRowIndex,
-        ExcelExporterOptions options)
+    private readonly ExcelColumn[] _columns;
+    private readonly ExcelExporterOptions _options;
+
+    /// <summary>各列当前那一段的起始行与取值，按列序号存放；未跟踪的列为空。</summary>
+    private readonly Dictionary<int, Run> _open = new();
+
+    private readonly Dictionary<int, List<CellRangeAddress>> _runs = new();
+
+    public MergedRegions(ExcelColumn[] columns, ExcelExporterOptions options)
     {
-        // 同一列内的若干段天然互不相交，故按列分别算出后整体写入，无需两两比对
-        var byColumn = new Dictionary<int, List<CellRangeAddress>>();
+        _columns = columns;
+        _options = options;
+
+        // 列名与公式列在此处即校验：写入尚未开始，报错也就不会留下写了一半的工作表
         foreach (var title in options.MergeRepeatedColumns.Distinct(StringComparer.Ordinal))
         {
             var column = IndexOf(columns, title);
             RejectFormula(columns[column]);
-            byColumn[column] = Runs(sheet, column, lastDataRowIndex);
+            _open[column] = new Run(ExcelConstants.DefaultDataStartRowIndex, null);
+            _runs[column] = new List<CellRangeAddress>();
         }
+    }
+
+    /// <summary>是否有按值合并的列，没有则连每格的记录都不必做。</summary>
+    public bool TracksAnyColumn => _open.Count > 0;
+
+    public bool Tracks(int column)
+    {
+        return _open.ContainsKey(column);
+    }
+
+    /// <summary>记下刚写好的一格。行号须递增，即按写入顺序调用。</summary>
+    public void Observe(int column, int rowIndex, ICell cell)
+    {
+        if (!_open.TryGetValue(column, out var run)) return;
+
+        var value = CellValue.Of(cell);
+        if (value != null && run.Value != null && value.Equals(run.Value)) return;
+
+        CloseRun(column, run, rowIndex - 1);
+        _open[column] = new Run(rowIndex, value);
+    }
+
+    public void Apply(ISheet sheet, int lastDataRowIndex)
+    {
+        foreach (var pair in _open) CloseRun(pair.Key, pair.Value, lastDataRowIndex);
 
         var declared = new List<CellRangeAddress>();
-        foreach (var region in options.MergedRegions)
+        foreach (var region in _options.MergedRegions)
         {
-            var range = Resolve(region, columns, lastDataRowIndex);
-            var clash = Overlapping(range, byColumn, declared);
+            var range = Resolve(region, _columns, lastDataRowIndex);
+            var clash = Overlapping(range, _runs, declared);
             if (clash != null)
                 throw new Excel2ObjectException(
                     $"区域 [{region}] 与已合并的 [{clash.FormatAsString()}] 重叠。");
@@ -35,10 +73,17 @@ internal static class MergedRegions
             declared.Add(range);
         }
 
-        foreach (var range in byColumn.Values.SelectMany(list => list).Concat(declared))
+        foreach (var range in _runs.Values.SelectMany(list => list).Concat(declared))
             // 重叠已在此处校验过，故绕开 NPOI 自带的两两比对：它对每个新区域都要扫描已有全部区域，
             // 十万行的分组表会因此退化为平方级
             AddUnsafe(sheet, range);
+    }
+
+    /// <summary>一段就此收尾：只有跨越多行时才算一处合并区域。</summary>
+    private void CloseRun(int column, Run run, int lastRow)
+    {
+        if (run.Value != null && lastRow > run.FirstRow)
+            _runs[column].Add(new CellRangeAddress(run.FirstRow, lastRow, column, column));
     }
 
     private static void AddUnsafe(ISheet sheet, CellRangeAddress range)
@@ -92,53 +137,6 @@ internal static class MergedRegions
                 return i;
 
         throw new Excel2ObjectException($"要合并的列 [{title}] 不在该工作表中。");
-    }
-
-    /// <summary>该列中连续相同的值各占一段，仅相邻且相等的行参与。</summary>
-    private static List<CellRangeAddress> Runs(ISheet sheet, int column, int lastDataRowIndex)
-    {
-        var runs = new List<CellRangeAddress>();
-        var start = ExcelConstants.DefaultDataStartRowIndex;
-        if (lastDataRowIndex <= start) return runs;
-
-        for (var row = start + 1; row <= lastDataRowIndex + 1; row++)
-        {
-            // 多走一行，好让最后一段也能收尾
-            if (row <= lastDataRowIndex && Same(Cell(sheet, start, column), Cell(sheet, row, column))) continue;
-
-            if (row - start > 1) runs.Add(new CellRangeAddress(start, row - 1, column, column));
-            start = row;
-        }
-
-        return runs;
-    }
-
-    private static ICell? Cell(ISheet sheet, int rowIndex, int column)
-    {
-        return sheet.GetRow(rowIndex)?.GetCell(column);
-    }
-
-    /// <summary>
-    ///     两个单元格是否装着同一个值。数值直接比较其值，不经由文本：.NET Framework 上 "R" 与 G17
-    ///     两种格式都可能把不同的数渲染成同一串字符，比较文本会把它们并成一格。空单元格一律不相同，
-    ///     因而不参与合并。
-    /// </summary>
-    private static bool Same(ICell? a, ICell? b)
-    {
-        if (a == null || b == null || a.CellType != b.CellType) return false;
-
-        switch (a.CellType)
-        {
-            case CellType.Numeric:
-                return a.NumericCellValue.Equals(b.NumericCellValue);
-            case CellType.String:
-                var text = a.StringCellValue;
-                return !string.IsNullOrEmpty(text) && text == b.StringCellValue;
-            case CellType.Boolean:
-                return a.BooleanCellValue == b.BooleanCellValue;
-            default:
-                return false;
-        }
     }
 
     /// <summary>把按标题与数据行序号写下的区域，换算成工作表中的坐标。</summary>
@@ -210,5 +208,70 @@ internal static class MergedRegions
     {
         return a.FirstRow <= b.LastRow && b.FirstRow <= a.LastRow &&
                a.FirstColumn <= b.LastColumn && b.FirstColumn <= a.LastColumn;
+    }
+
+    /// <summary>某一列中正在延续的一段。</summary>
+    private readonly struct Run
+    {
+        public Run(int firstRow, CellValue? value)
+        {
+            FirstRow = firstRow;
+            Value = value;
+        }
+
+        public int FirstRow { get; }
+
+        /// <summary>该段的取值；为空表示这一行不参与合并（空单元格、公式等）。</summary>
+        public CellValue? Value { get; }
+    }
+
+    /// <summary>
+    ///     一格的值，于写入时即记下。数值记其值而不记文本：.NET Framework 上 "R" 与 G17 两种格式都可能
+    ///     把不同的数渲染成同一串字符，比较文本会把它们并成一格。
+    /// </summary>
+    private sealed class CellValue
+    {
+        private readonly bool _flag;
+        private readonly double _number;
+        private readonly string? _text;
+        private readonly CellType _type;
+
+        private CellValue(CellType type, double number, string? text, bool flag)
+        {
+            _type = type;
+            _number = number;
+            _text = text;
+            _flag = flag;
+        }
+
+        /// <summary>该格参与合并时的取值；空单元格、公式等一律返回 null，即不参与。</summary>
+        public static CellValue? Of(ICell cell)
+        {
+            switch (cell.CellType)
+            {
+                case CellType.Numeric:
+                    return new CellValue(CellType.Numeric, cell.NumericCellValue, null, false);
+                case CellType.String:
+                    var text = cell.StringCellValue;
+                    return string.IsNullOrEmpty(text) ? null : new CellValue(CellType.String, 0, text, false);
+                case CellType.Boolean:
+                    return new CellValue(CellType.Boolean, 0, null, cell.BooleanCellValue);
+                default:
+                    return null;
+            }
+        }
+
+        public bool Equals(CellValue other)
+        {
+            if (_type != other._type) return false;
+
+            return _type switch
+            {
+                CellType.Numeric => _number.Equals(other._number),
+                CellType.String => _text == other._text,
+                CellType.Boolean => _flag == other._flag,
+                _ => false
+            };
+        }
     }
 }

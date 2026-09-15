@@ -57,11 +57,18 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 - [x] Data validation (dropdown lists) ✅ **New in v2.5.0**
 - [x] Conditional formatting ✅ **New in v2.6.0**
 - [x] A CSS-flavoured stylesheet: backgrounds, borders, striped rows, header styles ✅ **New in v2.7.0**
+- [x] Merged cells: consecutive equal values in a column, or a range of your own ✅ **New in v2.9.1**
+- [x] Streaming export for large files: written as the data is read, with a footprint that does not grow with the row count ✅ **New in v2.10.0** - See [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
 - [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4**, exported as real date cells ✅ **New in v2.4.0** - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)
 - [x] Built-in formula function library ✅ **New in v2.3.0** - 334 Excel functions in 10 categories - See [ExcelFunctions.md](ExcelFunctions.md)
 
 ### Release Notes
+
+* **2026.09.15** - v2.10.0
+- [x] ✨ **NEW:** Streaming export: `ExcelHelper.ObjectToExcelStream(data, stream, options => ...)` writes to the stream as it reads the data, keeping only `StreamingRowWindow` rows in memory (100 by default), so the footprint no longer grows with the row count. Measured on 200,000 rows of five columns: 710 MB / 6.4 s in memory against 89 MB / 3.7 s streamed. Frozen headers, filters, dropdowns, conditional formats, the stylesheet, formula columns and merged cells all work the same way; only `.xlsx` can be streamed, as the `.xls` format has to be assembled in memory. Streaming goes through NPOI's SXSSF, which measures character widths with SkiaSharp when it flushes rows, and NPOI marks that dependency as not flowing to consumers - so the application needs its own `SkiaSharp` reference (plus `SkiaSharp.NativeAssets.Linux.NoDependencies` on Linux); when it is missing the export says so before writing anything - See [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
+- [x] 🔧 Auto column widths and merge-by-value are now worked out as the rows are written rather than by reading the data back, which is what makes streaming possible - and costs the in-memory export one pass less. `AutoColumnWidth` no longer enumerates the source twice, so a sequence that can only be enumerated once now works
+
 
 * **2026.09.15** - v2.9.1
 - [x] ✨ **NEW:** Merged cells: `options.MergeRepeatedColumns.Add("Province")` merges consecutive equal values in that column into one cell (only adjacent equal rows, never blanks, each column judged on its own), and `options.MergedRegions.Add(new MergedRegion("Province", "City"))` merges a range named by column titles and data-row ordinals (an `"A1:C1"` address still works where the layout is known). The cells merged away keep their own values, so every row still imports in full; overlapping regions are refused at export time, naming the region they overlap
