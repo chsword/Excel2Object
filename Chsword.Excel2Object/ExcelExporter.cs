@@ -131,8 +131,6 @@ public class ExcelExporter
 
     private void ObjectToExcelStream(ExcelModel excel, ExcelExporterOptions options, Stream output)
     {
-        if (output == null) throw new ArgumentNullException(nameof(output));
-
         // 字节数组那两个入口在源工作簿读不出来时返回 null，此处没有 null 可返回，故如实报错
         if (!Write(excel, options, output, true))
             throw new Excel2ObjectException("SourceExcelBytes 不是能够打开的工作簿。");
@@ -210,7 +208,7 @@ public class ExcelExporter
             $"StreamingRowWindow 为 {options.StreamingRowWindow}：内存中保留的行数须为正数。");
     }
 
-    private void WriteSheet(IWorkbook workbook, SheetModel excelSheet, ExcelExporterOptions options,
+    private static void WriteSheet(IWorkbook workbook, SheetModel excelSheet, ExcelExporterOptions options,
         CellStyleFactory styleFactory)
     {
         var sheet = string.IsNullOrWhiteSpace(excelSheet.Title)
@@ -221,75 +219,78 @@ public class ExcelExporter
 
         // 要合并哪些列在此处即解析：写入尚未开始，列名写错也就不会留下写了一半的工作表
         var merges = new MergedRegions(columns, options);
-        var tracking = merges.TracksAnyColumn;
+        var layout = new SheetLayout(columns, options);
 
-        // 自动列宽按内容而定，故边写边量，量完再设；数据只经过一遍，流式导出也就无需回看
-        var widths = options.AutoColumnWidth ? new int[columns.Length] : null;
-        if (widths == null)
-            for (var i = 0; i < columns.Length; i++)
-                sheet.SetColumnWidth(i, options.DefaultColumnWidth * ExcelConstants.DefaultColumnWidthMultiplier);
+        WriteHeader(sheet, layout, options, styleFactory);
+        var lastRowIndex = WriteRows(sheet, excelSheet.Rows, layout, options, styleFactory,
+            BuildSheetColumnsResolver(workbook, sheet, layout.Titles), merges);
+        ApplyColumnWidths(sheet, layout, options);
 
-        var headerRow = sheet.CreateRow(ExcelConstants.DefaultHeaderRowIndex);
-        for (var i = 0; i < columns.Length; i++)
+        ApplyHeaderView(sheet, options, columns.Length, lastRowIndex);
+        DropdownValidation.Apply(sheet, columns, lastRowIndex);
+        ConditionalFormatting.Apply(sheet, columns, lastRowIndex, options.ConditionalFormats);
+        merges.Apply(sheet, lastRowIndex);
+    }
+
+    private static void WriteHeader(ISheet sheet, SheetLayout layout, ExcelExporterOptions options,
+        CellStyleFactory styleFactory)
+    {
+        var row = sheet.CreateRow(ExcelConstants.DefaultHeaderRowIndex);
+        for (var i = 0; i < layout.Columns.Length; i++)
         {
-            var title = options.MappingColumnAction!(columns[i].Title, columns[i].Type);
-            var cell = headerRow.CreateCell(i);
+            var title = options.MappingColumnAction!(layout.Columns[i].Title, layout.Columns[i].Type);
+            var cell = row.CreateCell(i);
             cell.SetCellType(CellType.String);
             cell.SetCellValue(title);
-            var headerStyle = styleFactory.Get(StyleResolver.Header(columns[i], options.Styles));
-            if (headerStyle != null) cell.CellStyle = headerStyle;
-            if (widths != null) widths[i] = CalculateTextWidth(title);
+            var style = styleFactory.Get(StyleResolver.Header(layout.Columns[i], options.Styles));
+            if (style != null) cell.CellStyle = style;
+            layout.Measure(i, title);
         }
+    }
 
-        // one look per column per kind of row, rather than one worked out per cell
-        var oddStyles = columns
-            .Select(c => StyleResolver.Resolve(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex))
-            .ToArray();
-        var evenStyles = columns
-            .Select(c => StyleResolver.Resolve(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex + 1))
-            .ToArray();
-
-        var columnTitles = columns.Select(c => c.Title).ToArray();
-        var sheetColumnsResolver = BuildSheetColumnsResolver(workbook, sheet, columnTitles);
+    /// <summary>逐行写入，返回最后一行的行号；行只经过一遍，写过便可离开内存。</summary>
+    private static int WriteRows(ISheet sheet, IEnumerable<Dictionary<string, object>> rows, SheetLayout layout,
+        ExcelExporterOptions options, CellStyleFactory styleFactory, Func<string, string[]?> sheetColumnsResolver,
+        MergedRegions merges)
+    {
+        var tracking = merges.TracksAnyColumn;
         var rowNumber = ExcelConstants.DefaultDataStartRowIndex;
-        foreach (var item in excelSheet.Rows)
+        foreach (var item in rows)
         {
             var row = sheet.CreateRow(rowNumber++);
             var rowStyles = (row.RowNum - ExcelConstants.DefaultDataStartRowIndex) % 2 == 0
-                ? oddStyles
-                : evenStyles;
-            for (var i = 0; i < columns.Length; i++)
+                ? layout.OddStyles
+                : layout.EvenStyles;
+            for (var i = 0; i < layout.Columns.Length; i++)
             {
-                var column = columns[i];
+                var column = layout.Columns[i];
                 var cell = row.CreateCell(i);
                 var raw = item.TryGetValue(column.Title, out var value) ? value : null;
                 if (raw is DBNull) raw = null;
                 var val = raw?.ToString() ?? "";
-                SetCellValue(options, column, rowStyles[i], cell, raw, val, columnTitles,
+                SetCellValue(options, column, rowStyles[i], cell, raw, val, layout.Titles,
                     sheetColumnsResolver, styleFactory);
 
-                // 一格量一次宽：单元格显示成什么样由所在列的样式决定，隔行底色于此无关，
-                // 故一律按奇数行那一套来量，与逐列解析一次的做法一致
-                if (widths != null)
-                {
-                    var width = CalculateTextWidth(CellText(raw, oddStyles[i]));
-                    if (width > widths[i]) widths[i] = width;
-                }
+                // 一格量一次宽：单元格显示成什么样由所在列的样式决定，隔行底色于此无关，故一律按
+                // 奇数行那一套来量，与逐列解析一次的做法一致
+                layout.Measure(i, CellText(raw, layout.OddStyles[i]));
 
                 if (tracking && merges.Tracks(i)) merges.Observe(i, row.RowNum, cell);
             }
         }
 
-        if (widths != null)
-            for (var i = 0; i < columns.Length; i++)
-                sheet.SetColumnWidth(i,
-                    Math.Max(options.MinColumnWidth, Math.Min(options.MaxColumnWidth, widths[i])) *
-                    ExcelConstants.DefaultColumnWidthMultiplier);
+        return rowNumber - 1;
+    }
 
-        ApplyHeaderView(sheet, options, columns.Length, rowNumber - 1);
-        DropdownValidation.Apply(sheet, columns, rowNumber - 1);
-        ConditionalFormatting.Apply(sheet, columns, rowNumber - 1, options.ConditionalFormats);
-        merges.Apply(sheet, rowNumber - 1);
+    private static void ApplyColumnWidths(ISheet sheet, SheetLayout layout, ExcelExporterOptions options)
+    {
+        for (var i = 0; i < layout.Columns.Length; i++)
+        {
+            var width = layout.Widths == null
+                ? options.DefaultColumnWidth
+                : Math.Max(options.MinColumnWidth, Math.Min(options.MaxColumnWidth, layout.Widths[i]));
+            sheet.SetColumnWidth(i, width * ExcelConstants.DefaultColumnWidthMultiplier);
+        }
     }
 
     /// <summary>
@@ -396,7 +397,7 @@ public class ExcelExporter
         return streamed.XssfWorkbook.GetSheet(sheetTitle)?.GetRow(ExcelConstants.DefaultHeaderRowIndex);
     }
 
-    private void SetCellValue(ExcelExporterOptions options, ExcelColumn column, ResolvedColumnStyle resolved,
+    private static void SetCellValue(ExcelExporterOptions options, ExcelColumn column, ResolvedColumnStyle resolved,
         ICell cell, object? raw, string val, string[] columnTitles, Func<string, string[]?> sheetColumnsResolver,
         CellStyleFactory styleFactory)
     {
@@ -504,7 +505,7 @@ public class ExcelExporter
     ///     format that shows the same thing; <see cref="ExcelExporterOptions.DateTimeAsText" /> restores
     ///     the text export of earlier versions.
     /// </summary>
-    private void SetDateTimeCellValue(ExcelExporterOptions options, ResolvedColumnStyle resolved, ICell cell,
+    private static void SetDateTimeCellValue(ExcelExporterOptions options, ResolvedColumnStyle resolved, ICell cell,
         DateTime date, string val, CellStyleFactory styleFactory)
     {
         var asText = options.DateTimeAsText;
@@ -629,5 +630,45 @@ public class ExcelExporter
         }
 
         return (int)Math.Ceiling(width) + 2; // Add padding
+    }
+
+    /// <summary>
+    ///     写一张表时一路带着的东西：各列、各列在奇偶行上的样式，以及正在量的列宽。
+    /// </summary>
+    private sealed class SheetLayout
+    {
+        public SheetLayout(ExcelColumn[] columns, ExcelExporterOptions options)
+        {
+            Columns = columns;
+            Titles = columns.Select(c => c.Title).ToArray();
+            // one look per column per kind of row, rather than one worked out per cell
+            OddStyles = columns
+                .Select(c => StyleResolver.Resolve(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex))
+                .ToArray();
+            EvenStyles = columns
+                .Select(c => StyleResolver.Resolve(c, options.Styles, ExcelConstants.DefaultDataStartRowIndex + 1))
+                .ToArray();
+            // 自动列宽按内容而定，故边写边量，量完再设；数据只经过一遍，流式导出也就无需回看
+            Widths = options.AutoColumnWidth ? new int[columns.Length] : null;
+        }
+
+        public ExcelColumn[] Columns { get; }
+
+        public string[] Titles { get; }
+
+        public ResolvedColumnStyle[] OddStyles { get; }
+
+        public ResolvedColumnStyle[] EvenStyles { get; }
+
+        /// <summary>各列已量到的宽度；未开启自动列宽时为 null。</summary>
+        public int[]? Widths { get; }
+
+        public void Measure(int column, string text)
+        {
+            if (Widths == null) return;
+
+            var width = CalculateTextWidth(text);
+            if (width > Widths[column]) Widths[column] = width;
+        }
     }
 }

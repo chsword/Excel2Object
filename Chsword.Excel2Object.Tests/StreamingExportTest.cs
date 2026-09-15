@@ -34,8 +34,8 @@ public class StreamingExportTest
         return Enumerable.Range(0, count).Select(i => new Model
         {
             // 每 10 行换一个省份、每 5 行换一个城市，于是合并区域必然跨越被刷出内存的行
-            Province = "省" + i / 10,
-            City = "市" + i / 5,
+            Province = "省" + (i / 10),
+            City = "市" + (i / 5),
             Amount = 100 + i,
             PlacedAt = new DateTime(2026, 1, 1).AddDays(i),
             Status = i % 2 == 0 ? "已发货" : "待付款"
