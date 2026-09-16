@@ -26,7 +26,7 @@ internal static class XlsxRowReader
     private const string RelationshipNamespace =
         "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
-    public static IEnumerable<IImportRow> Rows(Stream input, ExcelImporterOptions options, ImportContext context)
+    public static SheetSource Rows(Stream input, ExcelImporterOptions options, ImportContext context)
     {
         OPCPackage package;
         try
@@ -44,7 +44,7 @@ internal static class XlsxRowReader
             var reader = new XSSFReader(package);
             var workbook = ReadWorkbook(reader);
             var sheet = Locate(workbook, options.SheetTitle);
-            return Iterate(package, reader, sheet, workbook.Date1904, context);
+            return new SheetSource(sheet.Title, Iterate(package, reader, sheet, workbook.Date1904, context));
         }
         catch
         {

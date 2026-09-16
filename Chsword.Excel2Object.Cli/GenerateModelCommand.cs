@@ -44,12 +44,14 @@ public static class GenerateModelCommand
         sb.Append("public class ").AppendLine(className);
         sb.AppendLine("{");
         var used = new HashSet<string>(StringComparer.Ordinal) {className};
+        var inferences = data.Infer();
         for (var i = 0; i < data.Columns.Count; i++)
         {
             var title = data.Columns[i];
-            var values = data.ColumnValues(title).ToList();
-            var type = TypeInference.Infer(values);
-            var nullable = values.Count == 0 || values.Any(string.IsNullOrWhiteSpace);
+            var inference = inferences[title];
+            var type = inference.Result;
+            // 一行都没有，或出现过空值，该属性即为可空
+            var nullable = !inference.Any || inference.HasBlank;
             var name = Unique(ToIdentifier(title, $"Column{i + 1}"), used);
 
             if (i > 0) sb.AppendLine();

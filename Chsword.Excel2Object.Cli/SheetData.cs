@@ -1,46 +1,65 @@
-using NPOI.SS.UserModel;
+using Chsword.Excel2Object.Options;
 
 namespace Chsword.Excel2Object.Cli;
 
-/// <summary>A sheet as the importer sees it: the header titles in column order and one string per cell.</summary>
+/// <summary>
+///     A sheet as the importer sees it: the header titles in column order, and its rows on demand.
+/// </summary>
+/// <remarks>
+///     行不再一次性读进内存：<see cref="Rows" /> 每次遍历都逐行读出，命令行因而能处理远大于内存的
+///     文件。需要过两遍数据的地方（<c>--typed</c> 先推断类型再写出）就遍历两次，各自的开销是一遍
+///     顺序读。
+/// </remarks>
 public sealed class SheetData
 {
-    public SheetData(string sheetTitle, List<string> columns, List<Dictionary<string, object>> rows)
+    private readonly string _path;
+    private readonly string? _sheetTitle;
+
+    private SheetData(string path, string? sheetTitle, string title, List<string> columns)
     {
-        SheetTitle = sheetTitle;
+        _path = path;
+        _sheetTitle = sheetTitle;
+        SheetTitle = title;
         Columns = columns;
-        Rows = rows;
     }
 
     public string SheetTitle { get; }
+
     public List<string> Columns { get; }
-    public List<Dictionary<string, object>> Rows { get; }
 
     public static SheetData Load(string path, string? sheetTitle)
     {
         if (!File.Exists(path)) throw new FileNotFoundException($"input file not found: {path}", path);
-        var bytes = File.ReadAllBytes(path);
-        var rows = ExcelHelper.ExcelToObject<Dictionary<string, object>>(bytes, sheetTitle).ToList();
-        var (title, columns) = ReadHeader(bytes, sheetTitle);
-        return new SheetData(title, columns, rows);
+
+        // 只读到表头那一行为止，后面有多少行数据都不影响这一步的开销
+        using var input = File.OpenRead(path);
+        var header = ExcelHelper.ReadHeader(input, options => options.SheetTitle = sheetTitle);
+        return new SheetData(path, sheetTitle, header.SheetTitle ?? "", header.Columns.ToList());
     }
 
-    /// <summary>The header row straight from the workbook, so an empty sheet still yields its columns.</summary>
-    private static (string title, List<string> columns) ReadHeader(byte[] bytes, string? sheetTitle)
+    /// <summary>逐行读出该表。每次遍历都重新读一遍文件。</summary>
+    public IEnumerable<Dictionary<string, object>> Rows()
     {
-        using var stream = new MemoryStream(bytes);
-        var workbook = WorkbookFactory.Create(stream);
-        var sheet = string.IsNullOrEmpty(sheetTitle) ? workbook.GetSheetAt(0) : workbook.GetSheet(sheetTitle);
-        if (sheet == null) throw new Excel2ObjectException($"The specified sheet:[{sheetTitle}] does not exist");
-        var header = sheet.GetRow(sheet.FirstRowNum);
-        // untrimmed on purpose: the importer keys rows by the exact header text
-        var columns = header?.Cells.Select(cell => cell.ToString() ?? "").ToList() ?? new List<string>();
-        return (sheet.SheetName, columns);
+        using var input = File.OpenRead(_path);
+        foreach (var row in ExcelHelper.ExcelStreamToObject<Dictionary<string, object>>(input,
+                     options => options.SheetTitle = _sheetTitle))
+            yield return row;
     }
 
-    public IEnumerable<string> ColumnValues(string column)
+    /// <summary>各列的类型推断，一遍读完。</summary>
+    public Dictionary<string, TypeInference.Inference> Infer()
     {
-        return Rows.Select(row => row.TryGetValue(column, out var value) ? value?.ToString() ?? "" : "");
+        var inferences = Columns.ToDictionary(c => c, _ => new TypeInference.Inference(), StringComparer.Ordinal);
+        foreach (var row in Rows())
+            foreach (var column in Columns)
+                inferences[column].Observe(Text(row, column));
+
+        return inferences;
+    }
+
+    public static string Text(IReadOnlyDictionary<string, object> row, string column)
+    {
+        return row.TryGetValue(column, out var value) ? value?.ToString() ?? "" : "";
     }
 
     public static bool IsExcel(string path)

@@ -21,6 +21,20 @@ internal interface IImportRow
     CellData Cell(int columnIndex);
 }
 
+/// <summary>一张工作表的来源：它的名字，以及各行。</summary>
+internal sealed class SheetSource
+{
+    public SheetSource(string? title, IEnumerable<IImportRow> rows)
+    {
+        Title = title;
+        Rows = rows;
+    }
+
+    public string? Title { get; }
+
+    public IEnumerable<IImportRow> Rows { get; }
+}
+
 /// <summary>整份读入内存时的一行，取值经由 NPOI 的单元格。</summary>
 internal sealed class NpoiRow : IImportRow
 {

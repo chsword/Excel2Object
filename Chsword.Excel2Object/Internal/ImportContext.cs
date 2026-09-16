@@ -61,6 +61,30 @@ internal sealed class ImportContext
         Report(row?.Sheet?.SheetName, row?.RowNum ?? -1, columnIndex, exception);
     }
 
+    /// <summary>
+    ///     上报模型上的某个标题在表头中找不到。未设置回调时不作任何输出；回调抛出的异常照旧向外
+    ///     传播，调用方据此即可拒绝这样的文件。
+    /// </summary>
+    public void ReportMissingColumn(string title, string propertyName, string? sheetTitle,
+        IReadOnlyList<string> headerTitles)
+    {
+        if (_options.OnMissingColumn == null) return;
+
+        // 相近只按「一方包含另一方」判定：「金额」与「金额（元）」够用，再多的猜测不如不猜
+        var similar = new List<string>();
+        foreach (var header in headerTitles)
+        {
+            var one = header.Trim();
+            var other = title.Trim();
+            if (one.Length == 0 || other.Length == 0 || one == other) continue;
+            if (one.IndexOf(other, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                other.IndexOf(one, StringComparison.OrdinalIgnoreCase) >= 0)
+                similar.Add(header);
+        }
+
+        _options.OnMissingColumn(new ExcelColumnMissing(title, propertyName, sheetTitle, headerTitles, similar));
+    }
+
     /// <summary>位置由调用方给出：流式读取没有单元格对象，只有行列号。</summary>
     public void Report(string? sheetTitle, int rowIndex, int columnIndex, Exception exception)
     {

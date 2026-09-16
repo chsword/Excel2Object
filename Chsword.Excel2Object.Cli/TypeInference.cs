@@ -27,26 +27,57 @@ public static class TypeInference
 
     public static InferredType Infer(IEnumerable<string> values)
     {
-        var seen = false;
-        var candidates = new HashSet<InferredType>
+        var inference = new Inference();
+        foreach (var value in values) inference.Observe(value);
+        return inference.Result;
+    }
+
+    /// <summary>
+    ///     一列的推断过程：一个值一个值地喂进来，不必先把整列攒在内存里。命令行要处理的文件可能有
+    ///     几十万行，逐行读出便是为此。
+    /// </summary>
+    public sealed class Inference
+    {
+        private readonly HashSet<InferredType> _candidates = new()
             {InferredType.Bool, InferredType.Int, InferredType.Long, InferredType.Decimal, InferredType.DateTime};
-        foreach (var value in values)
+
+        private bool _seen;
+
+        /// <summary>这一列上是否出现过空值——空值本身不参与类型判断，却决定该属性是否可空。</summary>
+        public bool HasBlank { get; private set; }
+
+        /// <summary>是否有过任何一行。一行都没有的列按字符串处理，且算作可空。</summary>
+        public bool Any { get; private set; }
+
+        public InferredType Result
         {
-            if (string.IsNullOrWhiteSpace(value)) continue;
-            seen = true;
-            candidates.RemoveWhere(candidate => !Fits(candidate, value));
-            if (candidates.Count == 0) break;
+            get
+            {
+                if (!_seen) return InferredType.String;
+                foreach (var candidate in new[]
+                         {
+                             InferredType.Bool, InferredType.Int, InferredType.Long, InferredType.Decimal,
+                             InferredType.DateTime
+                         })
+                    if (_candidates.Contains(candidate))
+                        return candidate;
+
+                return InferredType.String;
+            }
         }
 
-        if (!seen) return InferredType.String;
-        foreach (var candidate in new[]
-                 {
-                     InferredType.Bool, InferredType.Int, InferredType.Long, InferredType.Decimal,
-                     InferredType.DateTime
-                 })
-            if (candidates.Contains(candidate))
-                return candidate;
-        return InferredType.String;
+        public void Observe(string value)
+        {
+            Any = true;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                HasBlank = true;
+                return;
+            }
+
+            _seen = true;
+            if (_candidates.Count > 0) _candidates.RemoveWhere(candidate => !Fits(candidate, value));
+        }
     }
 
     public static bool Fits(InferredType type, string value)

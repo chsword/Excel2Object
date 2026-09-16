@@ -47,8 +47,8 @@ public class ExcelImporter
         var options = new ExcelImporterOptions();
         optionAction?.Invoke(options);
         var context = new ImportContext(options);
-        var rows = GetDataRows(bytes, options, context);
-        return ToModels<TModel>(rows, context);
+        var source = GetDataRows(bytes, options, context);
+        return ToModels<TModel>(source == null ? null : AtHeader(source, options), context);
     }
 
     public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string? sheetTitle)
@@ -95,10 +95,42 @@ public class ExcelImporter
         var options = new ExcelImporterOptions();
         optionAction?.Invoke(options);
         var context = new ImportContext(options);
-        var rows = XlsxRowReader.Rows(input, options, context).GetEnumerator();
-        rows.MoveNext();
-        for (var i = 0; i < options.TitleSkipLine; i++) rows.MoveNext();
-        return ToModels<TModel>(rows, context);
+        return ToModels<TModel>(AtHeader(XlsxRowReader.Rows(input, options, context), options), context);
+    }
+
+    /// <summary>
+    ///     只读出表头：表名与各列的标题，按列的先后。用于在导入之前核对列，或据表头生成模型。
+    /// </summary>
+    /// <remarks>
+    ///     只读到表头那一行为止，后面有多少行数据都不影响其开销。<c>.xls</c> 仍须整份读入——该格式
+    ///     的数据并非顺序存放。传入的流由本方法读取，返回前即已读完。
+    /// </remarks>
+    /// <example>
+    ///     <code>
+    /// using var file = File.OpenRead("orders.xlsx");
+    /// var header = ExcelHelper.ReadHeader(file);
+    /// Console.WriteLine($"{header.SheetTitle}：{string.Join("、", header.Columns)}");
+    ///     </code>
+    /// </example>
+    public ExcelSheetHeader ReadHeader(Stream input, Action<ExcelImporterOptions>? optionAction = null)
+    {
+        var options = new ExcelImporterOptions();
+        optionAction?.Invoke(options);
+        var context = new ImportContext(options);
+
+        var source = LooksLikeXlsx(input)
+            ? XlsxRowReader.Rows(input, options, context)
+            : GetDataRows(ReadAll(input), options, context);
+        if (source == null) return new ExcelSheetHeader(null, new List<string>());
+
+        using var rows = AtHeader(source, options);
+        var titleRow = rows.Current;
+        var columns = new List<string>();
+        if (titleRow != null)
+            foreach (var cell in titleRow.Cells)
+                columns.Add(TextOf(cell.Value) ?? string.Empty);
+
+        return new ExcelSheetHeader(source.Title, columns);
     }
 
     /// <summary>
@@ -178,7 +210,7 @@ public class ExcelImporter
         // 取行的枚举器在此释放：流式导入由它持有着打开的工作簿，中途放弃（Take、break）时也须关上
         using (result)
         {
-            var dictColumns = BuildColumnMappings<TModel>(result);
+            var dictColumns = BuildColumnMappings<TModel>(result, context);
 
             while (result.MoveNext())
             {
@@ -195,21 +227,29 @@ public class ExcelImporter
     }
 
     private static Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>> BuildColumnMappings<TModel>(
-        IEnumerator<IImportRow> result)
+        IEnumerator<IImportRow> result, ImportContext context)
         where TModel : class, new()
     {
         var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
         var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
         var titleRow = result.Current;
+        if (titleRow == null) return dictColumns;
 
-        if (titleRow != null)
-            foreach (var cell in titleRow.Cells)
-            {
-                var title = TextOf(cell.Value);
-                var prop = dict.FirstOrDefault(c => title == c.Value.Title);
-                if (prop.Key != null && !dictColumns.ContainsKey(cell.Key))
-                    dictColumns.Add(cell.Key, prop);
-            }
+        var headerTitles = new List<string>();
+        foreach (var cell in titleRow.Cells)
+        {
+            var title = TextOf(cell.Value) ?? string.Empty;
+            headerTitles.Add(title);
+            var prop = dict.FirstOrDefault(c => title == c.Value.Title);
+            if (prop.Key != null && !dictColumns.ContainsKey(cell.Key))
+                dictColumns.Add(cell.Key, prop);
+        }
+
+        // 模型上写着、表头里却没有的标题：那一列不会被填上，整列都是默认值，此处上报
+        var mapped = new HashSet<string>(dictColumns.Values.Select(c => c.Value.Title), StringComparer.Ordinal);
+        foreach (var pair in dict)
+            if (!mapped.Contains(pair.Value.Title))
+                context.ReportMissingColumn(pair.Value.Title, pair.Key.Name, titleRow.SheetTitle, headerTitles);
 
         return dictColumns;
     }
@@ -395,7 +435,7 @@ public class ExcelImporter
         return date.Value.ToString(pattern, CultureInfo.InvariantCulture);
     }
 
-    private static IEnumerator<IImportRow>? GetDataRows(byte[]? bytes, ExcelImporterOptions options,
+    private static SheetSource? GetDataRows(byte[]? bytes, ExcelImporterOptions options,
         ImportContext context)
     {
         if (bytes == null || bytes.Length == 0)
@@ -423,7 +463,13 @@ public class ExcelImporter
                 throw new Excel2ObjectException($"The specified sheet:[{options.SheetTitle}] does not exist");
         }
 
-        var rows = NpoiRows(sheet, context).GetEnumerator();
+        return new SheetSource(sheet.SheetName, NpoiRows(sheet, context));
+    }
+
+    /// <summary>取到停在表头那一行的枚举器：表头之上还可以有若干行说明文字。</summary>
+    private static IEnumerator<IImportRow> AtHeader(SheetSource source, ExcelImporterOptions options)
+    {
+        var rows = source.Rows.GetEnumerator();
         rows.MoveNext();
         for (var i = 0; i < options.TitleSkipLine; i++) rows.MoveNext();
         return rows;

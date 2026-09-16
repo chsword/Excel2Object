@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -9,12 +10,6 @@ namespace Chsword.Excel2Object.Cli;
 /// <summary>excel2obj convert: Excel -> JSON or JSON -> Excel, decided per input by file extension.</summary>
 public static class ConvertCommand
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-    };
-
     public static int Run(Arguments args, TextWriter output, TextWriter error)
     {
         if (args.Positional.Count == 0) throw new UsageException("convert needs at least one input file");
@@ -45,14 +40,13 @@ public static class ConvertCommand
 
             if (SheetData.IsExcel(input))
             {
-                var json = ExcelToJson(input, sheet, typed);
                 if (destination == null)
                 {
-                    output.WriteLine(json);
+                    output.WriteLine(ExcelToJson(input, sheet, typed));
                 }
                 else
                 {
-                    File.WriteAllText(destination, json);
+                    using (var file = File.Create(destination)) WriteJson(input, sheet, typed, file);
                     error.WriteLine($"{input} -> {destination}");
                 }
             }
@@ -71,48 +65,75 @@ public static class ConvertCommand
         return Excel2ObjCli.Ok;
     }
 
+    /// <summary>写到标准输出时才用得到：那里本就要把整段文本拿在手上。</summary>
     public static string ExcelToJson(string path, string? sheet, bool typed)
     {
-        var data = SheetData.Load(path, sheet);
-        var types = typed
-            ? data.Columns.ToDictionary(c => c, c => TypeInference.Infer(data.ColumnValues(c)))
-            : null;
-
-        var array = new JsonArray();
-        foreach (var row in data.Rows)
-        {
-            var item = new JsonObject();
-            foreach (var column in data.Columns)
-            {
-                var text = row.TryGetValue(column, out var value) ? value?.ToString() ?? "" : "";
-                item[column] = types == null ? JsonValue.Create(text) : ToJsonValue(text, types[column]);
-            }
-
-            array.Add(item);
-        }
-
-        return array.ToJsonString(JsonOptions);
+        using var buffer = new MemoryStream();
+        WriteJson(path, sheet, typed, buffer);
+        return Encoding.UTF8.GetString(buffer.ToArray());
     }
 
-    private static JsonNode? ToJsonValue(string text, InferredType type)
+    /// <summary>
+    ///     一行读出、一行写出，中途不把整份数据攒在内存里。<c>--typed</c> 要先知道每列是什么类型，
+    ///     故先过一遍推断，再过一遍写出——两遍各是一次顺序读。
+    /// </summary>
+    public static void WriteJson(string path, string? sheet, bool typed, Stream destination)
     {
-        if (type != InferredType.String && string.IsNullOrWhiteSpace(text)) return null;
+        var data = SheetData.Load(path, sheet);
+        var types = typed ? data.Infer() : null;
+
+        using var writer = new Utf8JsonWriter(destination,
+            new JsonWriterOptions {Indented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping});
+        writer.WriteStartArray();
+        foreach (var row in data.Rows())
+        {
+            writer.WriteStartObject();
+            foreach (var column in data.Columns)
+            {
+                writer.WritePropertyName(column);
+                var text = SheetData.Text(row, column);
+                if (types == null)
+                    writer.WriteStringValue(text);
+                else
+                    WriteTypedValue(writer, text, types[column].Result);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private static void WriteTypedValue(Utf8JsonWriter writer, string text, InferredType type)
+    {
+        if (type != InferredType.String && string.IsNullOrWhiteSpace(text))
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
         switch (type)
         {
             case InferredType.Bool:
                 TypeInference.TryParseBool(text, out var flag);
-                return JsonValue.Create(flag);
+                writer.WriteBooleanValue(flag);
+                break;
             case InferredType.Int:
-                return JsonValue.Create(int.Parse(text, CultureInfo.InvariantCulture));
+                writer.WriteNumberValue(int.Parse(text, CultureInfo.InvariantCulture));
+                break;
             case InferredType.Long:
-                return JsonValue.Create(long.Parse(text, CultureInfo.InvariantCulture));
+                writer.WriteNumberValue(long.Parse(text, CultureInfo.InvariantCulture));
+                break;
             case InferredType.Decimal:
-                return JsonValue.Create(decimal.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
+                writer.WriteNumberValue(decimal.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
+                break;
             case InferredType.DateTime:
                 TypeInference.TryParseDateTime(text, out var date);
-                return JsonValue.Create(date.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture));
+                writer.WriteStringValue(date.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture));
+                break;
             default:
-                return JsonValue.Create(text);
+                writer.WriteStringValue(text);
+                break;
         }
     }
 
