@@ -61,7 +61,8 @@ internal sealed class ImportContext
         Report(row?.Sheet?.SheetName, row?.RowNum ?? -1, columnIndex, exception);
     }
 
-    private void Report(string? sheetTitle, int rowIndex, int columnIndex, Exception exception)
+    /// <summary>位置由调用方给出：流式读取没有单元格对象，只有行列号。</summary>
+    public void Report(string? sheetTitle, int rowIndex, int columnIndex, Exception exception)
     {
         if (_options.OnCellError == null) return;
 

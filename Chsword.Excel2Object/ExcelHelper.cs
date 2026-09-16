@@ -111,6 +111,14 @@ public static class ExcelHelper
         return excelExporter.ObjectToExcelBytes(data, optionsAction);
     }
 
+    /// <inheritdoc cref="ExcelImporter.ExcelStreamToObject{TModel}(Stream, Action{ExcelImporterOptions})" />
+    public static IEnumerable<TModel> ExcelStreamToObject<TModel>(Stream input,
+        Action<ExcelImporterOptions>? optionAction = null)
+        where TModel : class, new()
+    {
+        return new ExcelImporter().ExcelStreamToObject<TModel>(input, optionAction);
+    }
+
     /// <inheritdoc cref="ExcelExporter.ObjectToExcelStream{TModel}(IEnumerable{TModel}, Stream, Action{ExcelExporterOptions})" />
     public static void ObjectToExcelStream<TModel>(IEnumerable<TModel> data, Stream output,
         Action<ExcelExporterOptions>? optionsAction = null)
