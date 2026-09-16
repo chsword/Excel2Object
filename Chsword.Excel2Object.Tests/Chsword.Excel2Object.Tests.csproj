@@ -37,6 +37,12 @@
     <ProjectReference Include="..\Chsword.Excel2Object\Chsword.Excel2Object.csproj" />
   </ItemGroup>
 
+  <!-- 流式导入的用例要拆看 .xlsx 里的部件，用到 ZipArchive；.NET Framework 下该程序集不在默认引用之列 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+
   <!-- 命令行工具只发布 net8.0，.NET Framework 无法引用，故该目标框架下不含其测试 -->
   <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <ProjectReference Include="..\Chsword.Excel2Object.Cli\Chsword.Excel2Object.Cli.csproj" />
