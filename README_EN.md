@@ -58,8 +58,8 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 - [x] Conditional formatting ✅ **New in v2.6.0**
 - [x] A CSS-flavoured stylesheet: backgrounds, borders, striped rows, header styles ✅ **New in v2.7.0**
 - [x] Merged cells: consecutive equal values in a column, or a range of your own ✅ **New in v2.9.1**
-- [x] Streaming export for large files: a memory footprint that does not grow with the row count ✅ **New in v2.10.0**
-- [x] Streaming import for large files: read row by row instead of building the whole workbook ✅ **New in v2.11.0** - See [docs/versions/v2.11.0.md](docs/versions/v2.11.0.md) - See [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
+- [x] Streaming export for large files: a memory footprint that does not grow with the row count ✅ **New in v2.10.0** - See [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
+- [x] Streaming import for large files: read row by row instead of building the whole workbook ✅ **New in v2.11.0** - See [docs/versions/v2.11.0.md](docs/versions/v2.11.0.md)
 - [x] Support date/datetime/time formats in Excel ✅ **New in v2.0.4**, exported as real date cells ✅ **New in v2.4.0** - See [DateTimeFormats.md](DateTimeFormats.md)
 - [x] Formula columns referencing other sheets of the same workbook ✅ **New in v2.1.0** - See [ExcelFunctions.md](ExcelFunctions.md)
 - [x] Built-in formula function library ✅ **New in v2.3.0** - 334 Excel functions in 10 categories - See [ExcelFunctions.md](ExcelFunctions.md)
@@ -67,7 +67,7 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 ### Release Notes
 
 * **2026.09.16** - v2.11.0
-- [x] ✨ **NEW:** Streaming import: `ExcelHelper.ExcelStreamToObject<Order>(stream)` reads one sheet of an `.xlsx` row by row instead of building the whole workbook in memory. Measured on 200,000 rows of five columns: 1265 MB / 8.4 s read whole against 194 MB / 2.9 s streamed, field for field the same data. The sequence is lazy, so `Take` and friends really do read less. Three differences: a formula cell reads the result stored in the file rather than being evaluated (files this library writes carry no such result, so those cells read as blank), only `.xlsx` can be read row by row (`.xls` is still read whole), and the sheet is located up front - See [docs/versions/v2.11.0.md](docs/versions/v2.11.0.md)
+- [x] ✨ **NEW:** Streaming import: `ExcelHelper.ExcelStreamToObject<Order>(stream)` reads one sheet of an `.xlsx` row by row instead of building the whole workbook in memory. Measured on 200,000 rows of five columns: 1265 MB / 8.4 s read whole against 194 MB / 2.9 s streamed, field for field the same data. The sequence is lazy, so `Take` and friends really do read less. Three differences: a formula cell reads the result stored in the file rather than being evaluated (files this library writes carry no such result, so those cells read as blank, like any other blank cell), only `.xlsx` can be read row by row (`.xls` is still read whole), and the sheet is located up front - See [docs/versions/v2.11.0.md](docs/versions/v2.11.0.md)
 - [x] 🔧 Import conversion no longer depends on NPOI's cell objects: reading whole and reading row by row share one conversion, so the two cannot drift apart. The dictionary form of the import became lazy as a result; duplicate header titles now resolve to the leftmost column, and a non-text header no longer aborts the import
 
 

@@ -60,8 +60,8 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 - [x] 条件格式 ✅ **v2.6.0 新增**
 - [x] 样式表（CSS 风格）：背景色、边框、隔行底色、表头样式 ✅ **v2.7.0 新增**
 - [x] 合并单元格：按列合并连续相同值、指定区域 ✅ **v2.9.1 新增**
-- [x] 大文件流式导出：内存不随行数增长 ✅ **v2.10.0 新增**
-- [x] 大文件流式导入：逐行读出，不把整个工作簿建进内存 ✅ **v2.11.0 新增** - 查看 [docs/versions/v2.11.0.md](docs/versions/v2.11.0.md) - 查看 [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
+- [x] 大文件流式导出：内存不随行数增长 ✅ **v2.10.0 新增** - 查看 [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
+- [x] 大文件流式导入：逐行读出，不把整个工作簿建进内存 ✅ **v2.11.0 新增** - 查看 [docs/versions/v2.11.0.md](docs/versions/v2.11.0.md)
 - [x] 支持 Excel 日期/日期时间/时间格式 ✅ **v2.0.4 新增**，导出为真正的日期单元格 ✅ **v2.4.0 新增** - 查看 [DateTimeFormats.md](DateTimeFormats.md)
 - [x] 公式列引用同一工作簿的其他 sheet ✅ **v2.1.0 新增** - 查看 [ExcelFunctions.md](ExcelFunctions.md)
 - [x] 公式内置函数库 ✅ **v2.3.0 新增** - 334 个 Excel 函数，10 个类别 - 查看 [ExcelFunctions.md](ExcelFunctions.md)
@@ -69,7 +69,7 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 ### 发布说明
 
 * **2026.09.16** - v2.11.0
-- [x] ✨ **新增:** 流式导入：`ExcelHelper.ExcelStreamToObject<Order>(stream)` 逐行读出 `.xlsx` 的一张工作表，不把整个工作簿建进内存。实测二十万行五列：整份读入峰值 1265 MB / 8.4 秒，流式导入 194 MB / 2.9 秒，两者读出的数据逐字段一致。取到的序列是惰性的，`Take` 一类的操作真的能少读。三处不同：公式格读的是文件中存着的上一次计算结果而非当场求值（本库导出的文件里公式没有这个结果，读作空白）、只有 `.xlsx` 能逐行读出（`.xls` 照旧整份读入）、工作表在一开始就定位 - 查看 [docs/versions/v2.11.0.md](docs/versions/v2.11.0.md)
+- [x] ✨ **新增:** 流式导入：`ExcelHelper.ExcelStreamToObject<Order>(stream)` 逐行读出 `.xlsx` 的一张工作表，不把整个工作簿建进内存。实测二十万行五列：整份读入峰值 1265 MB / 8.4 秒，流式导入 194 MB / 2.9 秒，两者读出的数据逐字段一致。取到的序列是惰性的，`Take` 一类的操作真的能少读。三处不同：公式格读的是文件中存着的上一次计算结果而非当场求值（本库导出的文件里公式没有这个结果，读作空白，与其他空白格一样）、只有 `.xlsx` 能逐行读出（`.xls` 照旧整份读入）、工作表在一开始就定位 - 查看 [docs/versions/v2.11.0.md](docs/versions/v2.11.0.md)
 - [x] 🔧 导入的类型转换不再依赖 NPOI 的单元格：整份读入与逐行读出共用同一套转换，两条路的行为不会各自漂移。字典形式的导入随之改为惰性给出；标题行中同名的标题以最左一列为准，非文本的标题不再中断导入
 
 

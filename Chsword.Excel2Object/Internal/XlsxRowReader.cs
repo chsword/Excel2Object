@@ -87,7 +87,7 @@ internal static class XlsxRowReader
         {
             if (xml.NodeType != XmlNodeType.Element) continue;
 
-            switch (xml.Name)
+            switch (xml.LocalName)
             {
                 case "workbookPr":
                     date1904 = IsTrue(xml.GetAttribute("date1904")) || IsTrue(xml.GetAttribute("date1904Compat"));
@@ -127,17 +127,21 @@ internal static class XlsxRowReader
 
         while (xml.Read())
         {
-            if (xml.NodeType == XmlNodeType.Element && xml.Name == "row")
+            if (xml.NodeType == XmlNodeType.Element && xml.LocalName == "row")
             {
-                // 行号自 1 计起；缺失时按上一行顺延
-                rowIndex = Number(xml.GetAttribute("r")) - 1;
-                if (rowIndex < 0) rowIndex = 0;
+                // 行号自 1 计起，该属性可以不写，此时按上一行顺延
+                var declared = xml.GetAttribute("r");
+                rowIndex = declared == null ? rowIndex + 1 : Math.Max(Number(declared) - 1, 0);
                 cells = new Dictionary<int, CellData>();
                 column = -1;
                 if (!xml.IsEmptyElement) continue;
+
+                // 自闭合的空行没有结束标记，就地给出，否则 TitleSkipLine 会把它数漏
+                yield return new StreamedRow(sheetTitle, rowIndex, cells);
+                continue;
             }
 
-            if (xml.NodeType == XmlNodeType.Element && xml.Name == "c")
+            if (xml.NodeType == XmlNodeType.Element && xml.LocalName == "c")
             {
                 var reference = xml.GetAttribute("r");
                 column = reference == null ? column + 1 : ColumnOf(reference);
@@ -149,7 +153,7 @@ internal static class XlsxRowReader
                 continue;
             }
 
-            if (xml.NodeType == XmlNodeType.EndElement && xml.Name == "row")
+            if (xml.NodeType == XmlNodeType.EndElement && xml.LocalName == "row")
                 yield return new StreamedRow(sheetTitle, rowIndex, cells);
         }
     }
@@ -162,35 +166,11 @@ internal static class XlsxRowReader
         NumberFormats styles, ReadOnlySharedStringsTable strings, string sheetTitle, int rowIndex, int column,
         ImportContext context)
     {
-        string? value = null;
-        var inline = (string?) null;
+        var text = CellText(xml);
 
-        if (!xml.IsEmptyElement)
-        {
-            var depth = xml.Depth;
-            // ReadElementContentAsString 会一并越过该元素，故读到内容之后不再 Read，否则将跳过下一个节点
-            while (!(xml.NodeType == XmlNodeType.EndElement && xml.Depth == depth))
-            {
-                if (xml.NodeType == XmlNodeType.Element)
-                {
-                    if (xml.Name == "v")
-                    {
-                        value = xml.ReadElementContentAsString();
-                        continue;
-                    }
+        // 没有算出结果的公式常写成一个空的 <v/>，这样的内容一律读作空白，不去解析
+        if (text != null && text.Length == 0 && type != "inlineStr" && type != "str") text = null;
 
-                    if (xml.Name == "is")
-                    {
-                        inline = InlineText(xml);
-                        continue;
-                    }
-                }
-
-                if (!xml.Read()) break;
-            }
-        }
-
-        var text = inline ?? value;
         try
         {
             switch (type)
@@ -225,6 +205,37 @@ internal static class XlsxRowReader
         }
     }
 
+    /// <summary>一格里写着的内容：<c>&lt;v&gt;</c> 中的值，或 <c>&lt;is&gt;</c> 中的行内字符串。</summary>
+    private static string? CellText(XmlReader xml)
+    {
+        if (xml.IsEmptyElement) return null;
+
+        string? value = null;
+        var depth = xml.Depth;
+        // ReadElementContentAsString 会一并越过该元素，故读到内容之后不再 Read，否则将跳过下一个节点
+        while (!(xml.NodeType == XmlNodeType.EndElement && xml.Depth == depth))
+        {
+            if (xml.NodeType == XmlNodeType.Element)
+            {
+                if (xml.LocalName == "v")
+                {
+                    value = xml.ReadElementContentAsString();
+                    continue;
+                }
+
+                if (xml.LocalName == "is")
+                {
+                    // 行内字符串优先：它与 <v> 不会同时出现
+                    return InlineText(xml);
+                }
+            }
+
+            if (!xml.Read()) break;
+        }
+
+        return value;
+    }
+
     /// <summary>行内字符串：<c>&lt;is&gt;</c> 之下可有若干段 <c>&lt;t&gt;</c>，依次相接。</summary>
     private static string InlineText(XmlReader xml)
     {
@@ -232,7 +243,7 @@ internal static class XlsxRowReader
         var text = string.Empty;
         while (!(xml.NodeType == XmlNodeType.EndElement && xml.Depth == depth))
         {
-            if (xml.NodeType == XmlNodeType.Element && xml.Name == "t")
+            if (xml.NodeType == XmlNodeType.Element && xml.LocalName == "t")
             {
                 text += xml.ReadElementContentAsString();
                 continue;
@@ -266,14 +277,14 @@ internal static class XlsxRowReader
             {
                 if (c is >= 'a' and <= 'z')
                 {
-                    column = column * 26 + (c - 'a' + 1);
+                    column = (column * 26) + (c - 'a' + 1);
                     continue;
                 }
 
                 break;
             }
 
-            column = column * 26 + (c - 'A' + 1);
+            column = (column * 26) + (c - 'A' + 1);
         }
 
         return column - 1;

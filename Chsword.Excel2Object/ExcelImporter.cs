@@ -69,7 +69,7 @@ public class ExcelImporter
     ///     <para>
     ///         与整份读入相比有一处不同：<strong>公式格读的是文件中存着的上一次计算结果</strong>，而非
     ///         当场求值。Excel 存盘时会写下这个结果，本库导出的文件则没有（要等 Excel 打开时才算出），
-    ///         此时该格读作空白。
+    ///         此时该格读作空白，与其他空白格一样。
     ///     </para>
     ///     <para>
     ///         只有 <c>.xlsx</c> 能够逐行读出；传入 <c>.xls</c> 时会照旧整份读入内存，结果一致。
@@ -88,14 +88,12 @@ public class ExcelImporter
         Action<ExcelImporterOptions>? optionAction = null)
         where TModel : class, new()
     {
-        if (input == null) throw new ArgumentNullException(nameof(input));
+        // .xls 的格式无从逐行读出，整份读入后结果与既有方式一致。此处先于建立选项判断，
+        // optionAction 才不会被调用两次——它可能是有状态的
+        if (!LooksLikeXlsx(input)) return ExcelToObject<TModel>(ReadAll(input), optionAction);
 
         var options = new ExcelImporterOptions();
         optionAction?.Invoke(options);
-
-        // .xls 的格式无从逐行读出，整份读入后结果与既有方式一致
-        if (!LooksLikeXlsx(input)) return ExcelToObject<TModel>(ReadAll(input), optionAction);
-
         var context = new ImportContext(options);
         var rows = XlsxRowReader.Rows(input, options, context).GetEnumerator();
         rows.MoveNext();
@@ -140,29 +138,33 @@ public class ExcelImporter
     {
         if (result == null) yield break;
 
-        var titleRow = result.Current;
-        if (titleRow == null) yield break;
-
-        // 同名的标题以最左边那一列为准，与模型列的对应方式一致
-        var columns = new Dictionary<string, int>();
-        foreach (var cell in titleRow.Cells)
+        // 取行的枚举器在此释放：流式导入由它持有着打开的工作簿，中途放弃（Take、break）时也须关上
+        using (result)
         {
-            var title = TextOf(cell.Value);
-            if (title != null && !columns.ContainsKey(title)) columns[title] = cell.Key;
-        }
+            var titleRow = result.Current;
+            if (titleRow == null) yield break;
 
-        while (result.MoveNext())
-        {
-            var row = result.Current;
-            if (row == null || row.CellCount == 0)
-                continue;
+            // 同名的标题以最左边那一列为准，与模型列的对应方式一致
+            var columns = new Dictionary<string, int>();
+            foreach (var cell in titleRow.Cells)
+            {
+                var title = TextOf(cell.Value);
+                if (title != null && !columns.ContainsKey(title)) columns[title] = cell.Key;
+            }
 
-            var model = new Dictionary<string, object>();
+            while (result.MoveNext())
+            {
+                var row = result.Current;
+                if (row == null || row.CellCount == 0)
+                    continue;
 
-            foreach (var column in columns)
-                model[column.Key] = TextOf(row.Cell(column.Value), true) ?? "";
+                var model = new Dictionary<string, object>();
 
-            yield return model;
+                foreach (var column in columns)
+                    model[column.Key] = TextOf(row.Cell(column.Value), true) ?? "";
+
+                yield return model;
+            }
         }
     }
 
@@ -173,18 +175,22 @@ public class ExcelImporter
         if (result == null)
             yield break;
 
-        var dictColumns = BuildColumnMappings<TModel>(result);
-
-        while (result.MoveNext())
+        // 取行的枚举器在此释放：流式导入由它持有着打开的工作簿，中途放弃（Take、break）时也须关上
+        using (result)
         {
-            var row = result.Current;
+            var dictColumns = BuildColumnMappings<TModel>(result);
 
-            if (row == null || row.CellCount == 0)
-                continue;
+            while (result.MoveNext())
+            {
+                var row = result.Current;
 
-            var model = new TModel();
-            PopulateModelFromRow(model, row, dictColumns, context);
-            yield return model;
+                if (row == null || row.CellCount == 0)
+                    continue;
+
+                var model = new TModel();
+                PopulateModelFromRow(model, row, dictColumns, context);
+                yield return model;
+            }
         }
     }
 

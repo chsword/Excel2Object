@@ -194,22 +194,126 @@ public class StreamingImportTest
         Assert.AreEqual(42, streamed[0].Count);
     }
 
+    /// <summary>公式列对应到一个可空属性，好看清「读作空白」究竟读成了什么。</summary>
+    public class FormulaModel
+    {
+        [ExcelColumn("文本")] public string Text { get; set; } = "";
+        [ExcelColumn("数量")] public int? Count { get; set; }
+    }
+
     [TestMethod]
     public void AFormulaWithoutAStoredResultReadsAsBlank()
     {
         // 本库导出的文件里公式没有算出的结果，要等 Excel 打开时才算
-        var bytes = new ExcelExporter().ObjectToExcelBytes(Rows(3), options =>
-        {
-            options.ExcelType = ExcelType.Xlsx;
-            options.FormulaColumns.Add(new FormulaColumn {Title = "数量", Formula = c => c["金额"] * 2});
-        });
+        var bytes = new ExcelExporter().ObjectToExcelBytes(
+            new[] {new FormulaModel {Text = "甲"}, new FormulaModel {Text = "乙"}}, options =>
+            {
+                options.ExcelType = ExcelType.Xlsx;
+                options.FormulaColumns.Add(new FormulaColumn {Title = "数量", Formula = c => c["文本"]});
+            });
         Assert.IsNotNull(bytes);
 
-        var streamed = Streamed(bytes!);
-        Assert.AreEqual(3, streamed.Count);
-        Assert.AreEqual(0, streamed[0].Count, "没有存下结果的公式读作空白");
+        var errors = new List<ExcelImportError>();
+        using var input = new MemoryStream(bytes!);
+        var streamed = new ExcelImporter()
+            .ExcelStreamToObject<FormulaModel>(input, options => options.OnCellError = errors.Add).ToList();
+
+        Assert.AreEqual(2, streamed.Count);
+        Assert.IsNull(streamed[0].Count, "没有存下结果的公式读作空白");
+        // 空白不是读取失败：这样的格常写成一个空的 <v/>，不应当作读不出来上报
+        Assert.AreEqual(0, errors.Count, string.Join("；", errors.Select(e => e.Exception.Message)));
         // 其余各列照常
-        Assert.AreEqual("值0", streamed[0].Text);
+        Assert.AreEqual("甲", streamed[0].Text);
+    }
+
+    [TestMethod]
+    public void ABlankCellBehavesTheSameWayAsWhenReadWhole()
+    {
+        // 空白格落在非可空的数值列上，两条路都以转换失败中止——此处只验二者一致
+        var workbook = new XSSFWorkbook();
+        var sheet = workbook.CreateSheet("数据");
+        var header = sheet.CreateRow(0);
+        header.CreateCell(0).SetCellValue("文本");
+        header.CreateCell(1).SetCellValue("数量");
+        var row = sheet.CreateRow(1);
+        row.CreateCell(0).SetCellValue("甲");
+        row.CreateCell(1).SetBlank();
+        using var bytes = new MemoryStream();
+        workbook.Write(bytes, true);
+
+        Assert.ThrowsException<FormatException>(() =>
+            new ExcelImporter().ExcelToObject<Model>(bytes.ToArray()).ToList());
+        Assert.ThrowsException<FormatException>(() => Streamed(bytes.ToArray()));
+
+        // 同一格落在可空列上则读作 null
+        using var input = new MemoryStream(bytes.ToArray());
+        var nullable = new ExcelImporter().ExcelStreamToObject<FormulaModel>(input).ToList();
+        Assert.IsNull(nullable[0].Count);
+    }
+
+    [TestMethod]
+    public void PrefixedElementsMissingReferencesAndEmptyRowsAreRead()
+    {
+        // 带前缀的写法（<x:row>）同样合法，行与格的 r 属性也可以不写，空行可以自闭合。
+        // 这类文件由别的工具写出，此处手工造一份。
+        var bytes = HandWritten();
+
+        var rows = Streamed(bytes, options => options.TitleSkipLine = 1);
+        Assert.AreEqual(2, rows.Count);
+        Assert.AreEqual("甲", rows[0].Text);
+        Assert.AreEqual(12, rows[0].Count);
+        Assert.AreEqual("乙", rows[1].Text);
+        Assert.AreEqual(34, rows[1].Count);
+    }
+
+    /// <summary>一份手写的 .xlsx：元素带前缀、行与格不写 r、开头有一个自闭合的空行。</summary>
+    private static byte[] HandWritten()
+    {
+        const string main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        const string rels = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        var parts = new Dictionary<string, string>
+        {
+            ["[Content_Types].xml"] =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+                "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
+                "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>" +
+                "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>" +
+                "</Types>",
+            ["_rels/.rels"] =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                "<Relationship Id=\"rIdWb\" Type=\"" + rels + "/officeDocument\" Target=\"xl/workbook.xml\"/>" +
+                "</Relationships>",
+            ["xl/_rels/workbook.xml.rels"] =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                "<Relationship Id=\"rId1\" Type=\"" + rels + "/worksheet\" Target=\"worksheets/sheet1.xml\"/>" +
+                "</Relationships>",
+            ["xl/workbook.xml"] =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<x:workbook xmlns:x=\"" + main + "\" xmlns:r=\"" + rels + "\">" +
+                "<x:sheets><x:sheet name=\"数据\" sheetId=\"1\" r:id=\"rId1\"/></x:sheets></x:workbook>",
+            ["xl/worksheets/sheet1.xml"] =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<x:worksheet xmlns:x=\"" + main + "\"><x:sheetData>" +
+                "<x:row/>" +
+                "<x:row><x:c t=\"inlineStr\"><x:is><x:t>文本</x:t></x:is></x:c>" +
+                "<x:c t=\"inlineStr\"><x:is><x:t>数量</x:t></x:is></x:c></x:row>" +
+                "<x:row><x:c t=\"inlineStr\"><x:is><x:t>甲</x:t></x:is></x:c><x:c><x:v>12</x:v></x:c></x:row>" +
+                "<x:row><x:c t=\"inlineStr\"><x:is><x:t>乙</x:t></x:is></x:c><x:c><x:v>34</x:v></x:c></x:row>" +
+                "</x:sheetData></x:worksheet>"
+        };
+
+        using var buffer = new MemoryStream();
+        using (var zip = new System.IO.Compression.ZipArchive(buffer, System.IO.Compression.ZipArchiveMode.Create, true))
+            foreach (var part in parts)
+            {
+                using var entry = new StreamWriter(zip.CreateEntry(part.Key).Open());
+                entry.Write(part.Value);
+            }
+
+        return buffer.ToArray();
     }
 
     [TestMethod]
