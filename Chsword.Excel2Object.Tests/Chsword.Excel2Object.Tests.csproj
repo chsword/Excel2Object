@@ -26,6 +26,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <!-- 流式导出走 NPOI 的 SXSSF，后者把行刷出内存时要用 SkiaSharp 量字符宽度。NPOI 把 SkiaSharp
+         标为不随包传递的依赖，故此处与使用方一样自行引用；Linux 上的本机库另需 NativeAssets 包，
+         Windows 与 macOS 的由 SkiaSharp 自带。 -->
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.2" />
   </ItemGroup>
 
   <ItemGroup>
