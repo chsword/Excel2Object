@@ -65,7 +65,7 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 ### Release Notes
 
-* **2026.09.15** - v2.10.0
+* **2026.09.16** - v2.10.0
 - [x] ✨ **NEW:** Streaming export: `ExcelHelper.ObjectToExcelStream(data, stream, options => ...)` reads the data row by row and writes each row out, keeping only `StreamingRowWindow` rows in memory (100 by default), so the footprint no longer grows with the row count. What it saves is memory rather than latency: rows written go to a temp file, and the final package reaches the caller's stream in one go once the data has been read. Measured on 200,000 rows of five columns: 710 MB / 6.4 s in memory against 89 MB / 3.7 s streamed. Frozen headers, filters, dropdowns, conditional formats, the stylesheet, formula columns and merged cells all work the same way; only `.xlsx` can be streamed, as the `.xls` format has to be assembled in memory. Streaming goes through NPOI's SXSSF, which measures character widths with SkiaSharp when it flushes rows, and NPOI marks that dependency as not flowing to consumers - so the application needs its own `SkiaSharp` reference (plus `SkiaSharp.NativeAssets.Linux.NoDependencies` on Linux); when it is missing the export says so before writing anything - See [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
 - [x] 🔧 Auto column widths and merge-by-value are now worked out as the rows are written rather than by reading the data back, which is what makes streaming possible - and costs the in-memory export one pass less. `AutoColumnWidth` no longer enumerates the source twice, so a sequence that can only be enumerated once now works
 

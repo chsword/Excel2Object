@@ -67,7 +67,7 @@ excel2obj generate-model orders.xlsx --class Order           # 由表头生成�
 
 ### 发布说明
 
-* **2026.09.15** - v2.10.0
+* **2026.09.16** - v2.10.0
 - [x] ✨ **新增:** 流式导出：`ExcelHelper.ObjectToExcelStream(data, stream, options => ...)` 逐行取数据并写出，内存中只保留 `StreamingRowWindow` 指定的若干行（默认 100），占用不再随行数增长（省下的是内存而非等待时间：写过的行落到临时文件，最终的包在数据取完后一次写入调用方的流）。实测二十万行五列：内存导出峰值 710 MB / 6.4 秒，流式导出 89 MB / 3.7 秒。冻结、筛选、下拉、条件格式、样式表、公式列与合并单元格在流式导出下同样生效；仅 `.xlsx` 能够流式写入，`.xls` 的格式决定了必须先在内存中建好。流式写入基于 NPOI 的 SXSSF，后者刷行时要用 SkiaSharp 测量字符宽度，而 NPOI 把该依赖标为不随包传递，故应用需自行引用 `SkiaSharp`（Linux 上另需 `SkiaSharp.NativeAssets.Linux.NoDependencies`），缺失时会在写出任何内容之前报错说明 - 查看 [docs/versions/v2.10.0.md](docs/versions/v2.10.0.md)
 - [x] 🔧 自动列宽与按值合并改在写入过程中算出，不再回看数据：流式导出得以成立，内存导出亦少走一遍数据。开启 `AutoColumnWidth` 时不再把数据源遍历两遍，只能遍历一次的序列因而也可用
 
