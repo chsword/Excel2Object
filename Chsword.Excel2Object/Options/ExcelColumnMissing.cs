@@ -38,10 +38,10 @@ public class ExcelColumnMissing
 
     public override string ToString()
     {
-        var where = SheetTitle == null ? "" : $"工作表 [{SheetTitle}] ";
+        var where = SheetTitle == null ? "" : $"工作表 [{SheetTitle}] 的";
         var similar = SimilarTitles.Count == 0
             ? ""
             : $"，表头上与之相近的是 [{string.Join("]、[", SimilarTitles)}]";
-        return $"{where}的表头中没有 [{Title}] 这一列（属性 {PropertyName} 因而不会被填上）{similar}。";
+        return $"{where}表头中没有 [{Title}] 这一列（属性 {PropertyName} 因而不会被填上）{similar}。";
     }
 }

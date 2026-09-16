@@ -147,6 +147,16 @@ public class ImportDiagnosticsTest
     }
 
     [TestMethod]
+    public void TheMessageReadsWellWithAndWithoutASheetName()
+    {
+        var withSheet = new ExcelColumnMissing("金额", "Amount", "数据", new[] {"金额（元）"}, new[] {"金额（元）"});
+        StringAssert.StartsWith(withSheet.ToString(), "工作表 [数据] 的表头中没有 [金额]");
+
+        var withoutSheet = new ExcelColumnMissing("金额", "Amount", null, new string[0], new string[0]);
+        StringAssert.StartsWith(withoutSheet.ToString(), "表头中没有 [金额]");
+    }
+
+    [TestMethod]
     public void TheHeaderCanBeReadOnItsOwn()
     {
         foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})

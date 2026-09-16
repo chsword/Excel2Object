@@ -111,7 +111,7 @@ public static class ConvertCommand
     {
         var data = SheetData.Load(path, sheet, whole);
         // 每列的类型在此定下，不在写每一格时反复去问
-        var types = typed ? data.Infer().ToDictionary(c => c.Key, c => c.Value.Result, StringComparer.Ordinal) : null;
+        var types = typed ? data.Infer().Select(inference => inference.Result).ToArray() : null;
 
         using var writer = new Utf8JsonWriter(destination,
             new JsonWriterOptions {Indented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping});
@@ -119,14 +119,14 @@ public static class ConvertCommand
         foreach (var row in data.Rows())
         {
             writer.WriteStartObject();
-            foreach (var column in data.Columns)
+            for (var i = 0; i < data.Columns.Count; i++)
             {
-                writer.WritePropertyName(column);
-                var text = SheetData.Text(row, column);
+                writer.WritePropertyName(data.Columns[i]);
+                var text = SheetData.Text(row, data.Columns[i]);
                 if (types == null)
                     writer.WriteStringValue(text);
                 else
-                    WriteTypedValue(writer, text, types[column]);
+                    WriteTypedValue(writer, text, types[i]);
             }
 
             writer.WriteEndObject();

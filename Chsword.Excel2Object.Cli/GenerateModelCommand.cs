@@ -48,7 +48,7 @@ public static class GenerateModelCommand
         for (var i = 0; i < data.Columns.Count; i++)
         {
             var title = data.Columns[i];
-            var inference = inferences[title];
+            var inference = inferences[i];
             var type = inference.Result;
             // 一行都没有，或出现过空值，该属性即为可空
             var nullable = !inference.Any || inference.HasBlank;

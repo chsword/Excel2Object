@@ -59,13 +59,15 @@ public sealed class SheetData
             yield return row;
     }
 
-    /// <summary>各列的类型推断，一遍读完。</summary>
-    public Dictionary<string, TypeInference.Inference> Infer()
+    /// <summary>
+    ///     各列的类型推断，一遍读完，按列的先后存放——表头允许有重名的列，故不以标题为键。
+    /// </summary>
+    public TypeInference.Inference[] Infer()
     {
-        var inferences = Columns.ToDictionary(c => c, _ => new TypeInference.Inference(), StringComparer.Ordinal);
+        var inferences = Columns.Select(_ => new TypeInference.Inference()).ToArray();
         foreach (var row in Rows())
-            foreach (var column in Columns)
-                inferences[column].Observe(Text(row, column));
+            for (var i = 0; i < Columns.Count; i++)
+                inferences[i].Observe(Text(row, Columns[i]));
 
         return inferences;
     }

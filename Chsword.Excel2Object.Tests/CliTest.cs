@@ -114,11 +114,37 @@ public class CliTest
         using (var doc = JsonDocument.Parse(stdout))
             Assert.AreEqual("", doc.RootElement[0].GetProperty("Double").GetString());
 
-        // --whole 整份读入，公式当场求值
-        var (wholeCode, wholeOut, wholeErr) = Run("convert", path, "--whole");
+        // --whole 是个开关，放在路径之前也不应把路径吞掉
+        var (wholeCode, wholeOut, wholeErr) = Run("convert", "--whole", path);
         Assert.AreEqual(Excel2ObjCli.Ok, wholeCode, wholeErr);
         using (var doc = JsonDocument.Parse(wholeOut))
             Assert.AreEqual("8", doc.RootElement[0].GetProperty("Double").GetString());
+    }
+
+    [TestMethod]
+    public void DuplicateHeaderTitlesStillGenerateAModel()
+    {
+        // 表头允许有重名的列，生成的属性名靠 Unique 区分
+        var path = Path.Combine(_dir, "dup.xlsx");
+        var workbook = new NPOI.XSSF.UserModel.XSSFWorkbook();
+        var sheet = workbook.CreateSheet("Dup");
+        var header = sheet.CreateRow(0);
+        header.CreateCell(0).SetCellValue("Name");
+        header.CreateCell(1).SetCellValue("Qty");
+        header.CreateCell(2).SetCellValue("Name");
+        var row = sheet.CreateRow(1);
+        row.CreateCell(0).SetCellValue("甲");
+        row.CreateCell(1).SetCellValue(2);
+        row.CreateCell(2).SetCellValue("乙");
+        using (var file = File.Create(path)) workbook.Write(file, false);
+
+        var (code, stdout, stderr) = Run("generate-model", path, "--class=Dup");
+        Assert.AreEqual(Excel2ObjCli.Ok, code, stderr);
+        StringAssert.Contains(stdout, "public string? Name { get; set; }");
+        StringAssert.Contains(stdout, "public string? Name2 { get; set; }");
+
+        var (typedCode, _, typedErr) = Run("convert", path, "--typed");
+        Assert.AreEqual(Excel2ObjCli.Ok, typedCode, typedErr);
     }
 
     [TestMethod]
