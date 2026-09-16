@@ -11,7 +11,7 @@ public static class GenerateModelCommand
         if (args.Positional.Count != 1) throw new UsageException("generate-model needs exactly one input file");
         var input = args.Positional[0];
         var sheet = args.Get("sheet");
-        var data = SheetData.Load(input, sheet);
+        var data = SheetData.Load(input, sheet, args.Has("whole"));
         var className = args.Get("class") ?? ToIdentifier(data.SheetTitle, "Model");
         var code = Generate(data, className, args.Get("namespace"));
 

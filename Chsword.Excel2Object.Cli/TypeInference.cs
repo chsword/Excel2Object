@@ -38,6 +38,12 @@ public static class TypeInference
     /// </summary>
     public sealed class Inference
     {
+        /// <summary>由窄到宽，取第一个仍然成立的。静态存放：这个取值会被逐格问到。</summary>
+        private static readonly InferredType[] Order =
+        {
+            InferredType.Bool, InferredType.Int, InferredType.Long, InferredType.Decimal, InferredType.DateTime
+        };
+
         private readonly HashSet<InferredType> _candidates = new()
             {InferredType.Bool, InferredType.Int, InferredType.Long, InferredType.Decimal, InferredType.DateTime};
 
@@ -54,11 +60,7 @@ public static class TypeInference
             get
             {
                 if (!_seen) return InferredType.String;
-                foreach (var candidate in new[]
-                         {
-                             InferredType.Bool, InferredType.Int, InferredType.Long, InferredType.Decimal,
-                             InferredType.DateTime
-                         })
+                foreach (var candidate in Order)
                     if (_candidates.Contains(candidate))
                         return candidate;
 

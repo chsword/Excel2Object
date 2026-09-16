@@ -128,19 +128,38 @@ public class ImportDiagnosticsTest
     }
 
     [TestMethod]
+    public void AnEmptySheetReportsEveryColumnAsMissing()
+    {
+        var workbook = new XSSFWorkbook();
+        workbook.CreateSheet("空表");
+        using var bytes = new MemoryStream();
+        workbook.Write(bytes, true);
+
+        var missing = new List<ExcelColumnMissing>();
+        var orders = new ExcelImporter()
+            .ExcelToObject<Order>(bytes.ToArray(), options => options.OnMissingColumn = missing.Add).ToList();
+
+        // 一行都没有，表头自然也没有：模型上的每个标题都对不上
+        Assert.AreEqual(0, orders.Count);
+        CollectionAssert.AreEquivalent(new[] {"订单号", "金额", "备注"}, missing.Select(m => m.Title).ToArray());
+        Assert.AreEqual("空表", missing[0].SheetTitle);
+        Assert.AreEqual(0, missing[0].HeaderTitles.Count);
+    }
+
+    [TestMethod]
     public void TheHeaderCanBeReadOnItsOwn()
     {
         foreach (var excelType in new[] {ExcelType.Xlsx, ExcelType.Xls})
         {
             var bytes = new ExcelExporter().ObjectToExcelBytes(
-                new[] {new Order {No = "00123", Amount = 100.5m, Memo = "线上"}}, options =>
-                {
-                    options.ExcelType = excelType;
-                    options.SheetTitle = "本月";
-                });
-            Assert.IsNotNull(bytes);
+                              new[] {new Order {No = "00123", Amount = 100.5m, Memo = "线上"}}, options =>
+                              {
+                                  options.ExcelType = excelType;
+                                  options.SheetTitle = "本月";
+                              })
+                          ?? throw new AssertFailedException($"{excelType} 导出应有内容");
 
-            using var input = new MemoryStream(bytes!);
+            using var input = new MemoryStream(bytes);
             var header = ExcelHelper.ReadHeader(input);
             Assert.AreEqual("本月", header.SheetTitle, excelType.ToString());
             CollectionAssert.AreEqual(new[] {"订单号", "金额", "备注"}, header.Columns.ToArray(), excelType.ToString());

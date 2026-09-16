@@ -14,11 +14,18 @@ excel2obj convert orders.xlsx                       # prints a JSON array to std
 excel2obj convert orders.xlsx --output orders.json  # writes the file
 excel2obj convert orders.xlsx --sheet Orders --typed
 excel2obj convert a.xlsx b.xls --output ./json/     # several inputs need an output directory
+excel2obj convert orders.xlsx --whole               # read the workbook whole and evaluate formulas
 ```
 
-Each row becomes an object keyed by the header row. Values are the cell text (formulas are evaluated); with
-`--typed`, a column whose non-empty values are all integers, decimals, `TRUE`/`FALSE` or ISO dates is emitted as
-JSON numbers, booleans or `yyyy-MM-ddTHH:mm:ss` strings, and empty cells become `null`.
+Each row becomes an object keyed by the header row. Values are the cell text; with `--typed`, a column whose
+non-empty values are all integers, decimals, `TRUE`/`FALSE` or ISO dates is emitted as JSON numbers, booleans or
+`yyyy-MM-ddTHH:mm:ss` strings, and empty cells become `null`.
+
+The sheet is read row by row, so a file far larger than memory converts fine. One consequence: a **formula cell
+reads the result stored in the file** rather than being evaluated. Excel writes that result when it saves, so
+files saved by Excel read as before; a file written by this library carries formulas with no stored result, and
+those cells read as blank. Pass `--whole` to read the workbook whole and evaluate formulas instead - the memory
+it needs then grows with the file. `--whole` works with `generate-model` as well.
 
 ## JSON -> Excel
 

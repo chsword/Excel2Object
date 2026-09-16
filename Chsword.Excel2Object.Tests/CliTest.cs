@@ -62,6 +62,65 @@ public class CliTest
         return (code, stdout.ToString(), stderr.ToString());
     }
 
+    /// <summary>一份带公式的工作簿：公式的结果要等 Excel 打开时才算出，文件里并没有存下。</summary>
+    private string WriteWorkbookWithFormula()
+    {
+        var path = Path.Combine(_dir, "with-formula.xlsx");
+        var bytes = new ExcelExporter().ObjectToExcelBytes(Orders, o =>
+        {
+            o.ExcelType = ExcelType.Xlsx;
+            o.FormulaColumns.Add(new Options.FormulaColumn {Title = "Double", Formula = c => c["Qty"] * 2});
+        });
+        File.WriteAllBytes(path, bytes!);
+        return path;
+    }
+
+    [TestMethod]
+    public void ConvertingOntoTheInputItselfKeepsTheData()
+    {
+        // 逐行读出意味着边读边写，目标若就是输入本身，先清空目标便会毁掉源文件
+        var path = WriteWorkbook();
+        var (code, _, stderr) = Run("convert", path, "--output", path);
+        Assert.AreEqual(Excel2ObjCli.Ok, code, stderr);
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var rows = doc.RootElement.EnumerateArray().ToList();
+        Assert.AreEqual(2, rows.Count);
+        Assert.AreEqual("Apple", rows[0].GetProperty("Product").GetString());
+    }
+
+    [TestMethod]
+    public void AFailedConversionLeavesTheDestinationAlone()
+    {
+        var destination = Path.Combine(_dir, "keep.json");
+        File.WriteAllText(destination, "原样保留");
+
+        var broken = Path.Combine(_dir, "broken.xlsx");
+        File.WriteAllText(broken, "这不是一份工作簿");
+        var (code, _, _) = Run("convert", broken, "--output", destination);
+
+        Assert.AreNotEqual(Excel2ObjCli.Ok, code);
+        Assert.AreEqual("原样保留", File.ReadAllText(destination), "失败时不应留下半个文件");
+    }
+
+    [TestMethod]
+    public void FormulasReadTheirStoredResultUnlessWholeIsAsked()
+    {
+        var path = WriteWorkbookWithFormula();
+
+        // 默认逐行读出：公式取文件里存着的结果，本库写出的文件并没有存下
+        var (code, stdout, stderr) = Run("convert", path);
+        Assert.AreEqual(Excel2ObjCli.Ok, code, stderr);
+        using (var doc = JsonDocument.Parse(stdout))
+            Assert.AreEqual("", doc.RootElement[0].GetProperty("Double").GetString());
+
+        // --whole 整份读入，公式当场求值
+        var (wholeCode, wholeOut, wholeErr) = Run("convert", path, "--whole");
+        Assert.AreEqual(Excel2ObjCli.Ok, wholeCode, wholeErr);
+        using (var doc = JsonDocument.Parse(wholeOut))
+            Assert.AreEqual("8", doc.RootElement[0].GetProperty("Double").GetString());
+    }
+
     [TestMethod]
     public void ExcelToJsonWritesCellTextByDefault()
     {

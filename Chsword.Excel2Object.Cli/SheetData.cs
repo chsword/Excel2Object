@@ -14,11 +14,13 @@ public sealed class SheetData
 {
     private readonly string _path;
     private readonly string? _sheetTitle;
+    private readonly bool _whole;
 
-    private SheetData(string path, string? sheetTitle, string title, List<string> columns)
+    private SheetData(string path, string? sheetTitle, bool whole, string title, List<string> columns)
     {
         _path = path;
         _sheetTitle = sheetTitle;
+        _whole = whole;
         SheetTitle = title;
         Columns = columns;
     }
@@ -27,18 +29,29 @@ public sealed class SheetData
 
     public List<string> Columns { get; }
 
-    public static SheetData Load(string path, string? sheetTitle)
+    /// <param name="whole">
+    ///     整份读入工作簿，公式当场求值；否则逐行读出，公式取文件里存着的上一次计算结果。
+    /// </param>
+    public static SheetData Load(string path, string? sheetTitle, bool whole = false)
     {
         if (!File.Exists(path)) throw new FileNotFoundException($"input file not found: {path}", path);
 
         // 只读到表头那一行为止，后面有多少行数据都不影响这一步的开销
         using var input = File.OpenRead(path);
         var header = ExcelHelper.ReadHeader(input, options => options.SheetTitle = sheetTitle);
-        return new SheetData(path, sheetTitle, header.SheetTitle ?? "", header.Columns.ToList());
+        return new SheetData(path, sheetTitle, whole, header.SheetTitle ?? "", header.Columns.ToList());
     }
 
-    /// <summary>逐行读出该表。每次遍历都重新读一遍文件。</summary>
+    /// <summary>读出该表的各行。每次遍历都重新读一遍文件。</summary>
     public IEnumerable<Dictionary<string, object>> Rows()
+    {
+        if (_whole)
+            return ExcelHelper.ExcelToObject<Dictionary<string, object>>(File.ReadAllBytes(_path), _sheetTitle);
+
+        return Streamed();
+    }
+
+    private IEnumerable<Dictionary<string, object>> Streamed()
     {
         using var input = File.OpenRead(_path);
         foreach (var row in ExcelHelper.ExcelStreamToObject<Dictionary<string, object>>(input,

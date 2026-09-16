@@ -48,7 +48,7 @@ public class ExcelImporter
         optionAction?.Invoke(options);
         var context = new ImportContext(options);
         var source = GetDataRows(bytes, options, context);
-        return ToModels<TModel>(source == null ? null : AtHeader(source, options), context);
+        return ToModels<TModel>(source == null ? null : AtHeader(source, options), context, source?.Title);
     }
 
     public IEnumerable<TModel> ExcelToObject<TModel>(byte[] bytes, string? sheetTitle)
@@ -95,7 +95,8 @@ public class ExcelImporter
         var options = new ExcelImporterOptions();
         optionAction?.Invoke(options);
         var context = new ImportContext(options);
-        return ToModels<TModel>(AtHeader(XlsxRowReader.Rows(input, options, context), options), context);
+        var source = XlsxRowReader.Rows(input, options, context);
+        return ToModels<TModel>(AtHeader(source, options), context, source.Title);
     }
 
     /// <summary>
@@ -104,6 +105,8 @@ public class ExcelImporter
     /// <remarks>
     ///     只读到表头那一行为止，后面有多少行数据都不影响其开销。<c>.xls</c> 仍须整份读入——该格式
     ///     的数据并非顺序存放。传入的流由本方法读取，返回前即已读完。
+    ///     表里一行都没有时给出表名与空的列；传入的根本不是工作簿则抛出
+    ///     <see cref="Excel2ObjectException" />。
     /// </remarks>
     /// <example>
     ///     <code>
@@ -121,7 +124,9 @@ public class ExcelImporter
         var source = LooksLikeXlsx(input)
             ? XlsxRowReader.Rows(input, options, context)
             : GetDataRows(ReadAll(input), options, context);
-        if (source == null) return new ExcelSheetHeader(null, new List<string>());
+
+        // 读不出来与「表里没有行」不同：后者给出表名与空列，前者应当说清楚
+        if (source == null) throw new Excel2ObjectException("这不是一份能够打开的工作簿。");
 
         using var rows = AtHeader(source, options);
         var titleRow = rows.Current;
@@ -156,13 +161,14 @@ public class ExcelImporter
     }
 
     /// <summary>行从哪里来并不影响其后的转换：字典与模型两条路都只认 <see cref="IImportRow" />。</summary>
-    private static IEnumerable<TModel> ToModels<TModel>(IEnumerator<IImportRow>? rows, ImportContext context)
+    private static IEnumerable<TModel> ToModels<TModel>(IEnumerator<IImportRow>? rows, ImportContext context,
+        string? sheetTitle)
         where TModel : class, new()
     {
         if (typeof(TModel) == typeof(Dictionary<string, object>))
             return (InternalExcelToDictionary(rows, context) as IEnumerable<TModel>)!;
 
-        return InternalExcelToObject<TModel>(rows, context);
+        return InternalExcelToObject<TModel>(rows, context, sheetTitle);
     }
 
     private static IEnumerable<Dictionary<string, object>> InternalExcelToDictionary(IEnumerator<IImportRow>? result,
@@ -201,7 +207,7 @@ public class ExcelImporter
     }
 
     private static IEnumerable<TModel> InternalExcelToObject<TModel>(IEnumerator<IImportRow>? result,
-        ImportContext context)
+        ImportContext context, string? sheetTitle)
         where TModel : class, new()
     {
         if (result == null)
@@ -210,7 +216,7 @@ public class ExcelImporter
         // 取行的枚举器在此释放：流式导入由它持有着打开的工作簿，中途放弃（Take、break）时也须关上
         using (result)
         {
-            var dictColumns = BuildColumnMappings<TModel>(result, context);
+            var dictColumns = BuildColumnMappings<TModel>(result, context, sheetTitle);
 
             while (result.MoveNext())
             {
@@ -227,29 +233,31 @@ public class ExcelImporter
     }
 
     private static Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>> BuildColumnMappings<TModel>(
-        IEnumerator<IImportRow> result, ImportContext context)
+        IEnumerator<IImportRow> result, ImportContext context, string? sheetTitle)
         where TModel : class, new()
     {
         var dict = ExcelUtil.GetPropertiesAttributesDict<TModel>();
         var dictColumns = new Dictionary<int, KeyValuePair<PropertyInfo, ExcelTitleAttribute>>();
         var titleRow = result.Current;
-        if (titleRow == null) return dictColumns;
 
+        // 表里一行都没有时表头即为空，此时模型上的每个标题都对不上，同样要上报
         var headerTitles = new List<string>();
-        foreach (var cell in titleRow.Cells)
-        {
-            var title = TextOf(cell.Value) ?? string.Empty;
-            headerTitles.Add(title);
-            var prop = dict.FirstOrDefault(c => title == c.Value.Title);
-            if (prop.Key != null && !dictColumns.ContainsKey(cell.Key))
-                dictColumns.Add(cell.Key, prop);
-        }
+        if (titleRow != null)
+            foreach (var cell in titleRow.Cells)
+            {
+                var title = TextOf(cell.Value) ?? string.Empty;
+                headerTitles.Add(title);
+                var prop = dict.FirstOrDefault(c => title == c.Value.Title);
+                if (prop.Key != null && !dictColumns.ContainsKey(cell.Key))
+                    dictColumns.Add(cell.Key, prop);
+            }
 
         // 模型上写着、表头里却没有的标题：那一列不会被填上，整列都是默认值，此处上报
         var mapped = new HashSet<string>(dictColumns.Values.Select(c => c.Value.Title), StringComparer.Ordinal);
         foreach (var pair in dict)
             if (!mapped.Contains(pair.Value.Title))
-                context.ReportMissingColumn(pair.Value.Title, pair.Key.Name, titleRow.SheetTitle, headerTitles);
+                context.ReportMissingColumn(pair.Value.Title, pair.Key.Name, titleRow?.SheetTitle ?? sheetTitle,
+                    headerTitles);
 
         return dictColumns;
     }
