@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -9,12 +10,6 @@ namespace Chsword.Excel2Object.Cli;
 /// <summary>excel2obj convert: Excel -> JSON or JSON -> Excel, decided per input by file extension.</summary>
 public static class ConvertCommand
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-    };
-
     public static int Run(Arguments args, TextWriter output, TextWriter error)
     {
         if (args.Positional.Count == 0) throw new UsageException("convert needs at least one input file");
@@ -30,29 +25,22 @@ public static class ConvertCommand
             Directory.CreateDirectory(target);
         }
 
+        var whole = args.Has("whole");
+
         foreach (var input in inputs)
         {
             if (!File.Exists(input)) throw new FileNotFoundException($"input file not found: {input}", input);
-            string? destination;
-            if (inputs.Count > 1)
-                destination = Path.Combine(target!, Path.GetFileNameWithoutExtension(input) +
-                                                    (SheetData.IsExcel(input) ? ".json" : xls ? ".xls" : ".xlsx"));
-            else if (target != null && Directory.Exists(target))
-                destination = Path.Combine(target, Path.GetFileNameWithoutExtension(input) +
-                                                   (SheetData.IsExcel(input) ? ".json" : xls ? ".xls" : ".xlsx"));
-            else
-                destination = target;
+            var destination = Destination(input, target, inputs.Count > 1, xls);
 
             if (SheetData.IsExcel(input))
             {
-                var json = ExcelToJson(input, sheet, typed);
                 if (destination == null)
                 {
-                    output.WriteLine(json);
+                    output.WriteLine(ExcelToJson(input, sheet, typed, whole));
                 }
                 else
                 {
-                    File.WriteAllText(destination, json);
+                    Replace(destination, file => WriteJson(input, sheet, typed, whole, file));
                     error.WriteLine($"{input} -> {destination}");
                 }
             }
@@ -63,7 +51,8 @@ public static class ConvertCommand
                 var excelType = xls || destination.EndsWith(".xls", StringComparison.OrdinalIgnoreCase)
                     ? ExcelType.Xls
                     : ExcelType.Xlsx;
-                File.WriteAllBytes(destination, JsonToExcel(input, sheet, excelType));
+                var bytes = JsonToExcel(input, sheet, excelType);
+                Replace(destination, file => file.Write(bytes, 0, bytes.Length));
                 error.WriteLine($"{input} -> {destination}");
             }
         }
@@ -71,48 +60,111 @@ public static class ConvertCommand
         return Excel2ObjCli.Ok;
     }
 
-    public static string ExcelToJson(string path, string? sheet, bool typed)
+    /// <summary>该输入写到哪里去：多个输入时按目录派生文件名，单个输入时即 --output 本身。</summary>
+    private static string? Destination(string input, string? target, bool severalInputs, bool xls)
     {
-        var data = SheetData.Load(path, sheet);
-        var types = typed
-            ? data.Columns.ToDictionary(c => c, c => TypeInference.Infer(data.ColumnValues(c)))
-            : null;
-
-        var array = new JsonArray();
-        foreach (var row in data.Rows)
-        {
-            var item = new JsonObject();
-            foreach (var column in data.Columns)
-            {
-                var text = row.TryGetValue(column, out var value) ? value?.ToString() ?? "" : "";
-                item[column] = types == null ? JsonValue.Create(text) : ToJsonValue(text, types[column]);
-            }
-
-            array.Add(item);
-        }
-
-        return array.ToJsonString(JsonOptions);
+        var name = Path.GetFileNameWithoutExtension(input) +
+                   (SheetData.IsExcel(input) ? ".json" : xls ? ".xls" : ".xlsx");
+        if (severalInputs) return Path.Combine(target!, name);
+        if (target != null && Directory.Exists(target)) return Path.Combine(target, name);
+        return target;
     }
 
-    private static JsonNode? ToJsonValue(string text, InferredType type)
+    /// <summary>
+    ///     先写到同目录下的临时文件，成功之后再就位。读的是一行一行来的，若直接往目标文件写：
+    ///     目标与输入是同一个文件时，源在读到之前就已被清空；中途失败也会留下半个文件。
+    /// </summary>
+    private static void Replace(string destination, Action<Stream> write)
     {
-        if (type != InferredType.String && string.IsNullOrWhiteSpace(text)) return null;
+        var temporary = destination + ".tmp" + Path.GetRandomFileName();
+        try
+        {
+            using (var file = File.Create(temporary)) write(file);
+
+            if (File.Exists(destination)) File.Delete(destination);
+            File.Move(temporary, destination);
+        }
+        catch
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
+            throw;
+        }
+    }
+
+    /// <summary>写到标准输出时才用得到：那里本就要把整段文本拿在手上。</summary>
+    public static string ExcelToJson(string path, string? sheet, bool typed, bool whole = false)
+    {
+        using var buffer = new MemoryStream();
+        WriteJson(path, sheet, typed, whole, buffer);
+        return Encoding.UTF8.GetString(buffer.ToArray());
+    }
+
+    /// <summary>
+    ///     一行读出、一行写出，中途不把整份数据攒在内存里。<c>--typed</c> 要先知道每列是什么类型，
+    ///     故先过一遍推断，再过一遍写出——两遍各是一次顺序读。
+    /// </summary>
+    /// <param name="whole">
+    ///     整份读入工作簿，公式当场求值。逐行读出取的是文件里存着的上一次计算结果，没有存下结果的
+    ///     公式（本库导出的文件即如此）因而读作空白；确需求值时用这条路，代价是内存随文件增长。
+    /// </param>
+    public static void WriteJson(string path, string? sheet, bool typed, bool whole, Stream destination)
+    {
+        var data = SheetData.Load(path, sheet, whole);
+        // 每列的类型在此定下，不在写每一格时反复去问
+        var types = typed ? data.Infer().Select(inference => inference.Result).ToArray() : null;
+
+        using var writer = new Utf8JsonWriter(destination,
+            new JsonWriterOptions {Indented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping});
+        writer.WriteStartArray();
+        foreach (var row in data.Rows())
+        {
+            writer.WriteStartObject();
+            for (var i = 0; i < data.Columns.Count; i++)
+            {
+                writer.WritePropertyName(data.Columns[i]);
+                var text = SheetData.Text(row, data.Columns[i]);
+                if (types == null)
+                    writer.WriteStringValue(text);
+                else
+                    WriteTypedValue(writer, text, types[i]);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private static void WriteTypedValue(Utf8JsonWriter writer, string text, InferredType type)
+    {
+        if (type != InferredType.String && string.IsNullOrWhiteSpace(text))
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
         switch (type)
         {
             case InferredType.Bool:
                 TypeInference.TryParseBool(text, out var flag);
-                return JsonValue.Create(flag);
+                writer.WriteBooleanValue(flag);
+                break;
             case InferredType.Int:
-                return JsonValue.Create(int.Parse(text, CultureInfo.InvariantCulture));
+                writer.WriteNumberValue(int.Parse(text, CultureInfo.InvariantCulture));
+                break;
             case InferredType.Long:
-                return JsonValue.Create(long.Parse(text, CultureInfo.InvariantCulture));
+                writer.WriteNumberValue(long.Parse(text, CultureInfo.InvariantCulture));
+                break;
             case InferredType.Decimal:
-                return JsonValue.Create(decimal.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
+                writer.WriteNumberValue(decimal.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
+                break;
             case InferredType.DateTime:
                 TypeInference.TryParseDateTime(text, out var date);
-                return JsonValue.Create(date.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture));
+                writer.WriteStringValue(date.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture));
+                break;
             default:
-                return JsonValue.Create(text);
+                writer.WriteStringValue(text);
+                break;
         }
     }
 

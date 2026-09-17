@@ -27,4 +27,27 @@ public class ExcelImporterOptions
     ///     <c>options.OnCellError = e =&gt; throw e.Exception;</c>。
     /// </remarks>
     public Action<ExcelImportError>? OnCellError { get; set; }
+
+    /// <summary>
+    ///     模型上写着的某个列标题在表头中找不到时的回调，用于得知哪一列没有对上。默认不设回调，
+    ///     此时该属性保持其默认值，导入照常进行——与既有版本一致。
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         标题差一个空格、多一个单位（「金额」与「金额（元）」），导入并不会报错，只是那一列
+    ///         悄悄全为空。这是导入类问题中最常见的一种，<see cref="OnCellError" /> 只覆盖到单元格
+    ///         层面，对此无能为力。
+    ///     </para>
+    ///     <para>回调在读过表头之后、取第一行数据之前调用，每个对不上的标题调用一次。</para>
+    ///     <example>
+    ///         <code>
+    /// // 只是记下来
+    /// options.OnMissingColumn = missing =&gt; logger.Warn(missing.ToString());
+    ///
+    /// // 或者干脆不接受这样的文件
+    /// options.OnMissingColumn = missing =&gt; throw new Excel2ObjectException(missing.ToString());
+    ///         </code>
+    ///     </example>
+    /// </remarks>
+    public Action<ExcelColumnMissing>? OnMissingColumn { get; set; }
 }

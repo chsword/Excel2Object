@@ -62,6 +62,91 @@ public class CliTest
         return (code, stdout.ToString(), stderr.ToString());
     }
 
+    /// <summary>一份带公式的工作簿：公式的结果要等 Excel 打开时才算出，文件里并没有存下。</summary>
+    private string WriteWorkbookWithFormula()
+    {
+        var path = Path.Combine(_dir, "with-formula.xlsx");
+        var bytes = new ExcelExporter().ObjectToExcelBytes(Orders, o =>
+        {
+            o.ExcelType = ExcelType.Xlsx;
+            o.FormulaColumns.Add(new Options.FormulaColumn {Title = "Double", Formula = c => c["Qty"] * 2});
+        });
+        File.WriteAllBytes(path, bytes!);
+        return path;
+    }
+
+    [TestMethod]
+    public void ConvertingOntoTheInputItselfKeepsTheData()
+    {
+        // 逐行读出意味着边读边写，目标若就是输入本身，先清空目标便会毁掉源文件
+        var path = WriteWorkbook();
+        var (code, _, stderr) = Run("convert", path, "--output", path);
+        Assert.AreEqual(Excel2ObjCli.Ok, code, stderr);
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(path));
+        var rows = doc.RootElement.EnumerateArray().ToList();
+        Assert.AreEqual(2, rows.Count);
+        Assert.AreEqual("Apple", rows[0].GetProperty("Product").GetString());
+    }
+
+    [TestMethod]
+    public void AFailedConversionLeavesTheDestinationAlone()
+    {
+        var destination = Path.Combine(_dir, "keep.json");
+        File.WriteAllText(destination, "原样保留");
+
+        var broken = Path.Combine(_dir, "broken.xlsx");
+        File.WriteAllText(broken, "这不是一份工作簿");
+        var (code, _, _) = Run("convert", broken, "--output", destination);
+
+        Assert.AreNotEqual(Excel2ObjCli.Ok, code);
+        Assert.AreEqual("原样保留", File.ReadAllText(destination), "失败时不应留下半个文件");
+    }
+
+    [TestMethod]
+    public void FormulasReadTheirStoredResultUnlessWholeIsAsked()
+    {
+        var path = WriteWorkbookWithFormula();
+
+        // 默认逐行读出：公式取文件里存着的结果，本库写出的文件并没有存下
+        var (code, stdout, stderr) = Run("convert", path);
+        Assert.AreEqual(Excel2ObjCli.Ok, code, stderr);
+        using (var doc = JsonDocument.Parse(stdout))
+            Assert.AreEqual("", doc.RootElement[0].GetProperty("Double").GetString());
+
+        // --whole 是个开关，放在路径之前也不应把路径吞掉
+        var (wholeCode, wholeOut, wholeErr) = Run("convert", "--whole", path);
+        Assert.AreEqual(Excel2ObjCli.Ok, wholeCode, wholeErr);
+        using (var doc = JsonDocument.Parse(wholeOut))
+            Assert.AreEqual("8", doc.RootElement[0].GetProperty("Double").GetString());
+    }
+
+    [TestMethod]
+    public void DuplicateHeaderTitlesStillGenerateAModel()
+    {
+        // 表头允许有重名的列，生成的属性名靠 Unique 区分
+        var path = Path.Combine(_dir, "dup.xlsx");
+        var workbook = new NPOI.XSSF.UserModel.XSSFWorkbook();
+        var sheet = workbook.CreateSheet("Dup");
+        var header = sheet.CreateRow(0);
+        header.CreateCell(0).SetCellValue("Name");
+        header.CreateCell(1).SetCellValue("Qty");
+        header.CreateCell(2).SetCellValue("Name");
+        var row = sheet.CreateRow(1);
+        row.CreateCell(0).SetCellValue("甲");
+        row.CreateCell(1).SetCellValue(2);
+        row.CreateCell(2).SetCellValue("乙");
+        using (var file = File.Create(path)) workbook.Write(file, false);
+
+        var (code, stdout, stderr) = Run("generate-model", path, "--class=Dup");
+        Assert.AreEqual(Excel2ObjCli.Ok, code, stderr);
+        StringAssert.Contains(stdout, "public string? Name { get; set; }");
+        StringAssert.Contains(stdout, "public string? Name2 { get; set; }");
+
+        var (typedCode, _, typedErr) = Run("convert", path, "--typed");
+        Assert.AreEqual(Excel2ObjCli.Ok, typedCode, typedErr);
+    }
+
     [TestMethod]
     public void ExcelToJsonWritesCellTextByDefault()
     {

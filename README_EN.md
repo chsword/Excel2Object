@@ -66,6 +66,13 @@ See [Chsword.Excel2Object.Cli/README.md](Chsword.Excel2Object.Cli/README.md).
 
 ### Release Notes
 
+* **2026.09.16** - v2.12.0
+- [x] ✨ **NEW:** Learn when a column your model declares is not in the header: `options.OnMissingColumn = m => logger.Warn(m.ToString())`. A title off by a space or carrying a unit ("Amount" against "Amount (USD)") never failed the import before - that property was simply left at its default for every row. The callback runs after the header is read and before the first row, once per title that did not match, and names the header titles closest to it; throw from it to refuse the file. With no callback set the behaviour is unchanged - See [docs/versions/v2.12.0.md](docs/versions/v2.12.0.md)
+- [x] ✨ **NEW:** Read just the header: `ExcelHelper.ReadHeader(stream)` returns the sheet name and its column titles, reading no further than the header row - for checking columns before an import, or generating a model from them
+- [x] 🔧 The command-line tool now reads row by row: on 200,000 rows of five columns, `convert` went from 13.5 s / 2412 MB to 2.6 s / 215 MB and `generate-model` from 11.9 s / 2245 MB to 2.7 s / 204 MB, byte for byte the same output for files without formulas. A formula cell now reads the result stored in the file; pass `--whole` to read the workbook whole and evaluate formulas
+- [x] 🐛 Fixed the command-line tool losing values when a header title carries surrounding whitespace: the property it wrote kept the whitespace while its value was always empty, because the header and the rows did not go through the same reader
+
+
 * **2026.09.16** - v2.11.0
 - [x] ✨ **NEW:** Streaming import: `ExcelHelper.ExcelStreamToObject<Order>(stream)` reads one sheet of an `.xlsx` row by row instead of building the whole workbook in memory. Measured on 200,000 rows of five columns: 1265 MB / 8.4 s read whole against 194 MB / 2.9 s streamed, field for field the same data. The sequence is lazy, so `Take` and friends really do read less. Three differences: a formula cell reads the result stored in the file rather than being evaluated (files this library writes carry no such result, so those cells read as blank, like any other blank cell), only `.xlsx` can be read row by row (`.xls` is still read whole), and the sheet is located up front - See [docs/versions/v2.11.0.md](docs/versions/v2.11.0.md)
 - [x] 🔧 Import conversion no longer depends on NPOI's cell objects: reading whole and reading row by row share one conversion, so the two cannot drift apart. The dictionary form of the import became lazy as a result; duplicate header titles now resolve to the leftmost column, and a non-text header no longer aborts the import

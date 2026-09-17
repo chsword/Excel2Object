@@ -130,7 +130,7 @@ public sealed class Arguments
     }
 
     /// <summary>Options that never take a value, so a following positional argument is not swallowed.</summary>
-    private static readonly HashSet<string> Switches = new(StringComparer.Ordinal) {"typed", "xls"};
+    private static readonly HashSet<string> Switches = new(StringComparer.Ordinal) {"typed", "xls", "whole"};
 
     public bool Has(string name)
     {

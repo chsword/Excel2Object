@@ -111,6 +111,12 @@ public static class ExcelHelper
         return excelExporter.ObjectToExcelBytes(data, optionsAction);
     }
 
+    /// <inheritdoc cref="ExcelImporter.ReadHeader(Stream, Action{ExcelImporterOptions})" />
+    public static ExcelSheetHeader ReadHeader(Stream input, Action<ExcelImporterOptions>? optionAction = null)
+    {
+        return new ExcelImporter().ReadHeader(input, optionAction);
+    }
+
     /// <inheritdoc cref="ExcelImporter.ExcelStreamToObject{TModel}(Stream, Action{ExcelImporterOptions})" />
     public static IEnumerable<TModel> ExcelStreamToObject<TModel>(Stream input,
         Action<ExcelImporterOptions>? optionAction = null)
