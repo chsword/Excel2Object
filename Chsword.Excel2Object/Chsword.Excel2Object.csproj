@@ -3,7 +3,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<LangVersion>14.0</LangVersion>
 		<Nullable>enable</Nullable>
-		<!-- nullable ¾¯¸æÊÓÎª´íÎó£º´ËÇ°Îª annotations£¬±ê×¢ÐÎÍ¬ÐéÉè£¬¸Ä enable ºóÐë·ÀÆäÇÄÇÄÍË»Ø -->
+		<!-- nullable ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ó£º´ï¿½Ç°Îª annotationsï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½Í¬ï¿½ï¿½ï¿½è£¬ï¿½ï¿½ enable ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë»ï¿½ -->
 		<WarningsAsErrors>nullable</WarningsAsErrors>
 		<!-- NPOI 2.8.0+ requires explicit acknowledgement of the Open Source Maintenance Fee
 		     EULA. The source stays Apache-2.0; the fee applies only to revenue-generating
@@ -20,7 +20,7 @@
 		<PackageProjectUrl>https://github.com/chsword/Excel2Object/</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>excel,.net,netcore</PackageTags>
-		<Description>Convert excel and .NET object , Excel Óë .NET ¶ÔÏó»¥Ïà×ª»»µÄÀà¿â</Description>
+		<Description>Convert excel and .NET object , Excel ï¿½ï¿½ .NET ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</Description>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<DefineConstants>DEBUG;TRACE</DefineConstants>
@@ -47,6 +47,6 @@
 	<ItemGroup>
 		<PackageReference Include="NPOI" Version="2.8.0" />
 		<!-- Pinned above NPOI's transitive 8.0.2, which carries three High severity advisories. -->
-		<PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.4" />
+		<PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.5" />
 	</ItemGroup>
 </Project>
